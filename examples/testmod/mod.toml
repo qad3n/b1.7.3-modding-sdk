@@ -1,0 +1,20 @@
+id = "testmod"
+version = "0.1.0"
+name = "Loader Test Mod"
+description = "Exercises every part of the mod API: content, behaviors, events, commands, network, screens, data, worldgen and dimensions"
+authors = ["b173 example"]
+license = "MIT"
+api = "1.0"
+side = "both"
+
+[network]
+version = "1"
+
+[depends]
+loader = ">=0.1"
+
+[optional]
+energy = "^1"
+
+[remap]
+old_spark = "spark"

@@ -1,0 +1,8 @@
+template = "minecraft:iron_block"
+hardness = 5.0
+resistance = 10.0
+light = 0.25
+texture = "ruby:block/ruby_block"
+sound = "metal"
+name = "Block of Ruby"
+tool = { class = "pickaxe", level = 2 }

@@ -1,0 +1,3 @@
+[shapeless]
+ingredients = [{ item = "ruby:ruby_block" }]
+result = { item = "ruby:ruby", count = 9 }

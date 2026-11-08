@@ -1,0 +1,16 @@
+[package]
+name = "energy"
+version = "1.0.0"
+edition = "2024"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+b173_api = { path = "../../b173_api" }
+energy_api = { path = "../energy_api" }
+serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
+
+[lints]
+workspace = true

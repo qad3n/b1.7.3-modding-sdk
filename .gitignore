@@ -1,0 +1,21 @@
+# build output
+/target/
+/examples/*/target/
+**/*.rs.bk
+
+# generated example textures
+/examples/*/assets/*/textures/
+
+# runtime data from cargo b173 run
+/run/
+*.log
+
+# editors
+.idea/
+.vscode/
+*.swp
+*~
+
+# os
+.DS_Store
+Thumbs.db

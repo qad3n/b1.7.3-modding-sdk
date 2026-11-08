@@ -1,0 +1,3 @@
+texture = "ruby:item/ruby"
+name = "Ruby"
+tags = ["c:gems/ruby"]

@@ -1,0 +1,9 @@
+template = "minecraft:glowstone"
+material = "glass"
+hardness = 0.3
+light = 1.0
+sound = "glass"
+name = "Ruby Lamp"
+color = 0xFF5050
+textures = { top = "ruby:block/ruby_block", bottom = "ruby:block/ruby_block", side = "minecraft:terrain/105" }
+flammability = { encouragement = 5, flammability = 20 }

@@ -1,0 +1,3 @@
+texture = "ruby:item/ruby_pickaxe"
+name = "Ruby Pickaxe"
+tool = { class = "pickaxe", level = 3, speed = 10.0, damage = 4, durability = 900 }

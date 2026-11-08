@@ -1,0 +1,781 @@
+use crate::behavior::{self, BlockBehavior, EntityBehavior, ItemBehavior, TileBehavior};
+use crate::dispatch::{self, Command};
+use crate::events::{Event, EventType};
+use crate::rt::call;
+use crate::screen::{Draw, Screen};
+use crate::services::{Lookup, Service};
+use crate::{Error, ItemRef, ItemStack, Player, Result, expectUnit, ownId};
+use mod_protocol::Identifier;
+use mod_protocol::abi::{
+    BiomeSpec, ChunkInfo, ConfigEntry, ConfigScope, DimensionSpec, EventKind, HostCall, HostReply, Permission,
+    Priority, RegistryKind, ScreenSpec, SlotSpec,
+};
+use mod_protocol::handshake::ChannelDirection;
+use mod_protocol::spec::{
+    Behavior, BlockSpec, EntitySpec, FuelSpec, ItemSpec, RecipeSpec, ShapedSpec, ShapelessSpec, SmeltingSpec,
+    StackSpec, TileEntitySpec, ToolClass, ToolSpec, WorldgenKind, WorldgenSpec,
+};
+use serde::Serialize;
+use serde::de::DeserializeOwned;
+use std::collections::BTreeMap;
+use std::rc::Rc;
+
+fn parse(name: &str) -> Result<Identifier>
+{
+    Identifier::parseIn(name, &crate::modId()).map_err(|error| Error(error.to_string()))
+}
+
+fn stackSpec(stack: &ItemStack) -> Result<StackSpec>
+{
+    let item: Identifier = stack.item.name().ok_or("a recipe stack needs a registered item")?;
+    Ok(StackSpec { item, count: stack.count, meta: stack.damage })
+}
+
+// the context handed to #[mod_main], registration only works while the loader is in its register phase
+pub struct RegisterCtx
+{
+    pub(crate) m_modId: String,
+}
+
+impl RegisterCtx
+{
+    pub fn modId(&self) -> &str { &self.m_modId }
+
+    pub fn blocks(&mut self) -> Blocks { Blocks }
+
+    pub fn items(&mut self) -> Items { Items }
+
+    pub fn entities(&mut self) -> Entities { Entities }
+
+    pub fn tileEntities(&mut self) -> TileEntities { TileEntities }
+
+    pub fn recipes(&mut self) -> Recipes { Recipes }
+
+    pub fn events(&mut self) -> Events { Events }
+
+    pub fn commands(&mut self) -> Commands { Commands }
+
+    pub fn keybinds(&mut self) -> Keybinds { Keybinds }
+
+    pub fn channels(&mut self) -> Channels { Channels }
+
+    pub fn screens(&mut self) -> Screens { Screens }
+
+    pub fn config(&mut self) -> Config { Config }
+
+    pub fn services(&mut self) -> Services { Services }
+
+    pub fn tags(&mut self) -> Tags { Tags }
+
+    pub fn worldgen(&mut self) -> Worldgen { Worldgen }
+
+    pub fn dimensions(&mut self) -> Dimensions { Dimensions }
+
+    pub fn lang(&mut self) -> Lang { Lang }
+}
+
+pub struct Blocks;
+
+impl Blocks
+{
+    pub fn register(&self, name: &str, spec: BlockSpecBuilder) -> Result<ItemRef>
+    {
+        let id: Identifier = parse(name)?;
+        expectUnit(call(HostCall::RegisterBlock { name: id.to_string(), spec: spec.m_spec }))?;
+        Ok(ItemRef::Named(id))
+    }
+
+    pub fn replace(&self, id: &str, spec: BlockSpecBuilder) -> Result<()>
+    {
+        expectUnit(call(HostCall::ReplaceBlock { id: parse(id)?, spec: spec.m_spec }))
+    }
+
+    pub fn id(&self, name: &str) -> Result<i32> { crate::resolve(RegistryKind::Block, &parse(name)?) }
+}
+
+pub struct BlockSpecBuilder
+{
+    pub m_spec: BlockSpec,
+}
+
+impl BlockSpecBuilder
+{
+    pub fn template(template: &str) -> BlockSpecBuilder
+    {
+        BlockSpecBuilder { m_spec: BlockSpec { template: Identifier::parse(template).ok(), ..BlockSpec::default() } }
+    }
+
+    pub fn hardness(mut self, value: f32) -> Self
+    {
+        self.m_spec.hardness = Some(value);
+        self
+    }
+
+    pub fn resistance(mut self, value: f32) -> Self
+    {
+        self.m_spec.resistance = Some(value);
+        self
+    }
+
+    pub fn light(mut self, value: f32) -> Self
+    {
+        self.m_spec.light = Some(value);
+        self
+    }
+
+    pub fn material(mut self, material: &str) -> Self
+    {
+        self.m_spec.material = Some(material.to_owned());
+        self
+    }
+
+    pub fn texture(mut self, texture: &str) -> Self
+    {
+        self.m_spec.texture = Some(texture.to_owned());
+        self
+    }
+
+    pub fn faces(mut self, faces: mod_protocol::spec::FaceTextures) -> Self
+    {
+        self.m_spec.textures = Some(faces);
+        self
+    }
+
+    pub fn color(mut self, color: u32) -> Self
+    {
+        self.m_spec.color = Some(color);
+        self
+    }
+
+    pub fn sound(mut self, sound: &str) -> Self
+    {
+        self.m_spec.sound = Some(sound.to_owned());
+        self
+    }
+
+    pub fn name(mut self, name: &str) -> Self
+    {
+        self.m_spec.name = Some(name.to_owned());
+        self
+    }
+
+    pub fn tool(mut self, class: ToolClass, level: i32) -> Self
+    {
+        self.m_spec.tool = Some(ToolSpec { class, level });
+        self
+    }
+
+    pub fn drops(mut self, drops: Vec<mod_protocol::spec::DropSpec>) -> Self
+    {
+        self.m_spec.drops = Some(drops);
+        self
+    }
+
+    pub fn tickRandomly(mut self) -> Self
+    {
+        self.m_spec.tick_randomly = Some(true);
+        self
+    }
+
+    pub fn tileEntity(mut self, tile: &str) -> Self
+    {
+        self.m_spec.tile_entity = parse(tile).ok();
+        self
+    }
+
+    pub fn fuel(mut self, ticks: i32) -> Self
+    {
+        self.m_spec.fuel = Some(ticks);
+        self
+    }
+
+    pub fn flammable(mut self, encouragement: i32, flammability: i32) -> Self
+    {
+        self.m_spec.flammability = Some(mod_protocol::spec::Flammability { encouragement, flammability });
+        self
+    }
+
+    pub fn model(mut self, model: mod_protocol::spec::BlockModelSpec) -> Self
+    {
+        self.m_spec.model = Some(model);
+        self
+    }
+
+    pub fn tag(mut self, tag: &str) -> Self
+    {
+        if let Ok(tag) = Identifier::parse(tag)
+        {
+            self.m_spec.tags.push(tag);
+        }
+        self
+    }
+
+    pub fn vanillaFallback(mut self, block: &str) -> Self
+    {
+        self.m_spec.vanilla_fallback = Identifier::parse(block).ok();
+        self
+    }
+
+    pub fn behavior(mut self, behavior: impl BlockBehavior + 'static) -> Self
+    {
+        let methods = behavior::methods(behavior.overridden(), &behavior::BLOCK_METHODS);
+        let handle: u32 = dispatch::addBlock(Rc::new(behavior));
+        self.m_spec.behavior = Some(Behavior { handle, methods });
+        self
+    }
+}
+
+pub struct Items;
+
+impl Items
+{
+    pub fn register(&self, name: &str, spec: ItemSpecBuilder) -> Result<ItemRef>
+    {
+        let id: Identifier = parse(name)?;
+        expectUnit(call(HostCall::RegisterItem { name: id.to_string(), spec: spec.m_spec }))?;
+        Ok(ItemRef::Named(id))
+    }
+
+    // content from data/ files and other mods registers before code runs, so lookups by name work here
+    pub fn get(&self, name: &str) -> Result<ItemRef>
+    {
+        let id: Identifier = parse(name)?;
+        Ok(ItemRef::Named(id))
+    }
+}
+
+pub struct ItemSpecBuilder
+{
+    pub m_spec: ItemSpec,
+}
+
+impl ItemSpecBuilder
+{
+    pub fn new() -> ItemSpecBuilder { ItemSpecBuilder { m_spec: ItemSpec::default() } }
+
+    pub fn template(template: &str) -> ItemSpecBuilder
+    {
+        ItemSpecBuilder { m_spec: ItemSpec { template: Identifier::parse(template).ok(), ..ItemSpec::default() } }
+    }
+
+    pub fn texture(mut self, texture: &str) -> Self
+    {
+        self.m_spec.texture = Some(texture.to_owned());
+        self
+    }
+
+    pub fn name(mut self, name: &str) -> Self
+    {
+        self.m_spec.name = Some(name.to_owned());
+        self
+    }
+
+    pub fn maxStack(mut self, size: i32) -> Self
+    {
+        self.m_spec.max_stack = Some(size);
+        self
+    }
+
+    pub fn maxDamage(mut self, damage: i32) -> Self
+    {
+        self.m_spec.max_damage = Some(damage);
+        self
+    }
+
+    pub fn food(mut self, heal: i32) -> Self
+    {
+        self.m_spec.food = Some(mod_protocol::spec::FoodSpec { heal, wolf_food: false });
+        self
+    }
+
+    pub fn tool(mut self, class: ToolClass, level: i32, speed: f32, damage: i32, durability: i32) -> Self
+    {
+        self.m_spec.tool = Some(mod_protocol::spec::ItemToolSpec { class, level, speed, damage, durability });
+        self.m_spec.full3d = Some(true);
+        self
+    }
+
+    pub fn armor(mut self, armor: mod_protocol::spec::ArmorSpec) -> Self
+    {
+        self.m_spec.armor = Some(armor);
+        self
+    }
+
+    pub fn fuel(mut self, ticks: i32) -> Self
+    {
+        self.m_spec.fuel = Some(ticks);
+        self
+    }
+
+    pub fn tag(mut self, tag: &str) -> Self
+    {
+        if let Ok(tag) = Identifier::parse(tag)
+        {
+            self.m_spec.tags.push(tag);
+        }
+        self
+    }
+
+    pub fn behavior(mut self, behavior: impl ItemBehavior + 'static) -> Self
+    {
+        let methods = behavior::methods(behavior.overridden(), &behavior::ITEM_METHODS);
+        let handle: u32 = dispatch::addItem(Rc::new(behavior));
+        self.m_spec.behavior = Some(Behavior { handle, methods });
+        self
+    }
+}
+
+impl Default for ItemSpecBuilder
+{
+    fn default() -> Self { ItemSpecBuilder::new() }
+}
+
+pub struct Entities;
+
+impl Entities
+{
+    pub fn register(&self, name: &str, spec: EntitySpec, behavior: Option<Rc<dyn EntityBehavior>>) -> Result<()>
+    {
+        let mut spec: EntitySpec = spec;
+        if let Some(behavior) = behavior
+        {
+            let methods = behavior::methods(behavior.overridden(), &behavior::ENTITY_METHODS);
+            spec.behavior = Some(Behavior { handle: dispatch::addEntity(behavior), methods });
+        }
+        expectUnit(call(HostCall::RegisterEntity { name: parse(name)?.to_string(), spec }))
+    }
+}
+
+pub struct TileEntities;
+
+impl TileEntities
+{
+    pub fn register(&self, name: &str, spec: TileEntitySpec, behavior: Option<Rc<dyn TileBehavior>>) -> Result<()>
+    {
+        let mut spec: TileEntitySpec = spec;
+        if let Some(behavior) = behavior
+        {
+            let methods = behavior::methods(behavior.overridden(), &behavior::TILE_METHODS);
+            spec.behavior = Some(Behavior { handle: dispatch::addTile(behavior), methods });
+        }
+        expectUnit(call(HostCall::RegisterTileEntity { name: parse(name)?.to_string(), spec }))
+    }
+}
+
+pub struct Recipes;
+
+pub struct ShapedBuilder
+{
+    m_name: String,
+    m_result: ItemStack,
+    m_pattern: Vec<String>,
+    m_key: BTreeMap<String, StackSpec>,
+    m_error: Option<Error>,
+}
+
+impl ShapedBuilder
+{
+    pub fn pattern<const N: usize>(mut self, rows: [&str; N]) -> Self
+    {
+        self.m_pattern = rows.iter().map(|row| (*row).to_owned()).collect();
+        self
+    }
+
+    pub fn key(mut self, symbol: char, item: impl Into<ItemRef>) -> Self
+    {
+        match stackSpec(&ItemStack::of(item, 1))
+        {
+            Ok(stack) =>
+            {
+                self.m_key.insert(symbol.to_string(), stack);
+            }
+            Err(error) => self.m_error = Some(error),
+        }
+        self
+    }
+
+    pub fn build(self) -> Result<()>
+    {
+        if let Some(error) = self.m_error
+        {
+            return Err(error);
+        }
+        let spec: RecipeSpec = RecipeSpec::Shaped(ShapedSpec {
+            pattern: self.m_pattern,
+            key: self.m_key,
+            result: stackSpec(&self.m_result)?,
+        });
+        expectUnit(call(HostCall::RegisterRecipe { name: self.m_name, spec }))
+    }
+}
+
+impl Recipes
+{
+    pub fn shaped(&self, name: &str, result: ItemStack) -> ShapedBuilder
+    {
+        ShapedBuilder {
+            m_name: name.to_owned(),
+            m_result: result,
+            m_pattern: Vec::new(),
+            m_key: BTreeMap::new(),
+            m_error: None,
+        }
+    }
+
+    pub fn shapeless(&self, name: &str, result: ItemStack, ingredients: &[ItemStack]) -> Result<()>
+    {
+        let ingredients: Vec<StackSpec> = ingredients.iter().map(stackSpec).collect::<Result<_>>()?;
+        let spec: RecipeSpec = RecipeSpec::Shapeless(ShapelessSpec { ingredients, result: stackSpec(&result)? });
+        expectUnit(call(HostCall::RegisterRecipe { name: name.to_owned(), spec }))
+    }
+
+    pub fn smelting(&self, name: &str, input: impl Into<ItemRef>, result: ItemStack) -> Result<()>
+    {
+        let input: Identifier = input.into().name().ok_or("smelting input is not registered")?;
+        let spec: RecipeSpec = RecipeSpec::Smelting(SmeltingSpec { input, result: stackSpec(&result)? });
+        expectUnit(call(HostCall::RegisterRecipe { name: name.to_owned(), spec }))
+    }
+
+    pub fn fuel(&self, name: &str, item: impl Into<ItemRef>, ticks: i32) -> Result<()>
+    {
+        let item: Identifier = item.into().name().ok_or("fuel item is not registered")?;
+        expectUnit(call(HostCall::RegisterRecipe {
+            name: name.to_owned(),
+            spec: RecipeSpec::Fuel(FuelSpec { item, ticks }),
+        }))
+    }
+
+    pub fn remove(&self, id: &str) -> Result<()> { expectUnit(call(HostCall::RemoveRecipe { id: parse(id)? })) }
+}
+
+pub struct Events;
+
+impl Events
+{
+    pub fn on<E: EventType>(&self, priority: Priority, handler: impl Fn(&mut Event) + 'static) -> Result<()>
+    {
+        self.onKind(E::KIND, priority, false, handler)
+    }
+
+    pub fn onKind(
+        &self,
+        kind: EventKind,
+        priority: Priority,
+        receiveCanceled: bool,
+        handler: impl Fn(&mut Event) + 'static,
+    ) -> Result<()>
+    {
+        let handle: u32 = dispatch::addEvent(Rc::new(handler));
+        expectUnit(call(HostCall::Subscribe {
+            kind,
+            custom: None,
+            priority,
+            receive_canceled: receiveCanceled,
+            handler: handle,
+        }))
+    }
+
+    // a custom event another mod defined, the defining mod must load first
+    pub fn onCustom(&self, event: &str, priority: Priority, handler: impl Fn(&mut Event) + 'static) -> Result<()>
+    {
+        let handle: u32 = dispatch::addEvent(Rc::new(handler));
+        let custom: Identifier = parse(event)?;
+        expectUnit(call(HostCall::Subscribe {
+            kind: EventKind::Custom,
+            custom: Some(custom),
+            priority,
+            receive_canceled: false,
+            handler: handle,
+        }))
+    }
+
+    pub fn define(&self, event: &str) -> Result<()> { expectUnit(call(HostCall::DefineEvent { id: parse(event)? })) }
+}
+
+pub struct Commands;
+
+impl Commands
+{
+    pub fn register(
+        &self,
+        name: &str,
+        permission: Permission,
+        handler: impl Fn(&mut Command) -> Result<()> + 'static,
+    ) -> Result<()>
+    {
+        self.registerWithUsage(name, permission, "", handler)
+    }
+
+    pub fn registerWithUsage(
+        &self,
+        name: &str,
+        permission: Permission,
+        usage: &str,
+        handler: impl Fn(&mut Command) -> Result<()> + 'static,
+    ) -> Result<()>
+    {
+        let handle: u32 = dispatch::addCommand(Rc::new(handler));
+        expectUnit(call(HostCall::RegisterCommand {
+            name: name.to_owned(),
+            permission,
+            usage: usage.to_owned(),
+            handler: handle,
+        }))
+    }
+}
+
+pub struct Keybinds;
+
+impl Keybinds
+{
+    // key is an LWJGL key code, the handler runs on press and release
+    pub fn register(&self, name: &str, key: i32, handler: impl Fn(bool) + 'static) -> Result<()>
+    {
+        let handle: u32 = dispatch::addKey(Rc::new(handler));
+        expectUnit(call(HostCall::RegisterKeybind { name: name.to_owned(), key, handler: handle }))
+    }
+}
+
+pub struct Channels;
+
+impl Channels
+{
+    // typed payloads with any serde type, handlers run on the main thread and must validate serverbound input
+    pub fn register<T: DeserializeOwned + 'static>(
+        &self,
+        name: &str,
+        direction: ChannelDirection,
+        handler: impl Fn(T, Player) + 'static,
+    ) -> Result<()>
+    {
+        let handle: u32 =
+            dispatch::addChannel(Rc::new(move |player: Player, bytes: &[u8]| match crate::world::decode::<T>(bytes)
+            {
+                Ok(message) => handler(message, player),
+                Err(error) => crate::warn(&format!("bad payload: {error}")),
+            }));
+        expectUnit(call(HostCall::RegisterChannel {
+            name: name.to_owned(),
+            version: "1".to_owned(),
+            direction,
+            handler: handle,
+        }))
+    }
+
+    pub fn registerRaw(
+        &self,
+        name: &str,
+        version: &str,
+        direction: ChannelDirection,
+        handler: impl Fn(Player, &[u8]) + 'static,
+    ) -> Result<()>
+    {
+        let handle: u32 = dispatch::addChannel(Rc::new(handler));
+        expectUnit(call(HostCall::RegisterChannel {
+            name: name.to_owned(),
+            version: version.to_owned(),
+            direction,
+            handler: handle,
+        }))
+    }
+}
+
+pub struct Screens;
+
+pub struct ScreenBuilder
+{
+    pub m_spec: ScreenSpec,
+}
+
+impl ScreenBuilder
+{
+    pub fn new(title: &str, width: i32, height: i32) -> ScreenBuilder
+    {
+        ScreenBuilder { m_spec: ScreenSpec { width, height, title: title.to_owned(), ..ScreenSpec::default() } }
+    }
+
+    pub fn background(mut self, texture: &str) -> Self
+    {
+        self.m_spec.background = Some(texture.to_owned());
+        self
+    }
+
+    pub fn slot(mut self, index: i32, x: i32, y: i32) -> Self
+    {
+        self.m_spec.slots.push(SlotSpec { index, x, y, output: false });
+        self
+    }
+
+    pub fn outputSlot(mut self, index: i32, x: i32, y: i32) -> Self
+    {
+        self.m_spec.slots.push(SlotSpec { index, x, y, output: true });
+        self
+    }
+
+    pub fn playerInventory(mut self, x: i32, y: i32) -> Self
+    {
+        self.m_spec.player_inventory = Some([x, y]);
+        self
+    }
+}
+
+impl Screens
+{
+    pub fn register(&self, name: &str, spec: ScreenBuilder, screen: impl Screen + 'static) -> Result<()>
+    {
+        let handle: u32 = dispatch::addScreen(screen);
+        expectUnit(call(HostCall::RegisterScreen { name: name.to_owned(), spec: spec.m_spec, handler: handle }))
+    }
+
+    pub fn hud(&self, handler: impl Fn(&mut Draw, f32, i32, i32) + 'static) -> Result<()>
+    {
+        let handle: u32 = dispatch::addHud(Rc::new(handler));
+        expectUnit(call(HostCall::RegisterHud { handler: handle }))
+    }
+}
+
+pub struct Config;
+
+impl Config
+{
+    // values live in config/<modid>.toml, server scope values are synced to clients
+    pub fn define(&self, entries: &[(&str, &str, &str, ConfigScope)]) -> Result<()>
+    {
+        let entries: Vec<ConfigEntry> = entries
+            .iter()
+            .map(|(key, default, comment, scope)| ConfigEntry {
+                key: (*key).to_owned(),
+                default: (*default).to_owned(),
+                comment: (*comment).to_owned(),
+                scope: *scope,
+            })
+            .collect();
+        expectUnit(call(HostCall::DefineConfig { entries }))
+    }
+
+    pub fn get(&self, key: &str) -> String { configValue(key) }
+}
+
+pub fn configValue(key: &str) -> String
+{
+    match call(HostCall::ConfigValue { key: key.to_owned() })
+    {
+        HostReply::Text(text) => text,
+        _ => String::new(),
+    }
+}
+
+pub struct Services;
+
+impl Services
+{
+    pub fn provide(&self, name: &str, version: u32, service: impl Service + 'static) -> Result<()>
+    {
+        let handle: u32 = dispatch::addService(Rc::new(service));
+        expectUnit(call(HostCall::ProvideService {
+            name: Identifier::parse(name).map_err(|error| Error(error.to_string()))?,
+            version,
+            handler: handle,
+        }))
+    }
+
+    pub fn lookup(&self, api: &str, block: &str, lookup: impl Lookup + 'static) -> Result<()>
+    {
+        let handle: u32 = dispatch::addLookup(Rc::new(lookup));
+        let api: Identifier = Identifier::parse(api).map_err(|error| Error(error.to_string()))?;
+        expectUnit(call(HostCall::RegisterLookup { api, block: parse(block)?, handler: handle }))
+    }
+
+    pub fn onInterMod(&self, handler: impl Fn(&str, &str, &[u8]) + 'static) { dispatch::setInterMod(Rc::new(handler)); }
+}
+
+pub struct Tags;
+
+impl Tags
+{
+    pub fn add(&self, registry: RegistryKind, tag: &str, values: &[&str]) -> Result<()>
+    {
+        let values: Vec<Identifier> = values.iter().map(|value| parse(value)).collect::<Result<_>>()?;
+        expectUnit(call(HostCall::AddTag {
+            registry,
+            tag: Identifier::parse(tag).map_err(|error| Error(error.to_string()))?,
+            values,
+        }))
+    }
+
+    pub fn values(&self, registry: RegistryKind, tag: &str) -> Vec<Identifier> { tagValues(registry, tag) }
+}
+
+pub fn tagValues(registry: RegistryKind, tag: &str) -> Vec<Identifier>
+{
+    let Ok(tag) = Identifier::parse(tag)
+    else
+    {
+        return Vec::new();
+    };
+    match call(HostCall::TagValues { registry, tag })
+    {
+        HostReply::Ids(ids) => ids,
+        _ => Vec::new(),
+    }
+}
+
+pub struct Worldgen;
+
+impl Worldgen
+{
+    pub fn ore(&self, name: &str, block: &str, veinSize: i32, perChunk: i32, y: [i32; 2]) -> Result<()>
+    {
+        let spec: WorldgenSpec = WorldgenSpec {
+            kind: WorldgenKind::Ore,
+            block: parse(block)?,
+            dimension: Identifier::minecraft("overworld"),
+            vein_size: veinSize,
+            per_chunk: perChunk,
+            y,
+            replaces: None,
+            biomes: Vec::new(),
+        };
+        expectUnit(call(HostCall::RegisterWorldgen { name: name.to_owned(), spec }))
+    }
+
+    pub fn feature(&self, name: &str, spec: WorldgenSpec) -> Result<()>
+    {
+        expectUnit(call(HostCall::RegisterWorldgen { name: name.to_owned(), spec }))
+    }
+}
+
+pub struct Dimensions;
+
+impl Dimensions
+{
+    pub fn register(&self, name: &str, spec: DimensionSpec) -> Result<()>
+    {
+        expectUnit(call(HostCall::RegisterDimension { name: name.to_owned(), spec }))
+    }
+
+    pub fn biome(&self, name: &str, spec: BiomeSpec) -> Result<()>
+    {
+        expectUnit(call(HostCall::RegisterBiome { name: name.to_owned(), spec }))
+    }
+
+    // the generator runs once per populated chunk of the dimension
+    pub fn generator(&self, dimension: &str, handler: impl Fn(ChunkInfo) + 'static) -> Result<()>
+    {
+        let handle: u32 = dispatch::addGenerator(Rc::new(handler));
+        expectUnit(call(HostCall::RegisterGenerator { dimension: parse(dimension)?, handler: handle }))
+    }
+}
+
+pub struct Lang;
+
+impl Lang
+{
+    pub fn translate(&self, key: &str) -> String { crate::world::translate(key) }
+}
+
+pub fn ownIdentifier(name: &str) -> Result<Identifier> { ownId(name) }
+
+pub fn bytes<T: Serialize>(value: &T) -> Vec<u8> { crate::world::encode(value) }
+
+pub fn fromBytes<T: DeserializeOwned>(bytes: &[u8]) -> Result<T> { crate::world::decode(bytes) }

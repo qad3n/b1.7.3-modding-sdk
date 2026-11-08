@@ -1,0 +1,3 @@
+[shapeless]
+ingredients = [{ item = "ruby:ruby" }, { item = "minecraft:sugar" }, { item = "minecraft:apple" }]
+result = { item = "ruby:candied_ruby" }

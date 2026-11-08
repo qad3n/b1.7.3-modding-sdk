@@ -1,0 +1,9 @@
+template = "minecraft:stone"
+hardness = 3.0
+resistance = 5.0
+texture = "ruby:block/ruby_ore"
+sound = "stone"
+name = "Ruby Ore"
+tool = { class = "pickaxe", level = 2 }
+drops = [{ item = "ruby:ruby", count = [1, 2] }]
+tags = ["c:ores/ruby"]

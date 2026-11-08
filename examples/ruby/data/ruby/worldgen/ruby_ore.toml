@@ -1,0 +1,6 @@
+type = "ore"
+block = "ruby:ruby_ore"
+dimension = "minecraft:overworld"
+vein_size = 6
+per_chunk = 2
+y = [0, 32]

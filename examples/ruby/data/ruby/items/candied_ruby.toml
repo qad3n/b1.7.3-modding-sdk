@@ -1,0 +1,6 @@
+template = "minecraft:apple"
+texture = "minecraft:items/10"
+name = "Candied Ruby"
+food = { heal = 8 }
+max_stack = 16
+fuel = 400

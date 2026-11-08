@@ -1,0 +1,4 @@
+[shaped]
+pattern = [" R ", "RGR", " R "]
+key = { R = { item = "ruby:ruby" }, G = { item = "minecraft:glowstone" } }
+result = { item = "ruby:ruby_lamp", count = 2 }

@@ -1,0 +1,3 @@
+[shapeless]
+ingredients = [{ item = "minecraft:diamond" }, { item = "minecraft:redstone" }]
+result = { item = "testmod:data_gem", count = 2 }

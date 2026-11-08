@@ -1,0 +1,3 @@
+[smelting]
+input = "ruby:ruby_ore"
+result = { item = "ruby:ruby" }

@@ -1,0 +1,4 @@
+[shaped]
+pattern = ["RRR", "RRR", "RRR"]
+key = { R = { item = "ruby:ruby" } }
+result = { item = "ruby:ruby_block" }

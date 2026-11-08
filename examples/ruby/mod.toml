@@ -1,0 +1,15 @@
+id = "ruby"
+version = "1.2.0"
+name = "Ruby"
+description = "Ruby ore, gems, tools and food, all from data files"
+authors = ["b173 example"]
+license = "MIT"
+api = "1.0"
+side = "both"
+
+[network]
+version = "1"
+required = true
+
+[depends]
+loader = ">=0.1"

@@ -1,0 +1,5 @@
+type = "ore"
+block = "testmod:charged_ore"
+vein_size = 4
+per_chunk = 1
+y = [5, 40]

@@ -1,0 +1,29 @@
+[workspace]
+members = [
+    "b173_api",
+    "b173_api_macros",
+    "examples/energy",
+    "examples/energy_api",
+    "examples/machines",
+    "examples/testmod",
+    "mod_protocol",
+    "mod_tool",
+]
+resolver = "3"
+
+[workspace.package]
+edition = "2024"
+publish = false
+
+[workspace.lints.rust]
+non_snake_case = "allow"
+
+[workspace.lints.clippy]
+too_many_arguments = "allow"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = "debuginfo"

@@ -1,0 +1,4 @@
+texture = "minecraft:items/56"
+name = "Data Gem"
+max_stack = 16
+tags = ["c:gems/test"]
