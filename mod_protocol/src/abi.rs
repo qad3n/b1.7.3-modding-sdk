@@ -516,6 +516,12 @@ pub enum OverlayOp
     {
         x: i32, y: i32, delta: i32
     },
+    // api 1.5: asked each frame before the screen draws, answered with whether the overlay covers the point so the
+    // vanilla slot under it shows no highlight or tooltip
+    Cover
+    {
+        x: i32, y: i32
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]

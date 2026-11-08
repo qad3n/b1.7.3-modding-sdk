@@ -168,6 +168,8 @@ pub trait Overlay
     fn key(&mut self, _character: char, _key: i32, _hovered: Option<ItemStack>) -> bool { false }
     // the mouse wheel, delta positive when rolled away from the player, true takes it away from the vanilla screen
     fn scroll(&mut self, _x: i32, _y: i32, _delta: i32) -> bool { false }
+    // needs api 1.5, true when the panel covers the point so the vanilla slot under it shows no highlight or tooltip
+    fn covered(&mut self, _x: i32, _y: i32) -> bool { false }
 }
 
 pub(crate) fn runOverlay(overlay: &mut dyn Overlay, op: mod_protocol::abi::OverlayOp) -> mod_protocol::abi::GuestReply
@@ -193,6 +195,7 @@ pub(crate) fn runOverlay(overlay: &mut dyn Overlay, op: mod_protocol::abi::Overl
         {
             mod_protocol::abi::GuestReply::Bool(overlay.scroll(x, y, delta))
         }
+        mod_protocol::abi::OverlayOp::Cover { x, y } => mod_protocol::abi::GuestReply::Bool(overlay.covered(x, y)),
     }
 }
 
