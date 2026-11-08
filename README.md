@@ -47,17 +47,29 @@ The result is `mymod/target/mymod-0.1.0.b173mod`. Drop it in the game's `mods/` 
 ## A mod in short
 
 - `mod.toml` names the mod: `id`, `version`, `api`, `side` (`both`, `client` or `server`), and other mods under `[depends]` or `[optional]`.
-- `data/<modid>/` holds content as TOML: `blocks/`, `items/`, `recipes/`, `worldgen/`, `tags/`. Blocks and items copy a vanilla template and change what they need.
+- `data/<modid>/` holds content as TOML: `blocks/`, `items/`, `recipes/`, `worldgen/`, `tags/`, `states/`, `modify/blocks/`, `modify/spawns/`. Blocks and items copy a vanilla template and change what they need.
 - `assets/<modid>/` holds textures (`textures/<path>.png`, named `<modid>:<path>`), sounds and `lang/en_US.lang`.
 - `ctx.config().options([...])` declares typed settings (`Setting::bool`, `int`, `float`, `text`, `choice`). They live in `config/<modid>.toml` and players edit them in game from the mod menu; `Config.getBool(key)` and friends read them, `onChange` hears menu edits.
 - `src/lib.rs` is optional code. `#[mod_main]` runs once at load and registers blocks, items, events, commands, keybinds, screens and more. Block, item, entity and tile entity logic are trait impls marked `#[block_behavior]`, `#[item_behavior]`, `#[entity_behavior]` or `#[tile_behavior]`.
 
 Check `ctx.isAuthority()` before you change the world, and check everything a client sends to the server.
 
+Working well with other mods (API 1.1):
+
+- Name things, never number them. Compare `world.blockState(pos)` names, not numeric ids.
+- Named block states: `ctx.blocks().states(name, BlockStatesSpec)`. A block can have up to 256 states. Use `ctx.state()` and `ctx.setState()` to read and write them.
+- Per-stack data: `stackComponent` and `setStackComponent` with a `StackRef`. You can write only `<modid>:*` components, and stacks with different components don't merge.
+- Data on things you don't own goes in your mod's own slot:
+  - entity: `entity.setData`, `setSynced`
+  - tile entity: `world.setTileAttachment`
+  - chunk: `world.setChunkAttachment`
+  - world: `setWorldData`
+- Changing vanilla or another mod's blocks or spawns: use `ctx.blocks().modify(..)` and `ctx.blocks().modifySpawns(..)` instead of replacing the block. Clashes show in the Mod Loader screen.
+
 ## Compatibility
 
 - `api = "major.minor"` in `mod.toml`: a mod built for 1.x loads on every 1.y with y >= x.
-- The wasm ABI is versioned (`ABI_VERSION` in `mod_protocol::abi`). Messages only grow by new variants at the end within a major.
+- The wasm ABI is versioned (`ABI_VERSION` in `mod_protocol::abi`). The loader runs every ABI from `ABI_MIN_VERSION` up. Messages only grow by new variants at the end, and existing structs never gain fields.
 - Deprecated SDK items stay for at least one major and warn at build time.
 
 ## Building this repo

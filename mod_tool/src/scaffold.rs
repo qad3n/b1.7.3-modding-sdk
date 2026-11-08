@@ -43,7 +43,7 @@ pub fn create(parent: &Path, id: &str) -> Result<()>
     write(
         &root.join("mod.toml"),
         &format!(
-            "id = \"{id}\"\nversion = \"0.1.0\"\nname = \"{id}\"\napi = \"1.0\"\nside = \"both\"\n\n[network]\nversion = \"1\"\n\n[depends]\nloader = \">=0.1\"\n"
+            "id = \"{id}\"\nversion = \"0.1.0\"\nname = \"{id}\"\napi = \"1.1\"\nside = \"both\"\n\n[network]\nversion = \"1\"\n\n[depends]\nloader = \">=0.1\"\n"
         ),
     )?;
     write(

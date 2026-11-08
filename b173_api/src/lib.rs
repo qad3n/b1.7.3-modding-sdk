@@ -17,14 +17,15 @@ pub use mod_protocol::Identifier;
 pub use mod_protocol::abi::{
     BiomeSpec, BipedPart, BlockInfo, BlockPos, ChunkInfo, ConfigScope, DimensionSpec, EntityField, EntityInfo,
     EventKind, ModelOp, MusicSpec, Permission, PlayerLayer, Pose, PoseInput, Priority, RayHit, RegistryKind, StackData,
-    Target,
+    StackRef, StateData, Target,
 };
 use mod_protocol::abi::{EntityInfo as RawEntity, HostCall, HostReply};
 pub use mod_protocol::handshake::ChannelDirection as Direction;
 pub use mod_protocol::spec::{
-    ArmorSlot, ArmorSpec, BedFaces, BlockModelSpec, BlockSpec, CreatureKind, Cuboid, DropSpec, EntityModelSpec,
-    EntitySounds, EntitySpec, FaceTextures, Flammability, FoodSpec, ItemSpec, ItemToolSpec, ModelBox, ModelPart,
-    SpawnSpec, SteeringSpec, TileEntitySpec, ToolClass, ToolSpec,
+    ArmorSlot, ArmorSpec, BedFaces, BlockModelSpec, BlockModifySpec, BlockSpec, BlockStatesSpec, CreatureKind, Cuboid,
+    DropSpec, EntityModelSpec, EntitySounds, EntitySpec, FaceTextures, Flammability, FoodSpec, ItemSpec, ItemToolSpec,
+    ModelBox, ModelPart, PropertySpec, SpawnModifySpec, SpawnSpec, StateVariantSpec, SteeringSpec, TileEntitySpec,
+    ToolClass, ToolSpec,
 };
 pub use register::*;
 pub use serde;
@@ -97,6 +98,15 @@ pub(crate) fn expectBytes(reply: HostReply) -> Result<Vec<u8>>
     {
         HostReply::Bytes(bytes) => Ok(bytes),
         HostReply::Unit => Ok(Vec::new()),
+        other => Err(unexpected(other)),
+    }
+}
+
+pub(crate) fn expectState(reply: HostReply) -> Result<Option<StateData>>
+{
+    match reply
+    {
+        HostReply::State(state) => Ok(state),
         other => Err(unexpected(other)),
     }
 }
@@ -270,8 +280,8 @@ pub mod prelude
     pub use crate::screen::{Draw, Overlay, Screen};
     pub use crate::services::{Lookup, Service};
     pub use crate::world::{
-        allPlayers, broadcast, displayName, isClient, isLoaded, localPlayer, send, setWorldData, setWorldTime,
-        textWidth, translate, worldData,
+        allPlayers, broadcast, displayName, isClient, isLoaded, localPlayer, send, setStackComponent, setWorldData,
+        setWorldTime, stackComponent, textWidth, translate, worldData,
     };
     pub use crate::{vanilla, *};
     pub use serde::{Deserialize, Serialize};

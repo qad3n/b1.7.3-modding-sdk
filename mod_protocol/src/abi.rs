@@ -1,10 +1,15 @@
 use crate::Identifier;
 use crate::handshake::ChannelDirection;
-use crate::spec::{BlockSpec, EntitySpec, ItemSpec, RecipeSpec, TileEntitySpec, WorldgenSpec};
+use crate::spec::{
+    BlockModifySpec, BlockSpec, BlockStatesSpec, EntitySpec, ItemSpec, RecipeSpec, SpawnModifySpec, TileEntitySpec,
+    WorldgenSpec,
+};
 use serde::{Deserialize, Serialize};
 
 // guest exports b173_alloc, b173_free, b173_dispatch and b173_abi; host imports live in module b173
-pub const ABI_VERSION: u32 = 2;
+pub const ABI_VERSION: u32 = 3;
+// variants only append, so a host also runs guests built for any version from this one up
+pub const ABI_MIN_VERSION: u32 = 2;
 pub const IMPORT_MODULE: &str = "b173";
 
 pub mod exports
@@ -1703,7 +1708,99 @@ pub enum HostCall
         pos: BlockPos,
         block: i32,
         meta: i32,
+    }, // abi 3: changes properties of any block, vanilla or another mod's, applied in load order after freeze
+    ModifyBlock
+    {
+        spec: BlockModifySpec,
     },
+    // abi 3: adds or removes biome spawn entries for any entity, applied in load order after vanilla spawns
+    ModifySpawns
+    {
+        spec: SpawnModifySpec,
+    },
+    // abi 3: this mod's own data on any tile entity, vanilla ones included, saved with it and never synced
+    TileAttachment
+    {
+        world: i32,
+        pos: BlockPos,
+    },
+    SetTileAttachment
+    {
+        world: i32,
+        pos: BlockPos,
+        data: Vec<u8>,
+    },
+    // abi 3: this mod's own data on a chunk, saved with it and never synced
+    ChunkAttachment
+    {
+        world: i32,
+        chunk_x: i32,
+        chunk_z: i32,
+    },
+    SetChunkAttachment
+    {
+        world: i32,
+        chunk_x: i32,
+        chunk_z: i32,
+        data: Vec<u8>,
+    },
+    // abi 3: named states for a block this mod registered
+    RegisterBlockStates
+    {
+        block: Identifier,
+        spec: BlockStatesSpec,
+    },
+    // abi 3: the block and its named state at a spot, answered with HostReply::State
+    BlockState
+    {
+        world: i32,
+        pos: BlockPos,
+    },
+    SetBlockState
+    {
+        world: i32,
+        pos: BlockPos,
+        state: StateData,
+        notify: bool,
+    },
+    // abi 3: a data component on a stack in place, any mod reads any component, a mod writes only its own namespace
+    StackComponent
+    {
+        at: StackRef,
+        component: Identifier,
+    },
+    SetStackComponent
+    {
+        at: StackRef,
+        component: Identifier,
+        data: Vec<u8>,
+    },
+}
+
+// where a stack lives, so a component change applies to that stack and not to a copy
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum StackRef
+{
+    Held
+    {
+        player: i32
+    },
+    Inventory
+    {
+        player: i32, slot: i32
+    },
+    Tile
+    {
+        world: i32, pos: BlockPos, slot: i32
+    },
+}
+
+// a block and the values of its named properties, vanilla blocks report their metadata as meta
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
+pub struct StateData
+{
+    pub block: Identifier,
+    pub properties: std::collections::BTreeMap<String, String>,
 }
 
 // entity state beyond EntityInfo that ported mods read or change, new fields go at the end
@@ -1779,6 +1876,8 @@ pub enum HostReply
     Error(String),
     BlockInfo(Option<BlockInfo>),
     Hit(Option<RayHit>),
+    // abi 3
+    State(Option<StateData>),
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Debug)]

@@ -13,8 +13,9 @@ use mod_protocol::abi::{
 };
 use mod_protocol::handshake::ChannelDirection;
 use mod_protocol::spec::{
-    Behavior, BlockSpec, EntitySpec, FuelSpec, ItemSpec, RecipeSpec, RecordSpec, ShapedSpec, ShapelessSpec,
-    SmeltingSpec, StackSpec, TileEntitySpec, ToolClass, ToolSpec, WorldgenKind, WorldgenSpec,
+    Behavior, BlockModifySpec, BlockSpec, BlockStatesSpec, EntitySpec, FuelSpec, ItemSpec, RecipeSpec, RecordSpec,
+    ShapedSpec, ShapelessSpec, SmeltingSpec, SpawnModifySpec, StackSpec, TileEntitySpec, ToolClass, ToolSpec,
+    WorldgenKind, WorldgenSpec,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -89,6 +90,21 @@ impl Blocks
     pub fn replace(&self, id: &str, spec: BlockSpecBuilder) -> Result<()>
     {
         expectUnit(call(HostCall::ReplaceBlock { id: parse(id)?, spec: spec.m_spec }))
+    }
+
+    // named states for one of this mod's blocks, saved by name so properties may change between versions
+    pub fn states(&self, name: &str, spec: BlockStatesSpec) -> Result<()>
+    {
+        expectUnit(call(HostCall::RegisterBlockStates { block: parse(name)?, spec }))
+    }
+
+    // changes chosen properties of any block, other mods changing the same field are reported as conflicts
+    pub fn modify(&self, spec: BlockModifySpec) -> Result<()> { expectUnit(call(HostCall::ModifyBlock { spec })) }
+
+    // adds an entity to biome spawn lists, or with weight 0 removes it, for vanilla and other mods' mobs too
+    pub fn modifySpawns(&self, spec: SpawnModifySpec) -> Result<()>
+    {
+        expectUnit(call(HostCall::ModifySpawns { spec }))
     }
 
     pub fn id(&self, name: &str) -> Result<i32> { crate::resolve(RegistryKind::Block, &parse(name)?) }

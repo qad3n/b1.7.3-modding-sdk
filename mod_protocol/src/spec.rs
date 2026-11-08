@@ -192,6 +192,58 @@ pub struct Behavior<M>
     pub methods: Vec<M>,
 }
 
+// one named property of a block state and its values, the first value listed is not special
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct PropertySpec
+{
+    pub name: String,
+    pub values: Vec<String>,
+}
+
+// textures for the states whose properties match every entry of when
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct StateVariantSpec
+{
+    pub when: BTreeMap<String, String>,
+    pub texture: Option<String>,
+    pub textures: Option<FaceTextures>,
+}
+
+// the named states of a block, saved by name so a mod may add or reorder properties between versions
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct BlockStatesSpec
+{
+    pub properties: Vec<PropertySpec>,
+    // a property absent here defaults to its first value
+    pub default: BTreeMap<String, String>,
+    pub variants: Vec<StateVariantSpec>,
+}
+
+// a change to a block another mod or vanilla owns, every absent field keeps the current value
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct BlockModifySpec
+{
+    pub target: Identifier,
+    #[serde(default)]
+    pub hardness: Option<f32>,
+    #[serde(default)]
+    pub resistance: Option<f32>,
+    #[serde(default)]
+    pub light: Option<f32>,
+    #[serde(default)]
+    pub opacity: Option<i32>,
+    #[serde(default)]
+    pub slipperiness: Option<f32>,
+    #[serde(default)]
+    pub flammability: Option<Flammability>,
+    #[serde(default)]
+    pub tool: Option<ToolSpec>,
+}
+
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
 #[serde(default, deny_unknown_fields)]
 pub struct BlockSpec
@@ -331,6 +383,15 @@ pub struct SpawnSpec
     pub weight: i32,
     #[serde(default)]
     pub biomes: Vec<Identifier>,
+}
+
+// adds an entity, vanilla or another mod's, to biome spawn lists, a weight of 0 removes it from them instead
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct SpawnModifySpec
+{
+    pub entity: Identifier,
+    pub spawn: SpawnSpec,
 }
 
 // one cuboid of a model part in model units, the uv overrides the part's texture offset for this box

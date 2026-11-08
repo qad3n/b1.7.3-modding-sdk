@@ -4,7 +4,7 @@ name = "Loader Test Mod"
 description = "Exercises every part of the mod API: content, behaviors, events, commands, network, screens, data, worldgen and dimensions"
 authors = ["b173 example"]
 license = "MIT"
-api = "1.0"
+api = "1.1"
 side = "both"
 
 [network]

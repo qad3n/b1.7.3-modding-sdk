@@ -157,6 +157,14 @@ impl ItemBehavior for Spark
         {
             world.particle("flame", info.pos, [0.0, 0.1, 0.0]);
             world.playSound(info.pos, "random.fizz", 1.0, 1.0);
+            // per stack data: a component, so used sparks no longer stack with fresh ones
+            let held: StackRef = StackRef::Held { player: player.id };
+            let uses: u32 = stackComponent::<u32>(held, "testmod:uses") + 1;
+            let _ = setStackComponent(held, "testmod:uses", &uses);
+            // per chunk data: an attachment only this mod reads and writes
+            let (chunkX, chunkZ): (i32, i32) = ((info.pos[0] as i32) >> 4, (info.pos[2] as i32) >> 4);
+            let sparks: u32 = world.chunkAttachment::<u32>(chunkX, chunkZ) + 1;
+            let _ = world.setChunkAttachment(chunkX, chunkZ, &sparks);
         }
         let remaining: i32 = stack.count - 1;
         Use::Done((remaining > 0).then_some(ItemStack { count: remaining, ..stack }))
@@ -165,6 +173,34 @@ impl ItemBehavior for Spark
     fn onHitEntity(&self, _stack: ItemStack, target: Entity, attacker: i32) -> bool
     {
         target.damage(2, Some(attacker));
+        true
+    }
+}
+
+// 4 facings times 6 power levels is 24 named states, more than one block id holds, so the loader spans two ids
+struct Dial;
+
+const DIAL_POWER: [&str; 6] = ["0", "1", "2", "3", "4", "5"];
+
+#[block_behavior]
+impl BlockBehavior for Dial
+{
+    fn onActivated(&self, ctx: &mut BlockCtx, player: Player) -> bool
+    {
+        if !ctx.isAuthority()
+        {
+            return true;
+        }
+        let Some(mut state) = ctx.state()
+        else
+        {
+            return false;
+        };
+        let power: usize = state.properties.get("power").and_then(|power| power.parse().ok()).unwrap_or(0);
+        let next: &str = DIAL_POWER[(power + 1) % DIAL_POWER.len()];
+        state.properties.insert("power".to_owned(), next.to_owned());
+        let _ = ctx.setState(state);
+        player.chat(&format!("dial power {next}"));
         true
     }
 }
@@ -289,6 +325,42 @@ fn registerContent(ctx: &mut RegisterCtx) -> Result<()>
             },
         ),
     )?;
+    ctx.blocks().register(
+        "dial",
+        BlockSpecBuilder::template(vanilla::block::IRON_BLOCK)
+            .hardness(2.0)
+            .texture("testmod:block/machine")
+            .behavior(Dial),
+    )?;
+    ctx.blocks().states(
+        "dial",
+        BlockStatesSpec {
+            properties: vec![
+                PropertySpec {
+                    name: "facing".to_owned(),
+                    values: ["north", "east", "south", "west"].map(str::to_owned).to_vec(),
+                },
+                PropertySpec { name: "power".to_owned(), values: DIAL_POWER.map(str::to_owned).to_vec() },
+            ],
+            variants: vec![StateVariantSpec {
+                when: [("power".to_owned(), "5".to_owned())].into(),
+                texture: Some("testmod:block/charged_ore".to_owned()),
+                textures: None,
+            }],
+            ..BlockStatesSpec::default()
+        },
+    )?;
+    // a vanilla block changed through the modify phase, other mods changing the same field are reported
+    ctx.blocks().modify(BlockModifySpec {
+        target: Identifier::minecraft("glowstone"),
+        hardness: Some(0.6),
+        resistance: None,
+        light: None,
+        opacity: None,
+        slipperiness: None,
+        flammability: None,
+        tool: None,
+    })?;
     ctx.items().register(
         "spark",
         ItemSpecBuilder::new()

@@ -1,0 +1,3 @@
+# changes a block ruby does not own, loaded in mod load order; this one keeps the vanilla values
+target = "minecraft:bookshelf"
+flammability = { encouragement = 30, flammability = 20 }

@@ -4,7 +4,8 @@ use crate::{
 };
 use mod_protocol::Identifier;
 use mod_protocol::abi::{
-    BlockCtx as RawCtx, BlockInfo, BlockPos, EntityField, EntityInfo, HostCall, HostReply, RayHit, Target,
+    BlockCtx as RawCtx, BlockInfo, BlockPos, EntityField, EntityInfo, HostCall, HostReply, RayHit, StackRef, StateData,
+    Target,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -80,6 +81,17 @@ impl World
     pub fn setBlockQuiet(self, pos: BlockPos, block: i32, meta: i32) -> Result<bool>
     {
         expectBool(call(HostCall::SetBlock { world: self.dimension, pos, block, meta, notify: false }))
+    }
+
+    // the block at a spot by name with its named properties, compare these instead of numeric ids
+    pub fn blockState(self, pos: BlockPos) -> Option<StateData>
+    {
+        crate::expectState(call(HostCall::BlockState { world: self.dimension, pos })).ok().flatten()
+    }
+
+    pub fn setBlockState(self, pos: BlockPos, state: StateData) -> Result<bool>
+    {
+        expectBool(call(HostCall::SetBlockState { world: self.dimension, pos, state, notify: true }))
     }
 
     pub fn lightning(self, pos: [f64; 3]) -> Result<()>
@@ -211,6 +223,37 @@ impl World
     pub fn setTileData<T: Serialize>(self, pos: BlockPos, value: &T) -> Result<()>
     {
         expectUnit(call(HostCall::SetTileData { world: self.dimension, pos, data: encode(value) }))
+    }
+
+    // this mod's own data on any tile entity, a vanilla chest or another mod's machine, saved with it
+    pub fn tileAttachment<T: DeserializeOwned + Default>(self, pos: BlockPos) -> T
+    {
+        expectBytes(call(HostCall::TileAttachment { world: self.dimension, pos }))
+            .ok()
+            .filter(|bytes| !bytes.is_empty())
+            .and_then(|bytes| decode(&bytes).ok())
+            .unwrap_or_default()
+    }
+
+    pub fn setTileAttachment<T: Serialize>(self, pos: BlockPos, value: &T) -> Result<()>
+    {
+        expectUnit(call(HostCall::SetTileAttachment { world: self.dimension, pos, data: encode(value) }))
+    }
+
+    // this mod's own data on a chunk, saved with it
+    pub fn chunkAttachment<T: DeserializeOwned + Default>(self, chunkX: i32, chunkZ: i32) -> T
+    {
+        expectBytes(call(HostCall::ChunkAttachment { world: self.dimension, chunk_x: chunkX, chunk_z: chunkZ }))
+            .ok()
+            .filter(|bytes| !bytes.is_empty())
+            .and_then(|bytes| decode(&bytes).ok())
+            .unwrap_or_default()
+    }
+
+    pub fn setChunkAttachment<T: Serialize>(self, chunkX: i32, chunkZ: i32, value: &T) -> Result<()>
+    {
+        let data: Vec<u8> = encode(value);
+        expectUnit(call(HostCall::SetChunkAttachment { world: self.dimension, chunk_x: chunkX, chunk_z: chunkZ, data }))
     }
 
     pub fn tileSlot(self, pos: BlockPos, slot: i32) -> Option<ItemStack>
@@ -394,7 +437,7 @@ impl Entity
 
     pub fn kill(self) { let _ = call(HostCall::KillEntity { world: self.world.dimension, id: self.id }); }
 
-    // bytes the server mirrors to every client that sees the entity, saved with it
+    // bytes the server mirrors to every client that sees the entity, saved with it, one slot per mod so mods never clash
     pub fn synced<T: DeserializeOwned + Default>(self) -> T
     {
         expectBytes(call(HostCall::SyncedData { world: self.world.dimension, id: self.id }))
@@ -471,6 +514,11 @@ impl BlockCtx
 
     pub fn block(&self) -> i32 { self.raw.block }
 
+    // this block's named state, the way to read variants of a block with more than 16 states
+    pub fn state(&self) -> Option<StateData> { self.world().blockState(self.raw.pos) }
+
+    pub fn setState(&self, state: StateData) -> Result<bool> { self.world().setBlockState(self.raw.pos, state) }
+
     pub fn meta(&self) -> u8 { self.raw.meta as u8 }
 
     pub fn isAuthority(&self) -> bool { self.raw.authority }
@@ -491,6 +539,28 @@ impl BlockCtx
     {
         send(channel, Target::Tracking(self.raw.world, self.raw.pos), message)
     }
+}
+
+// a data component on a stack in place, readable for any component and writable for this mod's own namespace
+pub fn stackComponent<T: DeserializeOwned + Default>(at: StackRef, component: &str) -> T
+{
+    let Ok(component) = Identifier::parse(component)
+    else
+    {
+        return T::default();
+    };
+    expectBytes(call(HostCall::StackComponent { at, component }))
+        .ok()
+        .filter(|bytes| !bytes.is_empty())
+        .and_then(|bytes| decode(&bytes).ok())
+        .unwrap_or_default()
+}
+
+// an empty value removes the component, stacks merge only when their components match
+pub fn setStackComponent<T: Serialize>(at: StackRef, component: &str, value: &T) -> Result<()>
+{
+    let component: Identifier = Identifier::parse(component).map_err(|error| Error(error.to_string()))?;
+    expectUnit(call(HostCall::SetStackComponent { at, component, data: encode(value) }))
 }
 
 pub fn worldData<T: DeserializeOwned + Default>(key: &str) -> T

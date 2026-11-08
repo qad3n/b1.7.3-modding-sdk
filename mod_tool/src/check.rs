@@ -1,7 +1,9 @@
 use anyhow::{Context, Result};
 use mod_protocol::Identifier;
 use mod_protocol::identifier::isValidModId;
-use mod_protocol::spec::{BlockSpec, ItemSpec, RecipeSpec, TagSpec, WorldgenSpec};
+use mod_protocol::spec::{
+    BlockModifySpec, BlockSpec, BlockStatesSpec, ItemSpec, RecipeSpec, SpawnModifySpec, TagSpec, WorldgenSpec,
+};
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use std::path::{Path, PathBuf};
@@ -96,6 +98,13 @@ pub fn run(root: &Path) -> Result<Vec<String>>
             "items" => parse::<ItemSpec>(&path).map(drop),
             "recipes" => parse::<RecipeSpec>(&path).map(drop),
             "worldgen" => parse::<WorldgenSpec>(&path).map(drop),
+            "states" => parse::<BlockStatesSpec>(&path).map(drop),
+            "modify" => match name.split_once('/')
+            {
+                Some(("blocks", _)) => parse::<BlockModifySpec>(&path).map(drop),
+                Some(("spawns", _)) => parse::<SpawnModifySpec>(&path).map(drop),
+                _ => Err("modify files go in modify/blocks/ or modify/spawns/".to_owned()),
+            },
             "tags" => parse::<TagSpec>(&path).map(drop),
             other => Err(format!("unknown data kind {other}")),
         };
