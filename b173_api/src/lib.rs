@@ -1,6 +1,8 @@
 mod behavior;
+mod config;
 mod dispatch;
 pub mod events;
+pub mod terrain;
 mod register;
 pub mod rt;
 pub mod screen;
@@ -10,15 +12,17 @@ pub mod world;
 
 pub use b173_api_macros::{block_behavior, entity_behavior, item_behavior, mod_main, tile_behavior};
 pub use behavior::{BlockBehavior, EntityBehavior, ItemBehavior, TileBehavior, Use};
+pub use config::{Config, Setting, configValue};
 pub use mod_protocol::Identifier;
 pub use mod_protocol::abi::{
-    BiomeSpec, BlockPos, ChunkInfo, ConfigScope, DimensionSpec, EntityInfo, EventKind, Permission, Priority,
-    RegistryKind, Target,
+    BiomeSpec, BlockInfo, BlockPos, ChunkInfo, ModelOp, Pose, PoseInput, RayHit, ConfigScope, DimensionSpec, EntityField, EntityInfo, EventKind, Permission, Priority,
+    BipedPart, PlayerLayer, RegistryKind, StackData, Target,
 };
-use mod_protocol::abi::{EntityInfo as RawEntity, HostCall, HostReply, StackData};
+use mod_protocol::abi::{EntityInfo as RawEntity, HostCall, HostReply};
 pub use mod_protocol::handshake::ChannelDirection as Direction;
 pub use mod_protocol::spec::{
-    ArmorSlot, ArmorSpec, BlockModelSpec, BlockSpec, CreatureKind, Cuboid, DropSpec, EntitySpec, FaceTextures,
+    ArmorSlot, ArmorSpec, BedFaces, BlockModelSpec, BlockSpec, CreatureKind, Cuboid, DropSpec, EntityModelSpec, EntitySounds, EntitySpec, FaceTextures, SteeringSpec,
+    ModelBox, ModelPart,
     Flammability, FoodSpec, ItemSpec, ItemToolSpec, SpawnSpec, TileEntitySpec, ToolClass, ToolSpec,
 };
 pub use register::*;
@@ -262,9 +266,9 @@ pub fn warn(message: &str) { rt::log(mod_protocol::abi::LogLevel::Warn, message)
 pub mod prelude
 {
     pub use crate::events::*;
-    pub use crate::screen::{Draw, Screen};
+    pub use crate::screen::{Draw, Overlay, Screen};
     pub use crate::services::{Lookup, Service};
-    pub use crate::world::{broadcast, isClient, isLoaded, localPlayer, send, setWorldData, translate, worldData};
+    pub use crate::world::{allPlayers, broadcast, isClient, isLoaded, localPlayer, send, setWorldData, textWidth, translate, worldData};
     pub use crate::{vanilla, *};
     pub use serde::{Deserialize, Serialize};
 }

@@ -40,6 +40,12 @@ impl Draw
         self
     }
 
+    pub fn image(&mut self, texture: &str, x: i32, y: i32, w: i32, h: i32) -> &mut Self
+    {
+        self.m_list.ops.push(DrawOp::Image { texture: texture.to_owned(), x, y, w, h });
+        self
+    }
+
     pub fn item(&mut self, x: i32, y: i32, stack: &ItemStack) -> &mut Self
     {
         if let Ok(stack) = stack.toRaw()
@@ -72,6 +78,28 @@ pub trait Screen
     fn key(&mut self, _character: char, _key: i32) {}
     fn tick(&mut self) {}
     fn close(&mut self) {}
+}
+
+// a panel drawn over a vanilla container screen, as a toggleable equipment list beside the inventory
+pub trait Overlay
+{
+    fn draw(&mut self, draw: &mut Draw, size: [i32; 2], mouse: [i32; 2]);
+    // true takes the click away from the vanilla screen
+    fn mouse(&mut self, _x: i32, _y: i32, _button: i32) -> bool { false }
+}
+
+pub(crate) fn runOverlay(overlay: &mut dyn Overlay, op: mod_protocol::abi::OverlayOp) -> mod_protocol::abi::GuestReply
+{
+    match op
+    {
+        mod_protocol::abi::OverlayOp::Draw { size, mouse } =>
+        {
+            let mut draw: Draw = Draw::default();
+            overlay.draw(&mut draw, size, mouse);
+            mod_protocol::abi::GuestReply::Draw(draw.m_list)
+        }
+        mod_protocol::abi::OverlayOp::Mouse { x, y, button } => mod_protocol::abi::GuestReply::Bool(overlay.mouse(x, y, button)),
+    }
 }
 
 pub(crate) fn run(screen: &mut dyn Screen, op: ScreenOp) -> Option<DrawList>

@@ -77,13 +77,33 @@ pub struct Flammability
     pub flammability: i32,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
 #[serde(deny_unknown_fields)]
 pub struct Cuboid
 {
     pub from: [f32; 3],
     pub to: [f32; 3],
     pub texture: Option<String>,
+    // the metadata values this cuboid shows for, every value when empty, as stair facings and open gates
+    #[serde(default)]
+    pub metas: Vec<i32>,
+    // a face 2 to 5 whose neighbor must connect for the cuboid to show, as wall and fence arms
+    #[serde(default)]
+    pub connect: Option<i32>,
+}
+
+// the six bed sprites, a bed of the bed template picks them by facing and half as BlockBed picks vanilla's
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct BedFaces
+{
+    pub top_head: String,
+    pub top_foot: String,
+    pub side_head: String,
+    pub side_foot: String,
+    pub end_head: String,
+    pub end_foot: String,
+    pub bottom: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
@@ -94,6 +114,8 @@ pub struct BlockModelSpec
     pub render_type: Option<i32>,
     pub cuboids: Vec<Cuboid>,
     pub translucent: bool,
+    // blocks a connecting cuboid also joins besides itself and opaque cubes
+    pub connects_to: Vec<Identifier>,
 }
 
 // the hot path block methods a code mod can route into wasm, every other method keeps the template body
@@ -149,6 +171,9 @@ pub enum EntityMethod
     Hurt,
     Death,
     CanSpawn,
+    Pose,
+    // replaces the template's own AI tick, updatePlayerActionState, the template moves and attacks no more
+    Ai,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -197,6 +222,15 @@ pub struct BlockSpec
     pub item: Option<ItemSpec>,
     pub tags: Vec<Identifier>,
     pub behavior: Option<Behavior<BlockMethod>>,
+    // friction factor entities slide with, vanilla is 0.6 and ice 0.98
+    pub slipperiness: Option<f32>,
+    // boxes entities collide with in block units 0 to 16, empty lets entities pass, absent keeps the template's
+    pub collision: Option<Vec<Cuboid>>,
+    pub bed: Option<BedFaces>,
+    // decays like vanilla leaves, defaults to true for the leaves template
+    pub leaves: Option<bool>,
+    // keeps nearby leaves from decaying like a vanilla log
+    pub sustains_leaves: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
@@ -226,6 +260,9 @@ pub struct ArmorSpec
     pub protection: i32,
     pub durability: i32,
     pub texture: String,
+    // multiplies the armor sheet, so one sheet serves several materials
+    #[serde(default)]
+    pub color: Option<u32>,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
@@ -261,6 +298,8 @@ pub struct ItemSpec
     pub vanilla_fallback: Option<Identifier>,
     pub tags: Vec<Identifier>,
     pub behavior: Option<Behavior<ItemMethod>>,
+    // tints the icon, Item.getColorFromDamage
+    pub color: Option<u32>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
@@ -282,6 +321,48 @@ pub struct SpawnSpec
     pub biomes: Vec<Identifier>,
 }
 
+// one cuboid of a model part in model units, the uv overrides the part's texture offset for this box
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct ModelBox
+{
+    pub origin: [f32; 3],
+    pub size: [i32; 3],
+    pub inflate: f32,
+    pub uv: Option<[i32; 2]>,
+}
+
+// a ModelRenderer: boxes sharing one pivot and rotation, children render relative to it
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct ModelPart
+{
+    pub name: String,
+    pub parent: Option<String>,
+    pub uv: [i32; 2],
+    pub mirror: bool,
+    pub pivot: [f32; 3],
+    pub rotation: [f32; 3],
+    pub boxes: Vec<ModelBox>,
+    // sheet size this part's uvs refer to, absent means the model's
+    pub texture_size: Option<[i32; 2]>,
+}
+
+// a ModelBase as data, drawn by the client with the entity's pose program
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(default, deny_unknown_fields)]
+pub struct EntityModelSpec
+{
+    pub texture_size: [i32; 2],
+    pub parts: Vec<ModelPart>,
+    pub shadow: f32,
+}
+
+impl Default for EntityModelSpec
+{
+    fn default() -> EntityModelSpec { EntityModelSpec { texture_size: [64, 32], parts: Vec::new(), shadow: 0.5 } }
+}
+
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
 #[serde(default, deny_unknown_fields)]
 pub struct EntitySpec
@@ -299,6 +380,64 @@ pub struct EntitySpec
     pub name: Option<String>,
     pub vanilla_fallback: Option<Identifier>,
     pub behavior: Option<Behavior<EntityMethod>>,
+    pub model: Option<EntityModelSpec>,
+    pub sounds: Option<EntitySounds>,
+    pub steering: Option<SteeringSpec>,
+    // Entity.isImmuneToFire: fire and lava never hurt it
+    pub fire_immune: bool,
+    // never despawns away from players, as a boss
+    pub persistent: bool,
+    // nothing pushes it or adds to its motion, only its own AI moves it
+    pub immovable: bool,
+}
+
+// a mount a riding player drives with movement keys and jump, as Aether's EntityMountable
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Debug)]
+#[serde(default, deny_unknown_fields)]
+pub struct SteeringSpec
+{
+    // the mount's walking speed with a rider, vanilla walking is 0.1
+    pub speed: f32,
+    // upward speed a jump gives, vanilla is 0.42
+    pub jump: f32,
+    // jumps allowed before landing again
+    pub air_jumps: i32,
+    // falling speed is multiplied by this every tick while the rider is not sneaking, 1 keeps vanilla falling
+    pub glide: f32,
+    pub step_height: f32,
+    // a sneaking rider gets off once the mount stands on ground
+    pub sneak_dismount: bool,
+    // upward speed of a jump in the air, zero uses jump
+    pub air_jump: f32,
+    // air jumps only start while the mount already falls
+    pub air_jump_falling: bool,
+}
+
+impl Default for SteeringSpec
+{
+    fn default() -> SteeringSpec
+    {
+        SteeringSpec {
+            speed: 0.15,
+            jump: 0.42,
+            air_jumps: 0,
+            glide: 1.0,
+            step_height: 1.0,
+            sneak_dismount: true,
+            air_jump: 0.0,
+            air_jump_falling: false,
+        }
+    }
+}
+
+// sound pool names, an absent one keeps the template's and an empty one is silent
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct EntitySounds
+{
+    pub living: Option<String>,
+    pub hurt: Option<String>,
+    pub death: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]

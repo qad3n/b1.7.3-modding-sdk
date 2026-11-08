@@ -3,7 +3,7 @@ use crate::{
     Error, ItemStack, Result, expectBool, expectBytes, expectEntities, expectEntity, expectInt, expectStack, expectUnit,
 };
 use mod_protocol::Identifier;
-use mod_protocol::abi::{BlockCtx as RawCtx, BlockPos, EntityInfo, HostCall, HostReply, Target};
+use mod_protocol::abi::{BlockCtx as RawCtx, BlockInfo, BlockPos, EntityField, RayHit, EntityInfo, HostCall, HostReply, Target};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
@@ -31,6 +31,40 @@ impl World
         expectInt(call(HostCall::GetBlock { world: self.dimension, pos })).unwrap_or(0)
     }
 
+    pub fn height(self, x: i32, z: i32) -> i32
+    {
+        expectInt(call(HostCall::Height { world: self.dimension, x, z })).unwrap_or(0)
+    }
+
+    pub fn isAir(self, pos: BlockPos) -> bool { self.block(pos) == 0 }
+
+    pub fn entitiesAlong(self, from: [f64; 3], to: [f64; 3], radius: f64, exclude: Option<i32>) -> Vec<EntityInfo>
+    {
+        match call(HostCall::EntitiesAlong { world: self.dimension, from, to, radius, exclude })
+        {
+            HostReply::Entities(found) => found,
+            _ => Vec::new(),
+        }
+    }
+
+    pub fn rayTrace(self, from: [f64; 3], to: [f64; 3], liquids: bool) -> Option<RayHit>
+    {
+        match call(HostCall::RayTrace { world: self.dimension, from, to, liquids })
+        {
+            HostReply::Hit(hit) => hit,
+            _ => None,
+        }
+    }
+
+    pub fn blockInfo(block: i32) -> BlockInfo
+    {
+        match call(HostCall::BlockInfo { block })
+        {
+            HostReply::BlockInfo(Some(info)) => info,
+            _ => BlockInfo::default(),
+        }
+    }
+
     pub fn meta(self, pos: BlockPos) -> i32
     {
         expectInt(call(HostCall::GetMeta { world: self.dimension, pos })).unwrap_or(0)
@@ -44,6 +78,13 @@ impl World
     pub fn setBlockQuiet(self, pos: BlockPos, block: i32, meta: i32) -> Result<bool>
     {
         expectBool(call(HostCall::SetBlock { world: self.dimension, pos, block, meta, notify: false }))
+    }
+
+    pub fn lightning(self, pos: [f64; 3]) -> Result<()> { expectUnit(call(HostCall::Lightning { world: self.dimension, pos })) }
+
+    pub fn breakEffect(self, pos: BlockPos, block: i32, meta: i32) -> Result<()>
+    {
+        expectUnit(call(HostCall::BlockEffect { world: self.dimension, pos, block, meta }))
     }
 
     pub fn setMeta(self, pos: BlockPos, meta: i32) -> Result<()>
@@ -215,6 +256,28 @@ impl Player
 
     pub fn closeScreen(self) { let _ = call(HostCall::CloseScreen { player: self.id }); }
 
+    pub fn cursor(self) -> Option<ItemStack>
+    {
+        expectStack(call(HostCall::CursorStack { player: self.id })).ok().flatten().map(ItemStack::fromRaw)
+    }
+
+    pub fn setCursor(self, stack: Option<ItemStack>) -> Result<()>
+    {
+        let stack = stack.map(|stack| stack.raw()).transpose()?;
+        expectUnit(call(HostCall::SetCursorStack { player: self.id, stack }))
+    }
+
+    pub fn slot(self, slot: i32) -> Option<ItemStack>
+    {
+        expectStack(call(HostCall::InventorySlot { player: self.id, slot })).ok().flatten().map(ItemStack::fromRaw)
+    }
+
+    pub fn setSlot(self, slot: i32, stack: Option<ItemStack>) -> Result<()>
+    {
+        let stack = stack.map(|stack| stack.raw()).transpose()?;
+        expectUnit(call(HostCall::SetInventorySlot { player: self.id, slot, stack }))
+    }
+
     pub fn data<T: DeserializeOwned + Default>(self, key: &str) -> T
     {
         expectBytes(call(HostCall::PlayerData { player: self.id, key: key.to_owned() }))
@@ -239,6 +302,12 @@ impl Player
     {
         expectEntities(call(HostCall::Players { world: None })).into_iter().find(|info| info.id == self.id)
     }
+}
+
+// every player in every loaded dimension
+pub fn allPlayers() -> Vec<Player>
+{
+    expectEntities(call(HostCall::Players { world: None })).into_iter().map(|info| Player { id: info.id }).collect()
 }
 
 pub fn broadcast(message: &str) { let _ = call(HostCall::Chat { player: None, message: message.to_owned() }); }
@@ -289,6 +358,48 @@ impl Entity
     }
 
     pub fn kill(self) { let _ = call(HostCall::KillEntity { world: self.world.dimension, id: self.id }); }
+
+    // bytes the server mirrors to every client that sees the entity, saved with it
+    pub fn synced<T: DeserializeOwned + Default>(self) -> T
+    {
+        expectBytes(call(HostCall::SyncedData { world: self.world.dimension, id: self.id }))
+            .ok()
+            .filter(|bytes| !bytes.is_empty())
+            .and_then(|bytes| decode(&bytes).ok())
+            .unwrap_or_default()
+    }
+
+    pub fn setSynced<T: Serialize>(self, value: &T) -> Result<()>
+    {
+        expectUnit(call(HostCall::SetSyncedData { world: self.world.dimension, id: self.id, data: encode(value) }))
+    }
+
+    pub fn field(self, field: EntityField) -> f64
+    {
+        match call(HostCall::EntityField { world: self.world.dimension, id: self.id, field })
+        {
+            HostReply::Float(value) => value as f64,
+            HostReply::Bool(flag) => f64::from(u8::from(flag)),
+            _ => 0.0,
+        }
+    }
+
+    pub fn flag(self, field: EntityField) -> bool { self.field(field) > 0.0 }
+
+    // rides vehicle, or leaves the current one with None
+    pub fn mount(self, vehicle: Option<i32>) -> Result<()>
+    {
+        expectUnit(call(HostCall::Mount { world: self.world.dimension, id: self.id, vehicle }))
+    }
+
+    pub fn riding(self) -> Option<i32> { Some(self.field(EntityField::RidingId) as i32).filter(|id| *id >= 0) }
+
+    pub fn rider(self) -> Option<i32> { Some(self.field(EntityField::RiderId) as i32).filter(|id| *id >= 0) }
+
+    pub fn setField(self, field: EntityField, value: f64)
+    {
+        let _ = call(HostCall::SetEntityField { world: self.world.dimension, id: self.id, field, value });
+    }
 
     pub fn walkTo(self, pos: BlockPos, speed: f32)
     {
@@ -360,6 +471,9 @@ pub fn setWorldData<T: Serialize>(key: &str, value: &T)
 {
     let _ = call(HostCall::SetWorldData { key: key.to_owned(), data: encode(value) });
 }
+
+// the client font's width of a string, zero on a server
+pub fn textWidth(text: &str) -> i32 { expectInt(call(HostCall::TextWidth { text: text.to_owned() })).unwrap_or(0) }
 
 pub fn localPlayer() -> Option<Player> { expectEntity(call(HostCall::LocalPlayer)).map(|info| Player { id: info.id }) }
 

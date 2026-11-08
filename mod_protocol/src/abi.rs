@@ -4,7 +4,7 @@ use crate::spec::{BlockSpec, EntitySpec, ItemSpec, RecipeSpec, TileEntitySpec, W
 use serde::{Deserialize, Serialize};
 
 // guest exports b173_alloc, b173_free, b173_dispatch and b173_abi; host imports live in module b173
-pub const ABI_VERSION: u32 = 1;
+pub const ABI_VERSION: u32 = 2;
 pub const IMPORT_MODULE: &str = "b173";
 
 pub mod exports
@@ -400,6 +400,11 @@ pub enum DrawOp
     {
         x: i32, y: i32, stack: StackData
     },
+    // a whole texture of any size stretched over a rectangle, blended by its alpha
+    Image
+    {
+        texture: String, x: i32, y: i32, w: i32, h: i32
+    },
     Button
     {
         id: i32, x: i32, y: i32, w: i32, h: i32, label: String, enabled: bool
@@ -435,6 +440,56 @@ pub struct ScreenSpec
     // a container screen syncs these tile entity slots plus the player inventory through vanilla slot packets
     pub slots: Vec<SlotSpec>,
     pub player_inventory: Option<[i32; 2]>,
+    // a plain screen drawn over the world without the dark backdrop, as dialogue screens are
+    pub transparent: bool,
+}
+
+// a piece of a player model a mod draws over a player, as armor layers and Aether accessories do
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum BipedPart
+{
+    Head,
+    Body,
+    RightArm,
+    LeftArm,
+    RightLeg,
+    LeftLeg,
+    // the cape, drawn swinging like a vanilla cloak
+    Cloak,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub struct PlayerLayer
+{
+    pub texture: String,
+    pub color: u32,
+    pub parts: Vec<BipedPart>,
+    // how far the layer's boxes grow past the player's, armor uses 1.0 and 0.5
+    pub inflate: f32,
+    // drawn at full brightness, as glowing armor
+    pub glow: bool,
+    // scales the layer about the model origin, Aether gloves shrink by 0.9375
+    pub scale: f32,
+    // blended by the texture's alpha, as a translucent shield
+    pub blend: bool,
+}
+
+// a call to an overlay on a vanilla container screen, positions relative to the container's corner
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub enum OverlayOp
+{
+    Draw
+    {
+        size: [i32; 2],
+        mouse: [i32; 2],
+    },
+    // answered with whether the overlay took the click away from the screen
+    Mouse
+    {
+        x: i32,
+        y: i32,
+        button: i32,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
@@ -628,6 +683,78 @@ pub enum EntityCall
     {
         entity: EntityInfo
     },
+    // client only, once per frame per visible entity, the reply is a Pose
+    Pose
+    {
+        input: PoseInput
+    },
+    Ai
+    {
+        entity: EntityInfo
+    },
+}
+
+// what RenderLiving knows when it draws a living entity
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub struct PoseInput
+{
+    pub entity: EntityInfo,
+    pub walk: f32,
+    pub walk_speed: f32,
+    pub age: f32,
+    pub head_yaw: f32,
+    pub head_pitch: f32,
+    pub partial: f32,
+    pub on_ground: bool,
+    pub riding: bool,
+    pub ridden_by_local: bool,
+    pub riding_local: bool,
+    // the rider's width plus height, zero without one
+    pub rider_size: f32,
+    // EntityLiving.hurtTime, counting down from 10 after a hit
+    pub hurt_time: i32,
+    pub synced: Vec<u8>,
+}
+
+// one step of a model draw program, GL transforms in block units after the model's -1 scale flip
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub enum ModelOp
+{
+    Push,
+    Pop,
+    Translate([f32; 3]),
+    // degrees around an axis
+    Rotate(f32, [f32; 3]),
+    Scale([f32; 3]),
+    Color([f32; 4]),
+    // binds a texture by identifier, as Render.loadTexture
+    Texture(String),
+    Blend(bool),
+    // draws a part and its children with this rotation and pivot
+    Part
+    {
+        part: u16,
+        rotation: [f32; 3],
+        pivot: [f32; 3],
+    },
+    // draws a part as the spec placed it
+    Rest(u16),
+    // turns to face the camera like RenderSnowball, for sprites
+    FaceCamera,
+    // quads of x, y, z, u, v vertices in GL units and 0 to 1 texture coordinates, four per quad
+    Quads(Vec<[f32; 5]>),
+    // glNormal3f for the quads that follow
+    Normal([f32; 3]),
+    // GL_LIGHTING off or back on, for glowing sprites
+    Lighting(bool),
+}
+
+// the draw program for one frame: pre runs where preRenderCallback does, model replaces ModelBase.render
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
+pub struct Pose
+{
+    pub pre: Vec<ModelOp>,
+    pub model: Vec<ModelOp>,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
@@ -660,6 +787,8 @@ pub enum Lifecycle
     InterMod,
     // numeric ids changed after a world load or a server join, cached ids must be resolved again
     Remapped,
+    // the player changed this option in the mod menu, the file is already saved
+    ConfigChanged(String),
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
@@ -730,6 +859,17 @@ pub enum GuestCall
         width: i32,
         height: i32,
     },
+    Overlay
+    {
+        handler: Handle,
+        op: OverlayOp,
+    },
+    PlayerLayers
+    {
+        handler: Handle,
+        player: EntityInfo,
+        synced: Vec<u8>,
+    },
     Service
     {
         handler: Handle,
@@ -756,11 +896,18 @@ pub enum GuestCall
         handler: Handle,
         chunk: ChunkInfo,
     },
+    // fills a fresh chunk of a dimension whose terrain the mod generates, the reply is a Chunk
+    Terrain
+    {
+        handler: Handle,
+        chunk: ChunkInfo,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 pub enum GuestReply
 {
+    Layers(Vec<PlayerLayer>),
     Unit,
     Bool(bool),
     Int(i32),
@@ -775,6 +922,13 @@ pub enum GuestReply
     Event(EventEnvelope),
     Draw(DrawList),
     Error(String),
+    // every block of a chunk in the index order x << 11 | z << 7 | y, with one metadata nibble per byte
+    Chunk
+    {
+        blocks: Vec<u16>,
+        meta: Vec<u8>,
+    },
+    Pose(Pose),
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
@@ -793,6 +947,108 @@ pub enum ConfigScope
     Client,
     Common,
     Server,
+}
+
+// a typed option, key is name or category.name and a category becomes a table in config/<modid>.toml
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub struct ConfigOption
+{
+    pub key: String,
+    // shown in the mod menu, empty uses the name part of the key
+    pub label: String,
+    pub comment: String,
+    pub scope: ConfigScope,
+    pub kind: ConfigKind,
+    // the mod reads the value once, so a change shows after a restart
+    pub restart: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub enum ConfigKind
+{
+    Bool
+    {
+        default: bool,
+    },
+    Int
+    {
+        default: i64,
+        min: i64,
+        max: i64,
+    },
+    Float
+    {
+        default: f64,
+        min: f64,
+        max: f64,
+    },
+    Text
+    {
+        default: String,
+    },
+    Choice
+    {
+        default: String,
+        choices: Vec<String>,
+    },
+}
+
+impl ConfigKind
+{
+    pub fn defaultText(&self) -> String
+    {
+        match self
+        {
+            ConfigKind::Bool { default } => default.to_string(),
+            ConfigKind::Int { default, .. } => default.to_string(),
+            ConfigKind::Float { default, .. } => default.to_string(),
+            ConfigKind::Text { default } | ConfigKind::Choice { default, .. } => default.clone(),
+        }
+    }
+
+    // the canonical text of a value, or why it does not fit this option
+    pub fn check(&self, text: &str) -> Result<String, String>
+    {
+        let trimmed: &str = text.trim();
+        match self
+        {
+            ConfigKind::Bool { .. } => match trimmed.to_ascii_lowercase().as_str()
+            {
+                "true" => Ok("true".to_owned()),
+                "false" => Ok("false".to_owned()),
+                _ => Err(format!("'{trimmed}' is not true or false")),
+            },
+            ConfigKind::Int { min, max, .. } =>
+            {
+                let value: i64 = trimmed.parse().map_err(|_| format!("'{trimmed}' is not a whole number"))?;
+                inRange(value, *min, *max).map(|value| value.to_string())
+            }
+            ConfigKind::Float { min, max, .. } =>
+            {
+                let value: f64 = trimmed
+                    .parse()
+                    .ok()
+                    .filter(|value: &f64| value.is_finite())
+                    .ok_or_else(|| format!("'{trimmed}' is not a number"))?;
+                inRange(value, *min, *max).map(|value| value.to_string())
+            }
+            ConfigKind::Text { .. } => Ok(text.to_owned()),
+            ConfigKind::Choice { choices, .. } => choices
+                .iter()
+                .find(|choice| choice.as_str() == trimmed)
+                .cloned()
+                .ok_or_else(|| format!("'{trimmed}' is not one of {}", choices.join(", "))),
+        }
+    }
+}
+
+fn inRange<T: PartialOrd + std::fmt::Display>(value: T, min: T, max: T) -> Result<T, String>
+{
+    if value < min || value > max
+    {
+        return Err(format!("{value} is outside {min} to {max}"));
+    }
+    Ok(value)
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -951,6 +1207,17 @@ pub enum HostCall
     {
         handler: Handle,
     },
+    // draws over a vanilla screen by its class name, GuiInventory for the player inventory, and may take its clicks
+    RegisterOverlay
+    {
+        target: String,
+        handler: Handle,
+    },
+    // layers drawn over every player, asked for each player each frame
+    RegisterPlayerLayer
+    {
+        handler: Handle,
+    },
     ProvideService
     {
         name: Identifier,
@@ -1043,6 +1310,47 @@ pub enum HostCall
     {
         world: i32,
         pos: BlockPos,
+        meta: i32,
+    },
+    // a lightning bolt as weather strikes, seen by every player in range
+    Lightning
+    {
+        world: i32,
+        pos: [f64; 3],
+    },
+    // a player's inventory slot, 0 to 8 the hotbar and 9 to 35 the rest
+    InventorySlot
+    {
+        player: i32,
+        slot: i32,
+    },
+    SetInventorySlot
+    {
+        player: i32,
+        slot: i32,
+        stack: Option<StackData>,
+    },
+    // the stack a player carries on the mouse in an open inventory
+    CursorStack
+    {
+        player: i32,
+    },
+    SetCursorStack
+    {
+        player: i32,
+        stack: Option<StackData>,
+    },
+    // the width in pixels the client font draws a string at, zero on a server
+    TextWidth
+    {
+        text: String,
+    },
+    // the vanilla block break effect, cracking particles and the dig sound, seen by every nearby player
+    BlockEffect
+    {
+        world: i32,
+        pos: BlockPos,
+        block: i32,
         meta: i32,
     },
     NotifyNeighbors
@@ -1262,6 +1570,133 @@ pub enum HostCall
     },
     LocalPlayer,
     ScreenSize,
+    RegisterTerrain
+    {
+        dimension: Identifier,
+        handler: Handle,
+    },
+    // y of the first block above the highest light blocking block in the column
+    Height
+    {
+        world: i32,
+        x: i32,
+        z: i32,
+    },
+    // numeric fields answer Float, flags answer Bool
+    EntityField
+    {
+        world: i32,
+        id: i32,
+        field: EntityField,
+    },
+    // World.rayTraceBlocks between two points, answers Hit
+    RayTrace
+    {
+        world: i32,
+        from: [f64; 3],
+        to: [f64; 3],
+        liquids: bool,
+    },
+    // entities whose box, grown by radius, the segment crosses, nearest first, as projectiles find what they hit
+    EntitiesAlong
+    {
+        world: i32,
+        from: [f64; 3],
+        to: [f64; 3],
+        radius: f64,
+        exclude: Option<i32>,
+    },
+    // EntityLiving.mountEntity, None leaves the current vehicle
+    Mount
+    {
+        world: i32,
+        id: i32,
+        vehicle: Option<i32>,
+    },
+    // static properties of a block id, answers BlockInfo
+    BlockInfo
+    {
+        block: i32,
+    },
+    // bytes the server keeps per entity and mirrors to every client tracking it
+    SyncedData
+    {
+        world: i32,
+        id: i32,
+    },
+    SetSyncedData
+    {
+        world: i32,
+        id: i32,
+        data: Vec<u8>,
+    },
+    // flags take any value above zero as true
+    SetEntityField
+    {
+        world: i32,
+        id: i32,
+        field: EntityField,
+        value: f64,
+    },
+    // typed options shown in the mod menu, defining a known key again replaces it
+    DefineConfigOptions
+    {
+        options: Vec<ConfigOption>,
+    },
+    // checked against the option kind and saved, the mod gets no ConfigChanged for its own change
+    SetConfigValue
+    {
+        key: String,
+        value: String,
+    },
+}
+
+// entity state beyond EntityInfo that ported mods read or change, new fields go at the end
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum EntityField
+{
+    FallDistance,
+    OnGround,
+    Sneaking,
+    InWater,
+    Riding,
+    FireTicks,
+    Air,
+    TicksExisted,
+    // entity id of the vehicle or the rider, -1 for none, read only
+    RidingId,
+    RiderId,
+    // EntityLiving steering input, a riding player's keys reach its vehicle through these
+    MoveForward,
+    MoveStrafe,
+    Jumping,
+    Yaw,
+    Pitch,
+    // a steered mount's air jumps before it lands, overriding SteeringSpec.air_jumps for this entity
+    AirJumps,
+    // a steered mount's speed with a rider, overriding SteeringSpec.speed for this entity
+    MountSpeed,
+    // EntityCreature.playerToAttack, -1 for none
+    TargetId,
+    // EntityMob.attackStrength, the melee damage of a monster
+    AttackStrength,
+    // Entity.setSize, writing either keeps the other
+    Width,
+    Height,
+    // EntityLiving.swingProgress, above zero while a player swings its arm, read only
+    SwingProgress,
+    // the block id a moving_block entity draws
+    Block,
+    // Entity.isCollided, the last move ran into a block on any side, read only
+    Collided,
+    // EntityLiving.health, writing heals or hurts without a hit
+    Health,
+    // the bottom of the bounding box, a player's feet rather than its eyes, read only
+    Bottom,
+    // EntityLiving.moveSpeed, how fast its own AI walks it
+    MoveSpeed,
+    // Entity.stepHeight, how tall a block it walks up without jumping
+    StepHeight,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
@@ -1281,6 +1716,30 @@ pub enum HostReply
     Entities(Vec<EntityInfo>),
     Size(i32, i32),
     Error(String),
+    BlockInfo(Option<BlockInfo>),
+    Hit(Option<RayHit>),
+}
+
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Debug)]
+pub struct RayHit
+{
+    pub pos: BlockPos,
+    pub face: i32,
+    pub point: [f64; 3],
+}
+
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Debug, Default)]
+pub struct BlockInfo
+{
+    pub opacity: i32,
+    pub light: i32,
+    pub hardness: f32,
+    // isOpaqueCube, full cubes that hide their neighbours' faces
+    pub opaque: bool,
+    // the material blocks movement
+    pub solid: bool,
+    pub liquid: bool,
+    pub replaceable: bool,
 }
 
 #[cfg(test)]

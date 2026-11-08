@@ -8,6 +8,15 @@ const CHARGE: &str = "charge";
 const PING: &str = "ping";
 const MACHINE_SCREEN: &str = "machine";
 const PULSE: &str = "testmod:pulse";
+const HUD_OPTION: &str = "hud.visible";
+const HUD_COLOR_OPTION: &str = "hud.color";
+const HUD_COLORS: [(&str, u32); 3] = [("yellow", 0xFFFF55), ("white", 0xFFFFFF), ("green", 0x55FF55)];
+
+fn hudColor() -> u32
+{
+    let chosen: String = Config.get(HUD_COLOR_OPTION);
+    HUD_COLORS.iter().find(|(name, _)| *name == chosen).map_or(HUD_COLORS[0].1, |(_, color)| *color)
+}
 const REALM: &str = "testmod:test_realm";
 const MACHINE_SLOTS: i32 = 2;
 const HUD_KEY: i32 = 37;
@@ -267,16 +276,16 @@ fn registerContent(ctx: &mut RegisterCtx) -> Result<()>
         "pedestal",
         BlockSpecBuilder::template(vanilla::block::COBBLESTONE).hardness(1.0).texture("minecraft:terrain/16").model(
             BlockModelSpec {
-                render_type: None,
                 cuboids: vec![
-                    Cuboid { from: [0.0, 0.0, 0.0], to: [16.0, 4.0, 16.0], texture: None },
+                    Cuboid { from: [0.0, 0.0, 0.0], to: [16.0, 4.0, 16.0], ..Cuboid::default() },
                     Cuboid {
                         from: [5.0, 4.0, 5.0],
                         to: [11.0, 14.0, 11.0],
                         texture: Some("testmod:block/machine".to_owned()),
+                        ..Cuboid::default()
                     },
                 ],
-                translucent: false,
+                ..BlockModelSpec::default()
             },
         ),
     )?;
@@ -498,14 +507,19 @@ fn registerInterface(ctx: &mut RegisterCtx) -> Result<()>
                 width - 90,
                 4,
                 &format!("chunks {}", CHUNKS_POPULATED.with(Cell::get)),
-                0xFFFF55,
+                hudColor(),
             );
         }
     })?;
     ctx.keybinds().register("toggle_hud", HUD_KEY, |pressed| {
         if pressed
         {
-            HUD_VISIBLE.with(|visible| visible.set(!visible.get()));
+            let shown: bool = !HUD_VISIBLE.with(Cell::get);
+            HUD_VISIBLE.with(|visible| visible.set(shown));
+            if let Err(error) = Config.set(HUD_OPTION, shown)
+            {
+                log(&error.0);
+            }
         }
     })?;
     ctx.commands().registerWithUsage("testmod", Permission::Op, "<give|realm|home|energy|pulse|data>", |command| {
@@ -531,7 +545,8 @@ fn registerInterface(ctx: &mut RegisterCtx) -> Result<()>
             Some("pulse") =>
             {
                 let canceled: bool = services::postEvent(PULSE, &42u32)?;
-                command.reply(&format!("pulse canceled {canceled}"));
+                let (power, radius): (i64, f64) = (Config.getInt("pulse.power"), Config.getFloat("pulse.radius"));
+                command.reply(&format!("pulse power {power} radius {radius} canceled {canceled}"));
             }
             Some("data") =>
             {
@@ -550,12 +565,22 @@ fn registerInterface(ctx: &mut RegisterCtx) -> Result<()>
 #[mod_main]
 fn register(ctx: &mut RegisterCtx) -> Result<()>
 {
-    ctx.config().define(&[
-        ("hud", "true", "show the chunk counter hud", ConfigScope::Client),
-        ("pulse_power", "3", "strength of the pulse event", ConfigScope::Server),
-        ("greeting", "hello", "chat greeting", ConfigScope::Common),
+    ctx.config().options([
+        Setting::bool(HUD_OPTION, true).label("Chunk counter").comment("show the chunk counter hud").client(),
+        Setting::choice(HUD_COLOR_OPTION, "yellow", &["yellow", "white", "green"])
+            .comment("chunk counter text color")
+            .client(),
+        Setting::int("pulse.power", 3, 0..=15).comment("strength of the pulse event").server(),
+        Setting::float("pulse.radius", 4.0, 0.0..=16.0).comment("reach of the pulse event in blocks").server(),
+        Setting::text("greeting", "hello").comment("chat greeting"),
     ])?;
-    HUD_VISIBLE.with(|visible| visible.set(ctx.config().get("hud") != "false"));
+    HUD_VISIBLE.with(|visible| visible.set(ctx.config().getBool(HUD_OPTION)));
+    ctx.config().onChange(|key| {
+        if key == HUD_OPTION
+        {
+            HUD_VISIBLE.with(|visible| visible.set(Config.getBool(HUD_OPTION)));
+        }
+    });
     registerContent(ctx)?;
     registerWorld(ctx)?;
     registerEvents(ctx)?;

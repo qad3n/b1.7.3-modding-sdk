@@ -49,6 +49,7 @@ The result is `mymod/target/mymod-0.1.0.b173mod`. Drop it in the game's `mods/` 
 - `mod.toml` names the mod: `id`, `version`, `api`, `side` (`both`, `client` or `server`), and other mods under `[depends]` or `[optional]`.
 - `data/<modid>/` holds content as TOML: `blocks/`, `items/`, `recipes/`, `worldgen/`, `tags/`. Blocks and items copy a vanilla template and change what they need.
 - `assets/<modid>/` holds textures (`textures/<path>.png`, named `<modid>:<path>`), sounds and `lang/en_US.lang`.
+- `ctx.config().options([...])` declares typed settings (`Setting::bool`, `int`, `float`, `text`, `choice`). They live in `config/<modid>.toml` and players edit them in game from the mod menu; `Config.getBool(key)` and friends read them, `onChange` hears menu edits.
 - `src/lib.rs` is optional code. `#[mod_main]` runs once at load and registers blocks, items, events, commands, keybinds, screens and more. Block, item, entity and tile entity logic are trait impls marked `#[block_behavior]`, `#[item_behavior]`, `#[entity_behavior]` or `#[tile_behavior]`.
 
 Check `ctx.isAuthority()` before you change the world, and check everything a client sends to the server.

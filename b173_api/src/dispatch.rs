@@ -2,6 +2,7 @@ use crate::behavior::{BlockBehavior, EntityBehavior, ItemBehavior, TileBehavior,
 use crate::events::Event;
 use crate::screen::{Draw, Screen};
 use crate::services::{Lookup, Service};
+use crate::terrain::ChunkBlocks;
 use crate::{BlockCtx, Entity, ItemStack, Player, RegisterCtx, World};
 use mod_protocol::abi::{
     BlockCall, ChunkInfo, EntityCall, GuestCall, GuestReply, ItemCall, Lifecycle, Sender, TileCall,
@@ -39,7 +40,10 @@ type EventHandler = Rc<dyn Fn(&mut Event)>;
 type CommandHandler = Rc<dyn Fn(&mut Command) -> crate::Result<()>>;
 type ChannelHandler = Rc<dyn Fn(Player, &[u8])>;
 type HudHandler = Rc<dyn Fn(&mut Draw, f32, i32, i32)>;
+type LayerHandler = Rc<dyn Fn(&mod_protocol::abi::EntityInfo, &[u8]) -> Vec<mod_protocol::abi::PlayerLayer>>;
 type InterModHandler = Rc<dyn Fn(&str, &str, &[u8])>;
+type TerrainHandler = Rc<dyn Fn(&ChunkInfo, &mut ChunkBlocks)>;
+type ConfigListener = Rc<dyn Fn(&str)>;
 
 #[derive(Default)]
 struct Tables
@@ -54,10 +58,14 @@ struct Tables
     m_channels: Vec<ChannelHandler>,
     m_screens: Vec<Rc<RefCell<dyn Screen>>>,
     m_huds: Vec<HudHandler>,
+    m_overlays: Vec<Rc<RefCell<dyn crate::screen::Overlay>>>,
+    m_layers: Vec<LayerHandler>,
     m_services: Vec<Rc<dyn Service>>,
     m_lookups: Vec<Rc<dyn Lookup>>,
     m_generators: Vec<Rc<dyn Fn(ChunkInfo)>>,
+    m_terrains: Vec<TerrainHandler>,
     m_interMod: Option<InterModHandler>,
+    m_configListeners: Vec<ConfigListener>,
 }
 
 thread_local! {
@@ -86,9 +94,21 @@ adder!(addCommand, m_commands, CommandHandler);
 adder!(addKey, m_keys, Rc<dyn Fn(bool)>);
 adder!(addChannel, m_channels, ChannelHandler);
 adder!(addHud, m_huds, HudHandler);
+adder!(addLayer, m_layers, LayerHandler);
 adder!(addService, m_services, Rc<dyn Service>);
 adder!(addLookup, m_lookups, Rc<dyn Lookup>);
 adder!(addGenerator, m_generators, Rc<dyn Fn(ChunkInfo)>);
+adder!(addTerrain, m_terrains, TerrainHandler);
+adder!(addConfigListener, m_configListeners, ConfigListener);
+
+pub(crate) fn addOverlay(overlay: impl crate::screen::Overlay + 'static) -> u32
+{
+    TABLES.with(|tables| {
+        let mut tables = tables.borrow_mut();
+        tables.m_overlays.push(Rc::new(RefCell::new(overlay)));
+        (tables.m_overlays.len() - 1) as u32
+    })
+}
 
 pub(crate) fn addScreen(screen: impl Screen + 'static) -> u32
 {
@@ -243,6 +263,8 @@ fn entity(handle: u32, call: EntityCall) -> GuestReply
         },
         EntityCall::Death { entity, source } => unit(|| behavior.onDeath(handleOf(&entity), source)),
         EntityCall::CanSpawn { entity } => GuestReply::Bool(behavior.canSpawn(handleOf(&entity), &entity)),
+        EntityCall::Pose { input } => GuestReply::Pose(behavior.pose(&input)),
+        EntityCall::Ai { entity } => unit(|| behavior.onAi(handleOf(&entity), &entity)),
     }
 }
 
@@ -280,6 +302,15 @@ pub(crate) fn handle(call: GuestCall) -> GuestReply
             GuestReply::Unit
         }
         GuestCall::Lifecycle(Lifecycle::InterMod) => GuestReply::Unit,
+        GuestCall::Lifecycle(Lifecycle::ConfigChanged(key)) =>
+        {
+            let listeners: Vec<ConfigListener> = TABLES.with(|tables| tables.borrow().m_configListeners.clone());
+            for listener in listeners
+            {
+                listener(&key);
+            }
+            GuestReply::Unit
+        }
         GuestCall::Block { handle, call } => block(handle, call),
         GuestCall::Item { handle, call } => item(handle, call),
         GuestCall::Entity { handle, call } => entity(handle, call),
@@ -326,6 +357,16 @@ pub(crate) fn handle(call: GuestCall) -> GuestReply
             },
             None => GuestReply::Error(format!("no screen {handler}")),
         },
+        GuestCall::PlayerLayers { handler, player, synced } => match get(|tables| tables.m_layers.get(handler as usize))
+        {
+            Some(layer) => GuestReply::Layers(layer(&player, &synced)),
+            None => GuestReply::Error(format!("no player layer {handler}")),
+        },
+        GuestCall::Overlay { handler, op } => match get(|tables| tables.m_overlays.get(handler as usize))
+        {
+            Some(overlay) => crate::screen::runOverlay(&mut *overlay.borrow_mut(), op),
+            None => GuestReply::Error(format!("no overlay {handler}")),
+        },
         GuestCall::Hud { handler, partial, width, height } => match get(|tables| tables.m_huds.get(handler as usize))
         {
             Some(hud) =>
@@ -369,6 +410,16 @@ pub(crate) fn handle(call: GuestCall) -> GuestReply
         {
             Some(generator) => unit(|| generator(chunk)),
             None => GuestReply::Error(format!("no generator {handler}")),
+        },
+        GuestCall::Terrain { handler, chunk } => match get(|tables| tables.m_terrains.get(handler as usize))
+        {
+            Some(terrain) =>
+            {
+                let mut blocks: ChunkBlocks = ChunkBlocks::default();
+                terrain(&chunk, &mut blocks);
+                GuestReply::Chunk { blocks: blocks.m_blocks, meta: blocks.m_meta }
+            }
+            None => GuestReply::Error(format!("no terrain generator {handler}")),
         },
     }
 }

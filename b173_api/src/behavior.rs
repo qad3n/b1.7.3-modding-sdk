@@ -1,5 +1,5 @@
 use crate::{BlockCtx, Entity, EntityInfo, ItemStack, Player, World};
-use mod_protocol::abi::BlockPos;
+use mod_protocol::abi::{BlockPos, Pose, PoseInput};
 use mod_protocol::spec::{BlockMethod, EntityMethod, ItemMethod, TileMethod};
 
 // write the methods you need inside an impl marked #[block_behavior], only those cross from the game into wasm
@@ -62,6 +62,10 @@ pub trait EntityBehavior
     fn onHurt(&self, _entity: Entity, _source: Option<i32>, amount: i32) -> Option<i32> { Some(amount) }
     fn onDeath(&self, _entity: Entity, _source: Option<i32>) {}
     fn canSpawn(&self, _entity: Entity, _info: &EntityInfo) -> bool { true }
+    // client only, the draw program for this frame of the entity's spec model
+    fn pose(&self, _input: &PoseInput) -> Pose { Pose::default() }
+    // implementing this replaces the template's AI, the entity only does what this does
+    fn onAi(&self, _entity: Entity, _info: &EntityInfo) {}
     fn overridden(&self) -> &'static [&'static str] { &[] }
 }
 
@@ -108,13 +112,15 @@ pub(crate) const ITEM_METHODS: [(&str, ItemMethod); 9] = [
     ("onCrafted", ItemMethod::Crafted),
 ];
 
-pub(crate) const ENTITY_METHODS: [(&str, EntityMethod); 6] = [
+pub(crate) const ENTITY_METHODS: [(&str, EntityMethod); 8] = [
     ("onTick", EntityMethod::Tick),
     ("onLivingUpdate", EntityMethod::LivingUpdate),
     ("onInteract", EntityMethod::Interact),
     ("onHurt", EntityMethod::Hurt),
     ("onDeath", EntityMethod::Death),
     ("canSpawn", EntityMethod::CanSpawn),
+    ("pose", EntityMethod::Pose),
+    ("onAi", EntityMethod::Ai),
 ];
 
 pub(crate) const TILE_METHODS: [(&str, TileMethod); 2] =

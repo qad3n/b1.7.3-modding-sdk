@@ -4,10 +4,11 @@ use crate::events::{Event, EventType};
 use crate::rt::call;
 use crate::screen::{Draw, Screen};
 use crate::services::{Lookup, Service};
-use crate::{Error, ItemRef, ItemStack, Player, Result, expectUnit, ownId};
+use crate::terrain::ChunkBlocks;
+use crate::{Config, Error, ItemRef, ItemStack, Player, Result, expectUnit, ownId};
 use mod_protocol::Identifier;
 use mod_protocol::abi::{
-    BiomeSpec, ChunkInfo, ConfigEntry, ConfigScope, DimensionSpec, EventKind, HostCall, HostReply, Permission,
+    BiomeSpec, ChunkInfo, DimensionSpec, EventKind, HostCall, HostReply, Permission,
     Priority, RegistryKind, ScreenSpec, SlotSpec,
 };
 use mod_protocol::handshake::ChannelDirection;
@@ -201,6 +202,43 @@ impl BlockSpecBuilder
         self
     }
 
+    // a bed of the bed template, its sprites picked by half and facing
+    pub fn bed(mut self, faces: mod_protocol::spec::BedFaces) -> Self
+    {
+        self.m_spec.bed = Some(faces);
+        self
+    }
+
+    pub fn slipperiness(mut self, value: f32) -> Self
+    {
+        self.m_spec.slipperiness = Some(value);
+        self
+    }
+
+    pub fn opacity(mut self, value: i32) -> Self
+    {
+        self.m_spec.opacity = Some(value);
+        self
+    }
+
+    pub fn leaves(mut self, decays: bool) -> Self
+    {
+        self.m_spec.leaves = Some(decays);
+        self
+    }
+
+    pub fn sustainsLeaves(mut self) -> Self
+    {
+        self.m_spec.sustains_leaves = Some(true);
+        self
+    }
+
+    pub fn collision(mut self, boxes: Vec<mod_protocol::spec::Cuboid>) -> Self
+    {
+        self.m_spec.collision = Some(boxes);
+        self
+    }
+
     pub fn tag(mut self, tag: &str) -> Self
     {
         if let Ok(tag) = Identifier::parse(tag)
@@ -307,6 +345,12 @@ impl ItemSpecBuilder
         self
     }
 
+    pub fn color(mut self, color: u32) -> Self
+    {
+        self.m_spec.color = Some(color);
+        self
+    }
+
     pub fn tag(mut self, tag: &str) -> Self
     {
         if let Ok(tag) = Identifier::parse(tag)
@@ -375,7 +419,10 @@ pub struct ShapedBuilder
 
 impl ShapedBuilder
 {
-    pub fn pattern<const N: usize>(mut self, rows: [&str; N]) -> Self
+    pub fn pattern<const N: usize>(self, rows: [&str; N]) -> Self { self.rows(&rows) }
+
+    // the pattern as a slice, for recipe tables whose rows differ in count
+    pub fn rows(mut self, rows: &[&str]) -> Self
     {
         self.m_pattern = rows.iter().map(|row| (*row).to_owned()).collect();
         self
@@ -594,6 +641,12 @@ impl ScreenBuilder
         ScreenBuilder { m_spec: ScreenSpec { width, height, title: title.to_owned(), ..ScreenSpec::default() } }
     }
 
+    pub fn transparent(mut self) -> Self
+    {
+        self.m_spec.transparent = true;
+        self
+    }
+
     pub fn background(mut self, texture: &str) -> Self
     {
         self.m_spec.background = Some(texture.to_owned());
@@ -627,41 +680,23 @@ impl Screens
         expectUnit(call(HostCall::RegisterScreen { name: name.to_owned(), spec: spec.m_spec, handler: handle }))
     }
 
+    // layers over every player model, from the player and its synced bytes
+    pub fn playerLayer(&self, handler: impl Fn(&mod_protocol::abi::EntityInfo, &[u8]) -> Vec<mod_protocol::abi::PlayerLayer> + 'static) -> Result<()>
+    {
+        let handle: u32 = dispatch::addLayer(Rc::new(handler));
+        expectUnit(call(HostCall::RegisterPlayerLayer { handler: handle }))
+    }
+
+    pub fn overlay(&self, target: &str, overlay: impl crate::screen::Overlay + 'static) -> Result<()>
+    {
+        let handle: u32 = dispatch::addOverlay(overlay);
+        expectUnit(call(HostCall::RegisterOverlay { target: target.to_owned(), handler: handle }))
+    }
+
     pub fn hud(&self, handler: impl Fn(&mut Draw, f32, i32, i32) + 'static) -> Result<()>
     {
         let handle: u32 = dispatch::addHud(Rc::new(handler));
         expectUnit(call(HostCall::RegisterHud { handler: handle }))
-    }
-}
-
-pub struct Config;
-
-impl Config
-{
-    // values live in config/<modid>.toml, server scope values are synced to clients
-    pub fn define(&self, entries: &[(&str, &str, &str, ConfigScope)]) -> Result<()>
-    {
-        let entries: Vec<ConfigEntry> = entries
-            .iter()
-            .map(|(key, default, comment, scope)| ConfigEntry {
-                key: (*key).to_owned(),
-                default: (*default).to_owned(),
-                comment: (*comment).to_owned(),
-                scope: *scope,
-            })
-            .collect();
-        expectUnit(call(HostCall::DefineConfig { entries }))
-    }
-
-    pub fn get(&self, key: &str) -> String { configValue(key) }
-}
-
-pub fn configValue(key: &str) -> String
-{
-    match call(HostCall::ConfigValue { key: key.to_owned() })
-    {
-        HostReply::Text(text) => text,
-        _ => String::new(),
     }
 }
 
@@ -765,6 +800,13 @@ impl Dimensions
         let handle: u32 = dispatch::addGenerator(Rc::new(handler));
         expectUnit(call(HostCall::RegisterGenerator { dimension: parse(dimension)?, handler: handle }))
     }
+
+    // the terrain generator fills every new chunk of a mod dimension, the generator above then populates it
+    pub fn terrain(&self, dimension: &str, handler: impl Fn(&ChunkInfo, &mut ChunkBlocks) + 'static) -> Result<()>
+    {
+        let handle: u32 = dispatch::addTerrain(Rc::new(handler));
+        expectUnit(call(HostCall::RegisterTerrain { dimension: parse(dimension)?, handler: handle }))
+    }
 }
 
 pub struct Lang;
@@ -779,3 +821,5 @@ pub fn ownIdentifier(name: &str) -> Result<Identifier> { ownId(name) }
 pub fn bytes<T: Serialize>(value: &T) -> Vec<u8> { crate::world::encode(value) }
 
 pub fn fromBytes<T: DeserializeOwned>(bytes: &[u8]) -> Result<T> { crate::world::decode(bytes) }
+
+pub fn toBytes<T: Serialize>(value: &T) -> Vec<u8> { crate::world::encode(value) }
