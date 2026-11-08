@@ -16,8 +16,8 @@ pub use config::{Config, Setting, configValue};
 pub use mod_protocol::Identifier;
 pub use mod_protocol::abi::{
     BiomeSpec, BipedPart, BlockInfo, BlockPos, ChunkInfo, ConfigScope, DimensionSpec, EntityField, EntityInfo,
-    EventKind, ModelOp, MusicSpec, Permission, PlayerLayer, Pose, PoseInput, Priority, RayHit, RegistryKind, StackData,
-    StackRef, StateData, Target,
+    EventKind, ModelOp, MusicSpec, Permission, PlayerLayer, Pose, PoseInput, Priority, RayHit, RecipeShape, RecipeView,
+    RegistryKind, StackData, StackRef, StateData, Target,
 };
 use mod_protocol::abi::{EntityInfo as RawEntity, HostCall, HostReply};
 pub use mod_protocol::handshake::ChannelDirection as Direction;
@@ -280,8 +280,9 @@ pub mod prelude
     pub use crate::screen::{Draw, Overlay, Screen};
     pub use crate::services::{Lookup, Service};
     pub use crate::world::{
-        allPlayers, broadcast, displayName, isClient, isLoaded, localPlayer, send, setStackComponent, setWorldData,
-        setWorldTime, stackComponent, textWidth, translate, worldData,
+        allPlayers, broadcast, contentGeneration, displayName, isClient, isLoaded, itemCatalog, localPlayer,
+        recipeList, screenSize, send, setStackComponent, setWorldData, setWorldTime, stackComponent, textWidth,
+        translate, worldData,
     };
     pub use crate::{vanilla, *};
     pub use serde::{Deserialize, Serialize};

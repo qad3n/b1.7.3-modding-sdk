@@ -4,8 +4,8 @@ use crate::{
 };
 use mod_protocol::Identifier;
 use mod_protocol::abi::{
-    BlockCtx as RawCtx, BlockInfo, BlockPos, EntityField, EntityInfo, HostCall, HostReply, RayHit, StackRef, StateData,
-    Target,
+    BlockCtx as RawCtx, BlockInfo, BlockPos, EntityField, EntityInfo, HostCall, HostReply, RayHit, RecipeView,
+    StackRef, StateData, Target,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -577,8 +577,41 @@ pub fn setWorldData<T: Serialize>(key: &str, value: &T)
     let _ = call(HostCall::SetWorldData { key: key.to_owned(), data: encode(value) });
 }
 
+// every stack a creative item list shows, subtypes included, in numeric id order, each a full stack
+pub fn itemCatalog() -> Vec<ItemStack>
+{
+    match call(HostCall::ItemCatalog)
+    {
+        HostReply::Stacks(stacks) => stacks.into_iter().map(ItemStack::fromRaw).collect(),
+        _ => Vec::new(),
+    }
+}
+
+// the crafting and smelting recipes the game knows, mod recipes included
+pub fn recipeList() -> Vec<RecipeView>
+{
+    match call(HostCall::RecipeList)
+    {
+        HostReply::Recipes(recipes) => recipes,
+        _ => Vec::new(),
+    }
+}
+
+// changes whenever ids are remapped or recipe tables rebuilt, so caches of the catalog or recipe list can reload
+pub fn contentGeneration() -> i32 { expectInt(call(HostCall::ContentGeneration)).unwrap_or(0) }
+
 // the client font's width of a string, zero on a server
 pub fn textWidth(text: &str) -> i32 { expectInt(call(HostCall::TextWidth { text: text.to_owned() })).unwrap_or(0) }
+
+// the scaled gui size of the client screen, none on a server
+pub fn screenSize() -> Option<[i32; 2]>
+{
+    match call(HostCall::ScreenSize)
+    {
+        HostReply::Size(width, height) => Some([width, height]),
+        _ => None,
+    }
+}
 
 pub fn localPlayer() -> Option<Player> { expectEntity(call(HostCall::LocalPlayer)).map(|info| Player { id: info.id }) }
 

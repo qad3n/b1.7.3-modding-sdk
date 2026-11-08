@@ -102,6 +102,10 @@ pub trait Overlay
     fn draw(&mut self, draw: &mut Draw, size: [i32; 2], mouse: [i32; 2]);
     // true takes the click away from the vanilla screen
     fn mouse(&mut self, _x: i32, _y: i32, _button: i32) -> bool { false }
+    // true takes the key away from the vanilla screen, hovered is the stack in the vanilla slot under the mouse
+    fn key(&mut self, _character: char, _key: i32, _hovered: Option<ItemStack>) -> bool { false }
+    // the mouse wheel, delta positive when rolled away from the player, true takes it away from the vanilla screen
+    fn scroll(&mut self, _x: i32, _y: i32, _delta: i32) -> bool { false }
 }
 
 pub(crate) fn runOverlay(overlay: &mut dyn Overlay, op: mod_protocol::abi::OverlayOp) -> mod_protocol::abi::GuestReply
@@ -117,6 +121,15 @@ pub(crate) fn runOverlay(overlay: &mut dyn Overlay, op: mod_protocol::abi::Overl
         mod_protocol::abi::OverlayOp::Mouse { x, y, button } =>
         {
             mod_protocol::abi::GuestReply::Bool(overlay.mouse(x, y, button))
+        }
+        mod_protocol::abi::OverlayOp::Key { character, key, hovered } =>
+        {
+            let character: char = char::from_u32(character).unwrap_or('\0');
+            mod_protocol::abi::GuestReply::Bool(overlay.key(character, key, hovered.map(ItemStack::fromRaw)))
+        }
+        mod_protocol::abi::OverlayOp::Scroll { x, y, delta } =>
+        {
+            mod_protocol::abi::GuestReply::Bool(overlay.scroll(x, y, delta))
         }
     }
 }

@@ -89,36 +89,45 @@ pub fn build(root: &Path) -> Result<PathBuf>
     Ok(output)
 }
 
-fn gameDir(server: bool, root: &Path) -> PathBuf
+// the game's per-user data folder, B173_HOME or the same OS folder the game picks, with the server in its server folder
+fn gameDir(server: bool) -> Result<PathBuf>
 {
-    let variable: &str = if server
+    let fromEnv = |name: &str| std::env::var_os(name).filter(|value| !value.is_empty()).map(PathBuf::from);
+    let home = |name: &str| fromEnv(name).with_context(|| format!("{name} is not set, set B173_HOME"));
+    let data: PathBuf = match fromEnv("B173_HOME")
     {
-        "B173_SERVER_DIR"
-    }
-    else
-    {
-        "B173_GAME_DIR"
+        Some(dir) => std::path::absolute(dir)?,
+        None => match std::env::consts::OS
+        {
+            "windows" => match fromEnv("APPDATA")
+            {
+                Some(dir) => dir,
+                None => home("USERPROFILE")?.join("AppData").join("Roaming"),
+            },
+            "macos" => home("HOME")?.join("Library").join("Application Support"),
+            // the XDG spec says to ignore a relative XDG_DATA_HOME
+            _ => match fromEnv("XDG_DATA_HOME").filter(|dir| dir.is_absolute())
+            {
+                Some(dir) => dir,
+                None => home("HOME")?.join(".local").join("share"),
+            },
+        }
+        .join("beta173"),
     };
-    match std::env::var_os(variable)
-    {
-        Some(dir) => PathBuf::from(dir),
-        None => root.join("run").join(if server { "server" } else { "client" }),
-    }
+    Ok(if server { data.join("server") } else { data })
 }
 
 // builds, copies the file into the game's mods folder and starts the game binary there
 pub fn run(root: &Path, server: bool) -> Result<()>
 {
     let file: PathBuf = build(root)?;
-    let dir: PathBuf = gameDir(server, root);
-    let mods: PathBuf = dir.join("mods");
+    let mods: PathBuf = gameDir(server)?.join("mods");
     std::fs::create_dir_all(&mods)?;
     std::fs::copy(&file, mods.join(file.file_name().context("built file has a name")?))?;
     let binary: &str = if server { "beta173_server" } else { "beta173" };
     let program: PathBuf =
         std::env::var_os("B173_BIN_DIR").map_or_else(|| PathBuf::from(binary), |bin| PathBuf::from(bin).join(binary));
     let status = Command::new(&program)
-        .current_dir(&dir)
         .status()
         .with_context(|| format!("could not start {}, set B173_BIN_DIR", program.display()))?;
     if !status.success()

@@ -42,7 +42,7 @@ cargo b173 build --path mymod
 The result is `mymod/target/mymod-0.1.0.b173mod`. Drop it in the game's `mods/` folder, on the client and on the server.
 
 - `cargo b173 check` checks `mod.toml` and every data file with the loader's own rules.
-- `cargo b173 run --client` or `--server` builds the mod, copies it into `run/client/mods` or `run/server/mods` (or `B173_GAME_DIR`, `B173_SERVER_DIR`) and starts `beta173` or `beta173_server` from `PATH` or `B173_BIN_DIR`.
+- `cargo b173 run --client` or `--server` builds the mod, copies it into the game data folder's `mods/` or `server/mods/` (`B173_HOME` overrides the folder) and starts `beta173` or `beta173_server` from `PATH` or `B173_BIN_DIR`.
 
 ## A mod in short
 

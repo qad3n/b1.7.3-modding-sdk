@@ -500,6 +500,17 @@ pub enum OverlayOp
     {
         x: i32, y: i32, button: i32
     },
+    // api 1.2: a key typed on the screen, hovered is the stack in the vanilla slot under the mouse, answered with whether
+    // the overlay took the key away from the screen
+    Key
+    {
+        character: u32, key: i32, hovered: Option<StackData>
+    },
+    // api 1.2: the mouse wheel over the screen, delta positive when rolled away from the player, answered as Mouse
+    Scroll
+    {
+        x: i32, y: i32, delta: i32
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
@@ -1775,6 +1786,12 @@ pub enum HostCall
         component: Identifier,
         data: Vec<u8>,
     },
+    // api 1.2: every stack a creative item list shows, subtypes included, in numeric id order, each a full stack
+    ItemCatalog,
+    // api 1.2: the crafting and smelting recipes the game knows, mod recipes included
+    RecipeList,
+    // api 1.2: changes whenever the loader rebuilds ids or recipe tables, answered with HostReply::Int
+    ContentGeneration,
 }
 
 // where a stack lives, so a component change applies to that stack and not to a copy
@@ -1878,6 +1895,37 @@ pub enum HostReply
     Hit(Option<RayHit>),
     // abi 3
     State(Option<StateData>),
+    // api 1.2
+    Stacks(Vec<StackData>),
+    Recipes(Vec<RecipeView>),
+}
+
+// api 1.2: a recipe as a viewer shows it, an ingredient with damage -1 takes any damage
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub struct RecipeView
+{
+    // the recipe registry name, minecraft:crafting/<output> for vanilla or the mod's own, none if added outside the loader
+    pub id: Option<Identifier>,
+    pub output: StackData,
+    pub shape: RecipeShape,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub enum RecipeShape
+{
+    // ingredients row by row, width per row
+    Shaped
+    {
+        width: i32, inputs: Vec<Option<StackData>>
+    },
+    Shapeless
+    {
+        inputs: Vec<StackData>
+    },
+    Smelting
+    {
+        input: StackData
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Debug)]
