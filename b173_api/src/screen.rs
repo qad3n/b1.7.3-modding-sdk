@@ -1,6 +1,17 @@
 use crate::ItemStack;
 use mod_protocol::abi::{DrawList, DrawOp, ScreenOp};
 
+// colors of the b1.7.3 container sheets
+mod gui
+{
+    pub const FACE: u32 = 0xFFC6C6C6;
+    pub const LIGHT: u32 = 0xFFFFFFFF;
+    pub const SHADOW: u32 = 0xFF555555;
+    pub const EDGE: u32 = 0xFF000000;
+    pub const SLOT: u32 = 0xFF8B8B8B;
+    pub const SLOT_SHADOW: u32 = 0xFF373737;
+}
+
 // an immediate draw list, rebuilt each frame by the screen or hud that owns it
 #[derive(Default)]
 pub struct Draw
@@ -73,6 +84,50 @@ impl Draw
     pub fn button(&mut self, id: i32, x: i32, y: i32, w: i32, h: i32, label: &str) -> &mut Self
     {
         self.m_list.ops.push(DrawOp::Button { id, x, y, w, h, label: label.to_owned(), enabled: true });
+        self
+    }
+
+    // a container background as the b1.7.3 gui sheets paint it, rounded corners included, for any size
+    pub fn panel(&mut self, x: i32, y: i32, w: i32, h: i32) -> &mut Self
+    {
+        let rects: [([i32; 4], u32); 19] = [
+            ([2, 2, w - 4, h - 4], gui::FACE),
+            ([2, 1, w - 5, 1], gui::LIGHT),
+            ([1, 2, w - 4, 1], gui::LIGHT),
+            ([1, 3, 2, h - 6], gui::LIGHT),
+            ([3, 3, 1, 1], gui::LIGHT),
+            ([w - 3, 3, 2, h - 5], gui::SHADOW),
+            ([3, h - 3, w - 4, 1], gui::SHADOW),
+            ([3, h - 2, w - 5, 1], gui::SHADOW),
+            ([w - 4, h - 4, 1, 1], gui::SHADOW),
+            ([2, 0, w - 5, 1], gui::EDGE),
+            ([0, 2, 1, h - 5], gui::EDGE),
+            ([3, h - 1, w - 5, 1], gui::EDGE),
+            ([w - 1, 3, 1, h - 5], gui::EDGE),
+            ([1, 1, 1, 1], gui::EDGE),
+            ([w - 3, 1, 1, 1], gui::EDGE),
+            ([w - 2, 2, 1, 1], gui::EDGE),
+            ([1, h - 3, 1, 1], gui::EDGE),
+            ([2, h - 2, 1, 1], gui::EDGE),
+            ([w - 2, h - 2, 1, 1], gui::EDGE),
+        ];
+        for ([left, top, width, height], color) in rects
+        {
+            self.rect(x + left, y + top, width, height, color);
+        }
+        self
+    }
+
+    // the sunken frame of a vanilla slot around an item area of size pixels with its corner at x y
+    pub fn slot(&mut self, x: i32, y: i32, size: i32) -> &mut Self
+    {
+        self.rect(x, y, size, size, gui::SLOT);
+        self.rect(x - 1, y - 1, size + 1, 1, gui::SLOT_SHADOW);
+        self.rect(x - 1, y, 1, size, gui::SLOT_SHADOW);
+        self.rect(x + size, y - 1, 1, 1, gui::SLOT);
+        self.rect(x - 1, y + size, 1, 1, gui::SLOT);
+        self.rect(x + size, y, 1, size, gui::LIGHT);
+        self.rect(x, y + size, size + 1, 1, gui::LIGHT);
         self
     }
 
