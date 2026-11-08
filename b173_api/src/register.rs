@@ -8,13 +8,13 @@ use crate::terrain::ChunkBlocks;
 use crate::{Config, Error, ItemRef, ItemStack, Player, Result, expectUnit, ownId};
 use mod_protocol::Identifier;
 use mod_protocol::abi::{
-    BiomeSpec, ChunkInfo, DimensionSpec, EventKind, HostCall, HostReply, Permission,
-    Priority, RegistryKind, ScreenSpec, SlotSpec,
+    BiomeSpec, ChunkInfo, DimensionSpec, EventKind, HostCall, HostReply, Permission, Priority, RegistryKind,
+    ScreenSpec, SlotSpec,
 };
 use mod_protocol::handshake::ChannelDirection;
 use mod_protocol::spec::{
-    Behavior, BlockSpec, EntitySpec, FuelSpec, ItemSpec, RecipeSpec, ShapedSpec, ShapelessSpec, SmeltingSpec,
-    StackSpec, TileEntitySpec, ToolClass, ToolSpec, WorldgenKind, WorldgenSpec,
+    Behavior, BlockSpec, EntitySpec, FuelSpec, ItemSpec, RecipeSpec, RecordSpec, ShapedSpec, ShapelessSpec,
+    SmeltingSpec, StackSpec, TileEntitySpec, ToolClass, ToolSpec, WorldgenKind, WorldgenSpec,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -351,6 +351,12 @@ impl ItemSpecBuilder
         self
     }
 
+    pub fn record(mut self, sound: &str, title: &str) -> Self
+    {
+        self.m_spec.record = Some(RecordSpec { sound: sound.to_owned(), title: title.to_owned() });
+        self
+    }
+
     pub fn tag(mut self, tag: &str) -> Self
     {
         if let Ok(tag) = Identifier::parse(tag)
@@ -428,9 +434,12 @@ impl ShapedBuilder
         self
     }
 
-    pub fn key(mut self, symbol: char, item: impl Into<ItemRef>) -> Self
+    pub fn key(self, symbol: char, item: impl Into<ItemRef>) -> Self { self.keyStack(symbol, ItemStack::of(item, 1)) }
+
+    // a key that needs one metadata, or any metadata with damage -1
+    pub fn keyStack(mut self, symbol: char, stack: ItemStack) -> Self
     {
-        match stackSpec(&ItemStack::of(item, 1))
+        match stackSpec(&stack)
         {
             Ok(stack) =>
             {
@@ -681,7 +690,10 @@ impl Screens
     }
 
     // layers over every player model, from the player and its synced bytes
-    pub fn playerLayer(&self, handler: impl Fn(&mod_protocol::abi::EntityInfo, &[u8]) -> Vec<mod_protocol::abi::PlayerLayer> + 'static) -> Result<()>
+    pub fn playerLayer(
+        &self,
+        handler: impl Fn(&mod_protocol::abi::EntityInfo, &[u8]) -> Vec<mod_protocol::abi::PlayerLayer> + 'static,
+    ) -> Result<()>
     {
         let handle: u32 = dispatch::addLayer(Rc::new(handler));
         expectUnit(call(HostCall::RegisterPlayerLayer { handler: handle }))

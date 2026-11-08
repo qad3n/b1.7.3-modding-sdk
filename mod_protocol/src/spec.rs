@@ -300,6 +300,18 @@ pub struct ItemSpec
     pub behavior: Option<Behavior<ItemMethod>>,
     // tints the icon, Item.getColorFromDamage
     pub color: Option<u32>,
+    // a music disc the jukebox plays
+    pub record: Option<RecordSpec>,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct RecordSpec
+{
+    // a streaming sound, a mod's sounds/record/<name>.ogg plays as <modid>.record.<name>
+    pub sound: String,
+    // what the now playing line shows, vanilla discs show C418 - <name>
+    pub title: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]

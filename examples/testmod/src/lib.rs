@@ -360,6 +360,8 @@ fn registerWorld(ctx: &mut RegisterCtx) -> Result<()>
     ctx.dimensions().register(
         "test_realm",
         DimensionSpec {
+            beds: false,
+            music: None,
             name: "Test Realm".to_owned(),
             sky_color: 0x88CCFF,
             fog_color: 0xAADDFF,

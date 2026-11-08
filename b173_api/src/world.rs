@@ -3,7 +3,9 @@ use crate::{
     Error, ItemStack, Result, expectBool, expectBytes, expectEntities, expectEntity, expectInt, expectStack, expectUnit,
 };
 use mod_protocol::Identifier;
-use mod_protocol::abi::{BlockCtx as RawCtx, BlockInfo, BlockPos, EntityField, RayHit, EntityInfo, HostCall, HostReply, Target};
+use mod_protocol::abi::{
+    BlockCtx as RawCtx, BlockInfo, BlockPos, EntityField, EntityInfo, HostCall, HostReply, RayHit, Target,
+};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
@@ -80,7 +82,16 @@ impl World
         expectBool(call(HostCall::SetBlock { world: self.dimension, pos, block, meta, notify: false }))
     }
 
-    pub fn lightning(self, pos: [f64; 3]) -> Result<()> { expectUnit(call(HostCall::Lightning { world: self.dimension, pos })) }
+    pub fn lightning(self, pos: [f64; 3]) -> Result<()>
+    {
+        expectUnit(call(HostCall::Lightning { world: self.dimension, pos }))
+    }
+
+    // the block's usual drops at a spot, as a harvest callback dropping them twice needs
+    pub fn dropBlockItems(self, pos: BlockPos, block: i32, meta: i32) -> Result<()>
+    {
+        expectUnit(call(HostCall::DropBlockItems { world: self.dimension, pos, block, meta }))
+    }
 
     pub fn breakEffect(self, pos: BlockPos, block: i32, meta: i32) -> Result<()>
     {
@@ -116,6 +127,9 @@ impl World
     {
         expectBool(call(HostCall::IsPowered { world: self.dimension, pos })).unwrap_or(false)
     }
+
+    // the time this dimension's sky shows on this side, None follows the world time
+    pub fn setSkyTime(self, time: Option<i64>) { let _ = call(HostCall::SetSkyTime { world: self.dimension, time }); }
 
     pub fn time(self) -> i64
     {
@@ -220,8 +234,29 @@ pub struct Player
     pub id: i32,
 }
 
+// the name a stack shows in its own language, vanilla items included
+pub fn displayName(stack: &ItemStack) -> String
+{
+    match stack.raw().map(|stack| call(HostCall::DisplayName { stack }))
+    {
+        Ok(HostReply::Text(name)) => name,
+        _ => String::new(),
+    }
+}
+
+// the time of every loaded world
+pub fn setWorldTime(time: i64) { let _ = call(HostCall::SetWorldTime { time }); }
+
 impl Player
 {
+    pub fn isOp(self) -> bool { expectBool(call(HostCall::IsOp { player: self.id })).unwrap_or(false) }
+
+    // a slot of the container screen the player has open, by container slot number
+    pub fn openSlot(self, slot: i32) -> Option<ItemStack>
+    {
+        expectStack(call(HostCall::OpenSlot { player: self.id, slot })).ok().flatten().map(ItemStack::fromRaw)
+    }
+
     pub fn chat(self, message: &str)
     {
         let _ = call(HostCall::Chat { player: Some(self.id), message: message.to_owned() });

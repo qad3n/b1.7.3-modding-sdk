@@ -413,6 +413,11 @@ pub enum DrawOp
     {
         name: String, pos: [f64; 3], motion: [f64; 3]
     },
+    // a u v region of a texture of any size stretched over a rectangle, as Gui.drawScaledCustomSizeModalRect
+    Region
+    {
+        texture: String, x: i32, y: i32, w: i32, h: i32, uv: [f32; 4], size: [f32; 2]
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
@@ -437,7 +442,8 @@ pub struct ScreenSpec
     pub height: i32,
     pub background: Option<String>,
     pub title: String,
-    // a container screen syncs these tile entity slots plus the player inventory through vanilla slot packets
+    // a container screen syncs these tile entity slots plus the player inventory through vanilla slot packets,
+    // opened without a block they live only while the screen is open and drop at the player when it closes
     pub slots: Vec<SlotSpec>,
     pub player_inventory: Option<[i32; 2]>,
     // a plain screen drawn over the world without the dark backdrop, as dialogue screens are
@@ -472,6 +478,8 @@ pub struct PlayerLayer
     pub scale: f32,
     // blended by the texture's alpha, as a translucent shield
     pub blend: bool,
+    // extra geometry in the player model's space after the parts, as Aether's valkyrie wings, quads and transforms only
+    pub ops: Vec<ModelOp>,
 }
 
 // a call to an overlay on a vanilla container screen, positions relative to the container's corner
@@ -480,15 +488,12 @@ pub enum OverlayOp
 {
     Draw
     {
-        size: [i32; 2],
-        mouse: [i32; 2],
+        size: [i32; 2], mouse: [i32; 2]
     },
     // answered with whether the overlay took the click away from the screen
     Mouse
     {
-        x: i32,
-        y: i32,
-        button: i32,
+        x: i32, y: i32, button: i32
     },
 }
 
@@ -524,6 +529,13 @@ pub enum ScreenOp
     },
     Tick,
     Close,
+    // a mouse button let go, for sliders dragged since its click
+    Release
+    {
+        x: i32,
+        y: i32,
+        button: i32,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
@@ -968,28 +980,23 @@ pub enum ConfigKind
 {
     Bool
     {
-        default: bool,
+        default: bool
     },
     Int
     {
-        default: i64,
-        min: i64,
-        max: i64,
+        default: i64, min: i64, max: i64
     },
     Float
     {
-        default: f64,
-        min: f64,
-        max: f64,
+        default: f64, min: f64, max: f64
     },
     Text
     {
-        default: String,
+        default: String
     },
     Choice
     {
-        default: String,
-        choices: Vec<String>,
+        default: String, choices: Vec<String>
     },
 }
 
@@ -1089,6 +1096,19 @@ pub struct DimensionSpec
     pub biome: Option<Identifier>,
     // a generator handle routes chunk filling into the mod, absent means flat terrain from the spec
     pub generator: Option<Handle>,
+    // beds work here, otherwise they explode as in the nether
+    pub beds: bool,
+    // plays here instead of the vanilla tracks
+    pub music: Option<MusicSpec>,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub struct MusicSpec
+{
+    // a sound pool name, sounds/music/track1.ogg to track4.ogg all answer <modid>.music.track
+    pub sound: String,
+    // ticks of quiet between tracks, drawn between the two
+    pub delay: [i32; 2],
 }
 
 // guest to host
@@ -1649,6 +1669,41 @@ pub enum HostCall
         key: String,
         value: String,
     },
+    // the time of every loaded world, as the time command sets it
+    SetWorldTime
+    {
+        time: i64,
+    },
+    // the time a mod dimension's sun, sky and daylight show on this side, None follows the world time
+    SetSkyTime
+    {
+        world: i32,
+        time: Option<i64>,
+    },
+    // an operator on a server, always true in single player
+    IsOp
+    {
+        player: i32,
+    },
+    // a slot of the container the player has open, as its client sees it
+    OpenSlot
+    {
+        player: i32,
+        slot: i32,
+    },
+    // the translated name an item shows, vanilla items included
+    DisplayName
+    {
+        stack: StackData,
+    },
+    // Block.dropBlockAsItem: a block's usual drops at a spot, as a harvest callback dropping them twice needs
+    DropBlockItems
+    {
+        world: i32,
+        pos: BlockPos,
+        block: i32,
+        meta: i32,
+    },
 }
 
 // entity state beyond EntityInfo that ported mods read or change, new fields go at the end
@@ -1697,6 +1752,12 @@ pub enum EntityField
     MoveSpeed,
     // Entity.stepHeight, how tall a block it walks up without jumping
     StepHeight,
+    // the health it heals up to and the hearts a player sees, 20 unless a mod raised it
+    MaxHealth,
+    // drawn without its model or shadow on this side, as an invisibility potion in later versions
+    Invisible,
+    // who fired an arrow, snowball, egg, fireball or mod projectile, -1 for nobody and -2 for anything else
+    Shooter,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]

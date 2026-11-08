@@ -28,6 +28,13 @@ impl Draw
         self
     }
 
+    // FontRenderer.drawString without the shadow, as container titles draw
+    pub fn plain(&mut self, x: i32, y: i32, text: &str, color: u32) -> &mut Self
+    {
+        self.m_list.ops.push(DrawOp::Text { x, y, text: text.to_owned(), color, shadow: false, centered: false });
+        self
+    }
+
     pub fn centered(&mut self, x: i32, y: i32, text: &str, color: u32) -> &mut Self
     {
         self.m_list.ops.push(DrawOp::Text { x, y, text: text.to_owned(), color, shadow: true, centered: true });
@@ -37,6 +44,14 @@ impl Draw
     pub fn texture(&mut self, texture: &str, x: i32, y: i32, u: i32, v: i32, w: i32, h: i32) -> &mut Self
     {
         self.m_list.ops.push(DrawOp::Texture { texture: texture.to_owned(), x, y, u, v, w, h });
+        self
+    }
+
+    // the uv region [u, v, width, height] of a texture of size [width, height] stretched over the rectangle
+    pub fn region(&mut self, texture: &str, rect: [i32; 4], uv: [f32; 4], size: [f32; 2]) -> &mut Self
+    {
+        let [x, y, w, h] = rect;
+        self.m_list.ops.push(DrawOp::Region { texture: texture.to_owned(), x, y, w, h, uv, size });
         self
     }
 
@@ -75,6 +90,7 @@ pub trait Screen
     fn draw(&mut self, draw: &mut Draw, mouse: [i32; 2], partial: f32);
     fn button(&mut self, _id: i32) {}
     fn mouse(&mut self, _x: i32, _y: i32, _button: i32) {}
+    fn release(&mut self, _x: i32, _y: i32, _button: i32) {}
     fn key(&mut self, _character: char, _key: i32) {}
     fn tick(&mut self) {}
     fn close(&mut self) {}
@@ -98,7 +114,10 @@ pub(crate) fn runOverlay(overlay: &mut dyn Overlay, op: mod_protocol::abi::Overl
             overlay.draw(&mut draw, size, mouse);
             mod_protocol::abi::GuestReply::Draw(draw.m_list)
         }
-        mod_protocol::abi::OverlayOp::Mouse { x, y, button } => mod_protocol::abi::GuestReply::Bool(overlay.mouse(x, y, button)),
+        mod_protocol::abi::OverlayOp::Mouse { x, y, button } =>
+        {
+            mod_protocol::abi::GuestReply::Bool(overlay.mouse(x, y, button))
+        }
     }
 }
 
@@ -118,6 +137,7 @@ pub(crate) fn run(screen: &mut dyn Screen, op: ScreenOp) -> Option<DrawList>
         ScreenOp::Key { character, key } => screen.key(char::from_u32(character).unwrap_or('\0'), key),
         ScreenOp::Tick => screen.tick(),
         ScreenOp::Close => screen.close(),
+        ScreenOp::Release { x, y, button } => screen.release(x, y, button),
     }
     None
 }
