@@ -721,6 +721,13 @@ impl Screens
         expectUnit(call(HostCall::RegisterOverlay { target: target.to_owned(), handler: handle }))
     }
 
+    // needs api 1.4, lines pushed here show under the item name in every vanilla slot tooltip
+    pub fn tooltip(&self, handler: impl Fn(&ItemStack, &mut Vec<String>) + 'static) -> Result<()>
+    {
+        let handle: u32 = dispatch::addTooltip(Rc::new(handler));
+        expectUnit(call(HostCall::RegisterTooltip { handler: handle }))
+    }
+
     pub fn hud(&self, handler: impl Fn(&mut Draw, f32, i32, i32) + 'static) -> Result<()>
     {
         let handle: u32 = dispatch::addHud(Rc::new(handler));

@@ -622,6 +622,16 @@ pub fn isLoaded(modid: &str) -> bool
     expectBool(call(HostCall::IsLoaded { modid: modid.to_owned() })).unwrap_or(false)
 }
 
+// needs api 1.4, the name a mod's manifest gives, Minecraft for the vanilla namespace and empty when not loaded
+pub fn modName(modid: &str) -> String
+{
+    match call(HostCall::ModName { modid: modid.to_owned() })
+    {
+        HostReply::Text(text) => text,
+        _ => String::new(),
+    }
+}
+
 pub fn translate(key: &str) -> String
 {
     match call(HostCall::Translate { key: key.to_owned() })

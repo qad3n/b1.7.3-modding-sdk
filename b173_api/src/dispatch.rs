@@ -44,6 +44,7 @@ type LayerHandler = Rc<dyn Fn(&mod_protocol::abi::EntityInfo, &[u8]) -> Vec<mod_
 type InterModHandler = Rc<dyn Fn(&str, &str, &[u8])>;
 type TerrainHandler = Rc<dyn Fn(&ChunkInfo, &mut ChunkBlocks)>;
 type ConfigListener = Rc<dyn Fn(&str)>;
+type TooltipHandler = Rc<dyn Fn(&ItemStack, &mut Vec<String>)>;
 
 #[derive(Default)]
 struct Tables
@@ -66,6 +67,7 @@ struct Tables
     m_terrains: Vec<TerrainHandler>,
     m_interMod: Option<InterModHandler>,
     m_configListeners: Vec<ConfigListener>,
+    m_tooltips: Vec<TooltipHandler>,
 }
 
 thread_local! {
@@ -100,6 +102,7 @@ adder!(addLookup, m_lookups, Rc<dyn Lookup>);
 adder!(addGenerator, m_generators, Rc<dyn Fn(ChunkInfo)>);
 adder!(addTerrain, m_terrains, TerrainHandler);
 adder!(addConfigListener, m_configListeners, ConfigListener);
+adder!(addTooltip, m_tooltips, TooltipHandler);
 
 pub(crate) fn addOverlay(overlay: impl crate::screen::Overlay + 'static) -> u32
 {
@@ -357,15 +360,28 @@ pub(crate) fn handle(call: GuestCall) -> GuestReply
             },
             None => GuestReply::Error(format!("no screen {handler}")),
         },
-        GuestCall::PlayerLayers { handler, player, synced } => match get(|tables| tables.m_layers.get(handler as usize))
+        GuestCall::PlayerLayers { handler, player, synced } =>
         {
-            Some(layer) => GuestReply::Layers(layer(&player, &synced)),
-            None => GuestReply::Error(format!("no player layer {handler}")),
-        },
+            match get(|tables| tables.m_layers.get(handler as usize))
+            {
+                Some(layer) => GuestReply::Layers(layer(&player, &synced)),
+                None => GuestReply::Error(format!("no player layer {handler}")),
+            }
+        }
         GuestCall::Overlay { handler, op } => match get(|tables| tables.m_overlays.get(handler as usize))
         {
             Some(overlay) => crate::screen::runOverlay(&mut *overlay.borrow_mut(), op),
             None => GuestReply::Error(format!("no overlay {handler}")),
+        },
+        GuestCall::Tooltip { handler, stack } => match get(|tables| tables.m_tooltips.get(handler as usize))
+        {
+            Some(tooltip) =>
+            {
+                let mut lines: Vec<String> = Vec::new();
+                tooltip(&ItemStack::fromRaw(stack), &mut lines);
+                GuestReply::Lines(lines)
+            }
+            None => GuestReply::Error(format!("no tooltip {handler}")),
         },
         GuestCall::Hud { handler, partial, width, height } => match get(|tables| tables.m_huds.get(handler as usize))
         {

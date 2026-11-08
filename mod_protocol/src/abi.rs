@@ -934,6 +934,11 @@ pub enum GuestCall
     {
         handler: Handle,
         chunk: ChunkInfo,
+    }, // api 1.4: the lines a tooltip handler adds for a stack, the reply is Lines
+    Tooltip
+    {
+        handler: Handle,
+        stack: StackData,
     },
 }
 
@@ -962,6 +967,7 @@ pub enum GuestReply
         meta: Vec<u8>,
     },
     Pose(Pose),
+    Lines(Vec<String>),
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
@@ -1797,6 +1803,16 @@ pub enum HostCall
     RecipeList,
     // api 1.2: changes whenever the loader rebuilds ids or recipe tables, answered with HostReply::Int
     ContentGeneration,
+    // api 1.4: lines a mod adds under the name of every item tooltip, asked for the hovered stack each frame
+    RegisterTooltip
+    {
+        handler: Handle,
+    },
+    // api 1.4: the display name of a loaded mod, Minecraft for the vanilla namespace and empty for an unknown id
+    ModName
+    {
+        modid: String,
+    },
 }
 
 // where a stack lives, so a component change applies to that stack and not to a copy

@@ -280,7 +280,7 @@ pub mod prelude
     pub use crate::screen::{Draw, Overlay, Screen};
     pub use crate::services::{Lookup, Service};
     pub use crate::world::{
-        allPlayers, broadcast, contentGeneration, displayName, isClient, isLoaded, itemCatalog, localPlayer,
+        allPlayers, broadcast, contentGeneration, displayName, isClient, isLoaded, itemCatalog, localPlayer, modName,
         recipeList, screenSize, send, setStackComponent, setWorldData, setWorldTime, stackComponent, textWidth,
         translate, worldData,
     };
