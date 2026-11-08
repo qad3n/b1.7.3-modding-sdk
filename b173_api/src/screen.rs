@@ -72,6 +72,13 @@ impl Draw
         self
     }
 
+    // needs api 1.3, color is argb so the alpha byte fades the whole image
+    pub fn tinted(&mut self, texture: &str, x: i32, y: i32, w: i32, h: i32, color: u32) -> &mut Self
+    {
+        self.m_list.ops.push(DrawOp::TintedImage { texture: texture.to_owned(), x, y, w, h, color });
+        self
+    }
+
     pub fn item(&mut self, x: i32, y: i32, stack: &ItemStack) -> &mut Self
     {
         if let Ok(stack) = stack.toRaw()

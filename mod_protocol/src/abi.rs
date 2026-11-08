@@ -423,6 +423,11 @@ pub enum DrawOp
     {
         texture: String, x: i32, y: i32, w: i32, h: i32, uv: [f32; 4], size: [f32; 2]
     },
+    // api 1.3, Image with its color and alpha multiplied by an argb tint, as vanilla fades the portal overlay
+    TintedImage
+    {
+        texture: String, x: i32, y: i32, w: i32, h: i32, color: u32
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
