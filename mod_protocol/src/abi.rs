@@ -498,30 +498,41 @@ pub enum OverlayOp
 {
     Draw
     {
-        size: [i32; 2], mouse: [i32; 2]
+        size: [i32; 2],
+        mouse: [i32; 2],
     },
     // answered with whether the overlay took the click away from the screen
     Mouse
     {
-        x: i32, y: i32, button: i32
+        x: i32,
+        y: i32,
+        button: i32,
     },
     // api 1.2: a key typed on the screen, hovered is the stack in the vanilla slot under the mouse, answered with whether
     // the overlay took the key away from the screen
     Key
     {
-        character: u32, key: i32, hovered: Option<StackData>
+        character: u32,
+        key: i32,
+        hovered: Option<StackData>,
     },
     // api 1.2: the mouse wheel over the screen, delta positive when rolled away from the player, answered as Mouse
     Scroll
     {
-        x: i32, y: i32, delta: i32
+        x: i32,
+        y: i32,
+        delta: i32,
     },
     // api 1.5: asked each frame before the screen draws, answered with whether the overlay covers the point so the
     // vanilla slot under it shows no highlight or tooltip
     Cover
     {
-        x: i32, y: i32
+        x: i32,
+        y: i32,
     },
+    // api 1.6: asked each frame before the screen draws, answered with whether the overlay fills the container, while
+    // one does the screen draws and asks only that overlay
+    Exclusive,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]

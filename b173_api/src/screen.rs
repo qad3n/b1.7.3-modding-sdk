@@ -170,6 +170,8 @@ pub trait Overlay
     fn scroll(&mut self, _x: i32, _y: i32, _delta: i32) -> bool { false }
     // needs api 1.5, true when the panel covers the point so the vanilla slot under it shows no highlight or tooltip
     fn covered(&mut self, _x: i32, _y: i32) -> bool { false }
+    // needs api 1.6, true while the panel fills the container so every other overlay on the screen hides
+    fn exclusive(&mut self) -> bool { false }
 }
 
 pub(crate) fn runOverlay(overlay: &mut dyn Overlay, op: mod_protocol::abi::OverlayOp) -> mod_protocol::abi::GuestReply
@@ -196,6 +198,7 @@ pub(crate) fn runOverlay(overlay: &mut dyn Overlay, op: mod_protocol::abi::Overl
             mod_protocol::abi::GuestReply::Bool(overlay.scroll(x, y, delta))
         }
         mod_protocol::abi::OverlayOp::Cover { x, y } => mod_protocol::abi::GuestReply::Bool(overlay.covered(x, y)),
+        mod_protocol::abi::OverlayOp::Exclusive => mod_protocol::abi::GuestReply::Bool(overlay.exclusive()),
     }
 }
 
