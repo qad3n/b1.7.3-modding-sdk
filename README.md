@@ -1,6 +1,6 @@
 # b1.7.3-modding-sdk
 
-Everything you need to make mods for [b1.7.3-rust-rewrite](https://github.com/qad3n/b1.7.3-rust-rewrite), the Minecraft Beta 1.7.3 client and server reconstructed and rewritten in Rust. You don't need the game source to build a mod.
+The SDK and build tool for mods for [b1.7.3-rust-rewrite](https://github.com/qad3n/b1.7.3-rust-rewrite), the Minecraft Beta 1.7.3 client and server reconstructed and rewritten in Rust. You don't need the game source to build a mod.
 
 The game itself vendors this repo at `vendor/b1.7.3-modding-sdk` and loads mods with its built-in loader (`crates/modloader` in the game repo).
 
