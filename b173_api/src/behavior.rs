@@ -26,6 +26,8 @@ pub trait BlockBehavior
     fn canProvidePower(&self) -> bool { false }
     fn texture(&self, _face: i32, _meta: i32) -> i32 { 0 }
     fn colorMultiplier(&self, _ctx: &mut BlockCtx) -> u32 { 0xFFFFFF }
+    // needs api 1.12, a face's sprite slot from where the block stands, as Block.getBlockTexture; None keeps texture
+    fn faceTexture(&self, _ctx: &mut BlockCtx, _face: i32) -> Option<i32> { None }
     fn overridden(&self) -> &'static [&'static str] { unmarked(std::any::type_name::<Self>(), "block_behavior") }
 }
 
@@ -76,7 +78,7 @@ pub trait TileBehavior
     fn overridden(&self) -> &'static [&'static str] { unmarked(std::any::type_name::<Self>(), "tile_behavior") }
 }
 
-pub(crate) const BLOCK_METHODS: [(&str, BlockMethod); 21] = [
+pub(crate) const BLOCK_METHODS: [(&str, BlockMethod); 22] = [
     ("onActivated", BlockMethod::Activated),
     ("onClicked", BlockMethod::Clicked),
     ("onAdded", BlockMethod::Added),
@@ -98,6 +100,7 @@ pub(crate) const BLOCK_METHODS: [(&str, BlockMethod); 21] = [
     ("canProvidePower", BlockMethod::CanProvidePower),
     ("texture", BlockMethod::Texture),
     ("colorMultiplier", BlockMethod::ColorMultiplier),
+    ("faceTexture", BlockMethod::FaceTexture),
 ];
 
 pub(crate) const ITEM_METHODS: [(&str, ItemMethod); 9] = [

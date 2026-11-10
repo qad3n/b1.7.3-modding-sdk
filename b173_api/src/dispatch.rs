@@ -189,6 +189,10 @@ fn block(handle: u32, call: BlockCall) -> GuestReply
         BlockCall::CanProvidePower { .. } => GuestReply::Bool(behavior.canProvidePower()),
         BlockCall::Texture { face, meta } => GuestReply::Int(behavior.texture(face, meta)),
         BlockCall::ColorMultiplier { ctx } => GuestReply::Int(behavior.colorMultiplier(&mut wrap(ctx)) as i32),
+        BlockCall::FaceTexture { ctx, face } =>
+        {
+            GuestReply::Int(behavior.faceTexture(&mut wrap(ctx), face).unwrap_or(-1))
+        }
     }
 }
 

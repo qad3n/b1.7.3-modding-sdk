@@ -144,6 +144,8 @@ pub enum BlockMethod
     CanProvidePower,
     Texture,
     ColorMultiplier,
+    // api 1.12
+    FaceTexture,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash, Debug)]

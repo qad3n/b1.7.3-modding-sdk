@@ -664,6 +664,11 @@ pub enum BlockCall
     {
         ctx: BlockCtx
     },
+    // api 1.12: the sprite slot of one face of a block where it stands, -1 keeps its metadata texture
+    FaceTexture
+    {
+        ctx: BlockCtx, face: i32
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
@@ -2048,6 +2053,26 @@ pub enum HostCall
         block: i32,
         meta: i32,
     },
+    // api 1.12: the terrain atlas slot of a block texture for the texture hooks, answered with Int, -1 when unknown
+    TerrainSlot
+    {
+        texture: String,
+    },
+    // api 1.12: the seed a mod dimension generates from instead of the save's, as Forge's WorldProvider.getSeed; only
+    // the registering mod sets it, before any world of the dimension exists
+    DimensionSeed
+    {
+        dimension: Identifier,
+        seed: i64,
+    },
+    // api 1.12: starts rain, and thunder with it when asked, for a number of ticks in a world, or clears both
+    Weather
+    {
+        world: i32,
+        raining: bool,
+        thundering: bool,
+        ticks: i32,
+    },
 }
 
 // where a stack lives, so a component change applies to that stack and not to a copy
@@ -2128,6 +2153,10 @@ pub enum EntityField
     Invisible,
     // who fired an arrow, snowball, egg, fireball or mod projectile, -1 for nobody and -2 for anything else
     Shooter,
+    // api 1.12: EntityLiving.deathTime, ticks since its health ran out, it is removed when this reaches 20
+    DeathTime,
+    // api 1.12: the metadata a moving_block entity draws its block with
+    BlockMeta,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]

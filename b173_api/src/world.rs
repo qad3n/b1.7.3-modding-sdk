@@ -104,6 +104,12 @@ impl World
         expectBool(call(HostCall::SwapBlock { world: self.dimension, pos, block, meta }))
     }
 
+    // needs api 1.12, rain for some ticks and thunder with it when asked, or clear skies when raining is false
+    pub fn setWeather(self, raining: bool, thundering: bool, ticks: i32) -> Result<()>
+    {
+        expectUnit(call(HostCall::Weather { world: self.dimension, raining, thundering, ticks }))
+    }
+
     // the block at a spot by name with its named properties, compare these instead of numeric ids
     pub fn blockState(self, pos: BlockPos) -> Option<StateData>
     {
@@ -700,6 +706,12 @@ pub fn recipeList() -> Vec<RecipeView>
 pub fn contentGeneration() -> i32 { expectInt(call(HostCall::ContentGeneration)).unwrap_or(0) }
 
 // the client font's width of a string, zero on a server
+// needs api 1.12, the terrain atlas slot of a block texture for the texture hooks, None when it has none
+pub fn terrainSlot(texture: &str) -> Option<i32>
+{
+    expectInt(call(HostCall::TerrainSlot { texture: texture.to_owned() })).ok().filter(|slot| *slot >= 0)
+}
+
 pub fn textWidth(text: &str) -> i32 { expectInt(call(HostCall::TextWidth { text: text.to_owned() })).unwrap_or(0) }
 
 // the scaled gui size of the client screen, none on a server

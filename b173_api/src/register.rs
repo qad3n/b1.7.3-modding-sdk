@@ -210,6 +210,15 @@ impl BlockSpecBuilder
         self
     }
 
+    // needs api 1.12, how the block's own item behaves in the hand, as an ItemBlock subclass placing onto water
+    pub fn itemBehavior(mut self, behavior: impl ItemBehavior + 'static) -> Self
+    {
+        let methods = behavior::methods(behavior.overridden(), &behavior::ITEM_METHODS);
+        let handle: u32 = dispatch::addItem(Rc::new(behavior));
+        self.m_spec.item.get_or_insert_with(ItemSpec::default).behavior = Some(Behavior { handle, methods });
+        self
+    }
+
     pub fn flammable(mut self, encouragement: i32, flammability: i32) -> Self
     {
         self.m_spec.flammability = Some(mod_protocol::spec::Flammability { encouragement, flammability });
@@ -913,6 +922,13 @@ impl Dimension
     pub fn height(&self, height: i32, buildLimit: i32) -> Result<&Self>
     {
         expectUnit(call(HostCall::DimensionHeight { dimension: self.m_id.clone(), height, build_limit: buildLimit }))?;
+        Ok(self)
+    }
+
+    // needs api 1.12, the seed the dimension generates from instead of the save's
+    pub fn seed(&self, seed: i64) -> Result<&Self>
+    {
+        expectUnit(call(HostCall::DimensionSeed { dimension: self.m_id.clone(), seed }))?;
         Ok(self)
     }
 
