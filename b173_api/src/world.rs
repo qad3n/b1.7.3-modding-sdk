@@ -819,6 +819,13 @@ pub fn tileName(texture: &str, column: i32, row: i32) -> String
     format!("loader:tiles/{namespace}/{path}/{column}_{row}")
 }
 
+// needs api 1.23, the item sheet slot of a texture for the item icon hooks, None when it has none; call it while
+// registering for any texture no item spec names, so the sheet makes room for it
+pub fn itemSlot(texture: &str) -> Option<i32>
+{
+    expectInt(call(HostCall::ItemSlot { texture: texture.to_owned() })).ok().filter(|slot| *slot >= 0)
+}
+
 pub fn textWidth(text: &str) -> i32 { expectInt(call(HostCall::TextWidth { text: text.to_owned() })).unwrap_or(0) }
 
 // the scaled gui size of the client screen, none on a server

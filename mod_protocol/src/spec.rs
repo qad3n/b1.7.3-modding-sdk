@@ -173,6 +173,8 @@ pub enum ItemMethod
     UsingTick,
     StoppedUsing,
     UseFinish,
+    // api 1.23
+    UseIcon,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash, Debug)]

@@ -70,6 +70,8 @@ pub trait ItemBehavior
     fn onStoppedUsing(&self, _world: World, _player: Player, _stack: ItemStack, _left: i32) -> Use { Use::Pass }
     // needs api 1.20, the use ran its whole duration, as Item.onEaten
     fn onUseFinish(&self, _world: World, _player: Player, _stack: ItemStack) -> Use { Use::Pass }
+    // needs api 1.23, the item sheet slot shown while held in use for used ticks, None keeps the usual icon
+    fn useIcon(&self, _stack: ItemStack, _used: i32) -> Option<i32> { None }
     fn overridden(&self) -> &'static [&'static str] { unmarked(std::any::type_name::<Self>(), "item_behavior") }
 }
 
@@ -126,7 +128,7 @@ pub(crate) const BLOCK_METHODS: [(&str, BlockMethod); 25] = [
     ("faceRotations", BlockMethod::FaceRotation),
 ];
 
-pub(crate) const ITEM_METHODS: [(&str, ItemMethod); 14] = [
+pub(crate) const ITEM_METHODS: [(&str, ItemMethod); 15] = [
     ("onRightClick", ItemMethod::RightClick),
     ("onUseOnBlock", ItemMethod::UseOnBlock),
     ("onHitEntity", ItemMethod::HitEntity),
@@ -141,6 +143,7 @@ pub(crate) const ITEM_METHODS: [(&str, ItemMethod); 14] = [
     ("onUsingTick", ItemMethod::UsingTick),
     ("onStoppedUsing", ItemMethod::StoppedUsing),
     ("onUseFinish", ItemMethod::UseFinish),
+    ("useIcon", ItemMethod::UseIcon),
 ];
 
 pub(crate) const ENTITY_METHODS: [(&str, EntityMethod); 8] = [

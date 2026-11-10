@@ -276,6 +276,10 @@ fn item(handle: u32, call: ItemCall) -> GuestReply
             ItemStack::fromRaw(stack),
             left,
         )),
+        ItemCall::UseIcon { stack, used } =>
+        {
+            GuestReply::Int(behavior.useIcon(ItemStack::fromRaw(stack), used).unwrap_or(-1))
+        }
         ItemCall::UseFinish { world, player, stack } =>
         {
             useReply(behavior.onUseFinish(World { dimension: world }, Player { id: player }, ItemStack::fromRaw(stack)))

@@ -752,6 +752,12 @@ pub enum ItemCall
     {
         world: i32, player: i32, stack: StackData
     },
+    // api 1.23: the item sheet slot to draw while the stack is held in use for used ticks, as Item.getIcon with the
+    // using item, answered with Int and -1 for its usual icon
+    UseIcon
+    {
+        stack: StackData, used: i32
+    },
 }
 
 // api 1.20: EnumAction, how a player holds an item in use, a bow also narrows the view as it draws
@@ -2273,6 +2279,12 @@ pub enum HostCall
         world: i32,
         id: i32,
         effect: Identifier,
+    },
+    // api 1.23: the item sheet slot of a texture for the item icon hooks, answered with Int and -1 when unknown; a
+    // call during registration also reserves the texture no item spec names
+    ItemSlot
+    {
+        texture: String,
     },
 }
 
