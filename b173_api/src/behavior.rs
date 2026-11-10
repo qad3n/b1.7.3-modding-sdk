@@ -26,7 +26,7 @@ pub trait BlockBehavior
     fn canProvidePower(&self) -> bool { false }
     fn texture(&self, _face: i32, _meta: i32) -> i32 { 0 }
     fn colorMultiplier(&self, _ctx: &mut BlockCtx) -> u32 { 0xFFFFFF }
-    fn overridden(&self) -> &'static [&'static str] { &[] }
+    fn overridden(&self) -> &'static [&'static str] { unmarked(std::any::type_name::<Self>(), "block_behavior") }
 }
 
 // a held item use either passes through or replaces the stack in hand
@@ -50,7 +50,7 @@ pub trait ItemBehavior
     fn strVsBlock(&self, _stack: ItemStack, _block: i32) -> f32 { 1.0 }
     fn canHarvest(&self, _block: i32) -> bool { false }
     fn onCrafted(&self, _stack: ItemStack, _player: Player) {}
-    fn overridden(&self) -> &'static [&'static str] { &[] }
+    fn overridden(&self) -> &'static [&'static str] { unmarked(std::any::type_name::<Self>(), "item_behavior") }
 }
 
 pub trait EntityBehavior
@@ -66,14 +66,14 @@ pub trait EntityBehavior
     fn pose(&self, _input: &PoseInput) -> Pose { Pose::default() }
     // implementing this replaces the template's AI, the entity only does what this does
     fn onAi(&self, _entity: Entity, _info: &EntityInfo) {}
-    fn overridden(&self) -> &'static [&'static str] { &[] }
+    fn overridden(&self) -> &'static [&'static str] { unmarked(std::any::type_name::<Self>(), "entity_behavior") }
 }
 
 pub trait TileBehavior
 {
     fn onTick(&self, _ctx: &mut BlockCtx) {}
     fn onRemoved(&self, _ctx: &mut BlockCtx) {}
-    fn overridden(&self) -> &'static [&'static str] { &[] }
+    fn overridden(&self) -> &'static [&'static str] { unmarked(std::any::type_name::<Self>(), "tile_behavior") }
 }
 
 pub(crate) const BLOCK_METHODS: [(&str, BlockMethod); 21] = [
@@ -125,6 +125,13 @@ pub(crate) const ENTITY_METHODS: [(&str, EntityMethod); 8] = [
 
 pub(crate) const TILE_METHODS: [(&str, TileMethod); 2] =
     [("onTick", TileMethod::Tick), ("onRemoved", TileMethod::Removed)];
+
+// the attribute macro replaces overridden, so this default only runs for an impl that forgot it
+fn unmarked(name: &str, attribute: &str) -> &'static [&'static str]
+{
+    crate::warn(&format!("{name} has no #[{attribute}] attribute, the game calls none of its methods"));
+    &[]
+}
 
 pub(crate) fn methods<M: Copy>(names: &[&str], table: &[(&str, M)]) -> Vec<M>
 {
