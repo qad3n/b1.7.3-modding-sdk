@@ -2245,10 +2245,40 @@ pub enum HostCall
         name: String,
         spec: crate::spec::FluidSpec,
     },
+    // api 1.22: a status effect named <modid>:<name>
+    RegisterEffect
+    {
+        name: String,
+        spec: crate::spec::EffectSpec,
+    },
+    // api 1.22: a stronger or longer effect replaces the one already on the entity, level 0 is the first level
+    AddEffect
+    {
+        world: i32,
+        id: i32,
+        effect: Identifier,
+        level: i32,
+        ticks: i32,
+    },
+    // api 1.22
+    RemoveEffect
+    {
+        world: i32,
+        id: i32,
+        effect: Identifier,
+    },
+    // api 1.22: the level of an effect on an entity, answered with Int and -1 when it has none
+    EffectLevel
+    {
+        world: i32,
+        id: i32,
+        effect: Identifier,
+    },
 }
 
 // how a modifier combines with an attribute: adds first, then base multipliers summed, then total multipliers one by one
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+#[serde(rename_all = "snake_case")]
 pub enum ModifierOperation
 {
     Add,

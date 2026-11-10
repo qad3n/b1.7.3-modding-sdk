@@ -793,3 +793,26 @@ pub struct FluidSpec
     #[serde(default)]
     pub infinite: Option<bool>,
 }
+
+// a status effect: a hud colour and optional icon texture, attribute modifiers added once per level, and every
+// interval ticks a heal for a positive amount or harm for a negative one, also once per level
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct EffectSpec
+{
+    pub color: u32,
+    pub beneficial: bool,
+    pub icon: Option<String>,
+    pub modifiers: Vec<EffectModifierSpec>,
+    pub interval: i32,
+    pub amount: i32,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct EffectModifierSpec
+{
+    pub attribute: Identifier,
+    pub amount: f64,
+    pub operation: crate::abi::ModifierOperation,
+}

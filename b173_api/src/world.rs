@@ -583,6 +583,31 @@ impl Entity
         }))
     }
 
+    // needs api 1.22, level 0 is the first level
+    pub fn addEffect(self, effect: &str, level: i32, ticks: i32) -> Result<()>
+    {
+        let effect: Identifier = Identifier::parse(effect).map_err(|error| Error(error.to_string()))?;
+        expectUnit(call(HostCall::AddEffect { world: self.world.dimension, id: self.id, effect, level, ticks }))
+    }
+
+    // needs api 1.22
+    pub fn removeEffect(self, effect: &str) -> Result<()>
+    {
+        let effect: Identifier = Identifier::parse(effect).map_err(|error| Error(error.to_string()))?;
+        expectUnit(call(HostCall::RemoveEffect { world: self.world.dimension, id: self.id, effect }))
+    }
+
+    // needs api 1.22, None when the entity does not have the effect
+    pub fn effectLevel(self, effect: &str) -> Option<i32>
+    {
+        let effect: Identifier = Identifier::parse(effect).ok()?;
+        match call(HostCall::EffectLevel { world: self.world.dimension, id: self.id, effect })
+        {
+            HostReply::Int(level) if level >= 0 => Some(level),
+            _ => None,
+        }
+    }
+
     // needs api 1.17, kind names a vanilla damage type such as minecraft:fall
     pub fn damageAs(self, amount: i32, source: Option<i32>, kind: &str) -> Result<bool>
     {

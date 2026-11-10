@@ -15,9 +15,9 @@ use mod_protocol::abi::
 use mod_protocol::handshake::ChannelDirection;
 use mod_protocol::spec::
 {
-    Behavior, BlockModifySpec, BlockSpec, BlockStatesSpec, CreatureKind, EntitySpec, FluidSpec, FuelSpec, ItemSpec,
-    LootSpec, RecipeSpec, RecordSpec, ShapedSpec, ShapelessSpec, SmeltingSpec, SpawnModifySpec, StackSpec, TagEntry,
-    TileEntitySpec, ToolClass, ToolSpec, WorldgenKind, WorldgenSpec,
+    Behavior, BlockModifySpec, BlockSpec, BlockStatesSpec, CreatureKind, EffectSpec, EntitySpec, FluidSpec, FuelSpec,
+    ItemSpec, LootSpec, RecipeSpec, RecordSpec, ShapedSpec, ShapelessSpec, SmeltingSpec, SpawnModifySpec, StackSpec,
+    TagEntry, TileEntitySpec, ToolClass, ToolSpec, WorldgenKind, WorldgenSpec,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -76,6 +76,9 @@ impl RegisterCtx
 
     // needs api 1.21
     pub fn fluids(&mut self) -> Fluids { Fluids }
+
+    // needs api 1.22
+    pub fn effects(&mut self) -> Effects { Effects }
 
     pub fn worldgen(&mut self) -> Worldgen { Worldgen }
 
@@ -799,6 +802,16 @@ pub struct Tags;
 pub struct Loot;
 
 pub struct Fluids;
+
+pub struct Effects;
+
+impl Effects
+{
+    pub fn register(&self, name: &str, spec: EffectSpec) -> Result<()>
+    {
+        expectUnit(call(HostCall::RegisterEffect { name: name.to_owned(), spec }))
+    }
+}
 
 impl Fluids
 {
