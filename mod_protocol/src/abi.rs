@@ -2,8 +2,8 @@ use crate::Identifier;
 use crate::handshake::ChannelDirection;
 use crate::spec::
 {
-    BlockModifySpec, BlockSpec, BlockStatesSpec, CreatureKind, EntitySpec, ItemSpec, RecipeSpec, SpawnModifySpec,
-    TagEntry, TileEntitySpec, WorldgenSpec,
+    BlockModifySpec, BlockSpec, BlockStatesSpec, CreatureKind, EntitySpec, ItemSpec, LootSpec, RecipeSpec,
+    SpawnModifySpec, TagEntry, TileEntitySpec, WorldgenSpec,
 };
 use serde::{Deserialize, Serialize};
 
@@ -2171,6 +2171,13 @@ pub enum HostCall
         id: i32,
         attribute: Identifier,
         modifier: Identifier,
+    },
+    // api 1.19: loot for a block or entity of any mod or of vanilla, merged in load order with data/<modid>/loot files
+    SetLoot
+    {
+        registry: RegistryKind,
+        target: Identifier,
+        spec: LootSpec,
     },
 }
 

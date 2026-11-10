@@ -723,3 +723,35 @@ mod tests
         assert_eq!(spec, back);
     }
 }
+
+// drops a mod adds to a block or entity, or puts in place of its beta drops with replace
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct LootSpec
+{
+    pub replace: bool,
+    pub entries: Vec<LootEntrySpec>,
+}
+
+// one drop rolled on its own: chance from 0 to 1, a count from count to max, player only for entities killed by a
+// player, block_meta only for a block broken with that metadata
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct LootEntrySpec
+{
+    pub item: Identifier,
+    #[serde(default)]
+    pub meta: i32,
+    #[serde(default = "one")]
+    pub count: i32,
+    #[serde(default)]
+    pub max: Option<i32>,
+    #[serde(default = "always")]
+    pub chance: f32,
+    #[serde(default)]
+    pub player: bool,
+    #[serde(default)]
+    pub block_meta: Option<i32>,
+}
+
+fn always() -> f32 { 1.0 }

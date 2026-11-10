@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use mod_protocol::Identifier;
 use mod_protocol::identifier::isValidModId;
 use mod_protocol::spec::{
-    BlockModifySpec, BlockSpec, BlockStatesSpec, ItemSpec, RecipeSpec, SpawnModifySpec, TagSpec, WorldgenSpec,
+    BlockModifySpec, BlockSpec, BlockStatesSpec, ItemSpec, LootSpec, RecipeSpec, SpawnModifySpec, TagSpec, WorldgenSpec,
 };
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
@@ -105,6 +105,7 @@ pub fn run(root: &Path) -> Result<Vec<String>>
                 Some(("spawns", _)) => parse::<SpawnModifySpec>(&path).map(drop),
                 _ => Err("modify files go in modify/blocks/ or modify/spawns/".to_owned()),
             },
+            "loot" => parse::<LootSpec>(&path).map(drop),
             "tags" => parse::<TagSpec>(&path).and_then(|spec| {
                 spec.values.iter().try_for_each(|value| value.entry().map(drop).map_err(|error| error.to_string()))
             }),

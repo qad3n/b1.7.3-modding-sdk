@@ -15,9 +15,9 @@ use mod_protocol::abi::
 use mod_protocol::handshake::ChannelDirection;
 use mod_protocol::spec::
 {
-    Behavior, BlockModifySpec, BlockSpec, BlockStatesSpec, CreatureKind, EntitySpec, FuelSpec, ItemSpec, RecipeSpec,
-    RecordSpec, ShapedSpec, ShapelessSpec, SmeltingSpec, SpawnModifySpec, StackSpec, TagEntry, TileEntitySpec,
-    ToolClass, ToolSpec, WorldgenKind, WorldgenSpec,
+    Behavior, BlockModifySpec, BlockSpec, BlockStatesSpec, CreatureKind, EntitySpec, FuelSpec, ItemSpec, LootSpec,
+    RecipeSpec, RecordSpec, ShapedSpec, ShapelessSpec, SmeltingSpec, SpawnModifySpec, StackSpec, TagEntry,
+    TileEntitySpec, ToolClass, ToolSpec, WorldgenKind, WorldgenSpec,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -70,6 +70,9 @@ impl RegisterCtx
     pub fn services(&mut self) -> Services { Services }
 
     pub fn tags(&mut self) -> Tags { Tags }
+
+    // needs api 1.19
+    pub fn loot(&mut self) -> Loot { Loot }
 
     pub fn worldgen(&mut self) -> Worldgen { Worldgen }
 
@@ -783,6 +786,21 @@ impl Services
 }
 
 pub struct Tags;
+
+pub struct Loot;
+
+impl Loot
+{
+    // adds drops to a block, replace drops its beta ones
+    pub fn block(&self, block: &str, spec: LootSpec) -> Result<()> { setLoot(RegistryKind::Block, block, spec) }
+
+    pub fn entity(&self, entity: &str, spec: LootSpec) -> Result<()> { setLoot(RegistryKind::Entity, entity, spec) }
+}
+
+fn setLoot(registry: RegistryKind, target: &str, spec: LootSpec) -> Result<()>
+{
+    expectUnit(call(HostCall::SetLoot { registry, target: parse(target)?, spec }))
+}
 
 impl Tags
 {
