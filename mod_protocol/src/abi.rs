@@ -2153,6 +2153,34 @@ pub enum HostCall
         amount: i32,
         kind: Identifier,
     },
+    // api 1.18: adds or replaces the modifier with this id on a living entity's attribute, such as
+    // minecraft:movement_speed; saved with the entity and sent to a player's own client
+    SetModifier
+    {
+        world: i32,
+        id: i32,
+        attribute: Identifier,
+        modifier: Identifier,
+        amount: f64,
+        operation: ModifierOperation,
+    },
+    // api 1.18
+    RemoveModifier
+    {
+        world: i32,
+        id: i32,
+        attribute: Identifier,
+        modifier: Identifier,
+    },
+}
+
+// how a modifier combines with an attribute: adds first, then base multipliers summed, then total multipliers one by one
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ModifierOperation
+{
+    Add,
+    MultiplyBase,
+    MultiplyTotal,
 }
 
 // where a stack lives, so a component change applies to that stack and not to a copy

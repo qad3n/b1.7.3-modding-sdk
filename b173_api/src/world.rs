@@ -8,8 +8,8 @@ use crate::
 use mod_protocol::Identifier;
 use mod_protocol::abi::
 {
-    BlockCtx as RawCtx, BlockInfo, BlockPos, EntityField, EntityInfo, HostCall, HostReply, Located, RayHit, RecipeView,
-    StackRef, StateData, StructureStart, Target,
+    BlockCtx as RawCtx, BlockInfo, BlockPos, EntityField, EntityInfo, HostCall, HostReply, Located, ModifierOperation,
+    RayHit, RecipeView, StackRef, StateData, StructureStart, Target,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -538,6 +538,31 @@ impl Entity
     {
         expectBool(call(HostCall::DamageEntity { world: self.world.dimension, id: self.id, source, amount }))
             .unwrap_or(false)
+    }
+
+    // needs api 1.18, attributes are minecraft:max_health, movement_speed, attack_damage, armor and
+    // knockback_resistance
+    pub fn setModifier(self, attribute: &str, modifier: &str, amount: f64, operation: ModifierOperation) -> Result<()>
+    {
+        expectUnit(call(HostCall::SetModifier {
+            world: self.world.dimension,
+            id: self.id,
+            attribute: Identifier::parse(attribute).map_err(|error| Error(error.to_string()))?,
+            modifier: Identifier::parse(modifier).map_err(|error| Error(error.to_string()))?,
+            amount,
+            operation,
+        }))
+    }
+
+    // needs api 1.18
+    pub fn removeModifier(self, attribute: &str, modifier: &str) -> Result<()>
+    {
+        expectUnit(call(HostCall::RemoveModifier {
+            world: self.world.dimension,
+            id: self.id,
+            attribute: Identifier::parse(attribute).map_err(|error| Error(error.to_string()))?,
+            modifier: Identifier::parse(modifier).map_err(|error| Error(error.to_string()))?,
+        }))
     }
 
     // needs api 1.17, kind names a vanilla damage type such as minecraft:fall
