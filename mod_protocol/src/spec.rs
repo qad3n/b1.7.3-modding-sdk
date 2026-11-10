@@ -763,3 +763,33 @@ pub struct LootEntrySpec
 }
 
 fn always() -> f32 { 1.0 }
+
+// which beta liquid a mod fluid behaves like for sounds, particles, render pass, fire, slow spreading and entities
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum FluidStyle
+{
+    Water,
+    Lava,
+}
+
+// a mod fluid: its flowing and still blocks use the flowing_fluid and still_fluid templates with this fluid's
+// identifier as their material, and its bucket the fluid_bucket template; unset numbers follow the style
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct FluidSpec
+{
+    pub style: FluidStyle,
+    pub flowing: Identifier,
+    pub still: Identifier,
+    #[serde(default)]
+    pub bucket: Option<Identifier>,
+    #[serde(default)]
+    pub tick_rate: Option<i32>,
+    #[serde(default)]
+    pub decay: Option<i32>,
+    #[serde(default)]
+    pub nether_decay: Option<i32>,
+    #[serde(default)]
+    pub infinite: Option<bool>,
+}

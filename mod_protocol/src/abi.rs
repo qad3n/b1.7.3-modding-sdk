@@ -2239,6 +2239,12 @@ pub enum HostCall
         tile: Identifier,
         model: crate::spec::EntityModelSpec,
     },
+    // api 1.21: a fluid named <modid>:<name>, register it before the blocks that use it as their material
+    RegisterFluid
+    {
+        name: String,
+        spec: crate::spec::FluidSpec,
+    },
 }
 
 // how a modifier combines with an attribute: adds first, then base multipliers summed, then total multipliers one by one
