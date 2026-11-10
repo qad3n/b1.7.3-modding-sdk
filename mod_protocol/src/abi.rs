@@ -2292,6 +2292,38 @@ pub enum HostCall
         name: String,
         spec: crate::spec::ParticleSpec,
     },
+    // api 1.25: an achievement named <modid>:<name>, kept per player apart from beta's achievements
+    RegisterAchievement
+    {
+        name: String,
+        spec: crate::spec::AchievementSpec,
+    },
+    // api 1.25: as beta, an achievement needs its parent; answered with Bool, true when newly earned
+    UnlockAchievement
+    {
+        player: i32,
+        achievement: Identifier,
+    },
+    // api 1.25: answered with Bool
+    HasAchievement
+    {
+        player: i32,
+        achievement: Identifier,
+    },
+    // api 1.25: a named stat such as <modid>:bosses_killed; mod blocks and items also count mined/<id>,
+    // crafted/<id>, used/<id> and broken/<id> on their own
+    AddStat
+    {
+        player: i32,
+        stat: String,
+        amount: i32,
+    },
+    // api 1.25: answered with Int
+    StatValue
+    {
+        player: i32,
+        stat: String,
+    },
 }
 
 // how a modifier combines with an attribute: adds first, then base multipliers summed, then total multipliers one by one

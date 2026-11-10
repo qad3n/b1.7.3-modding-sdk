@@ -15,9 +15,10 @@ use mod_protocol::abi::
 use mod_protocol::handshake::ChannelDirection;
 use mod_protocol::spec::
 {
-    Behavior, BlockModifySpec, BlockSpec, BlockStatesSpec, CreatureKind, EffectSpec, EntitySpec, FluidSpec, FuelSpec,
-    ItemSpec, LootSpec, ParticleSpec, RecipeSpec, RecordSpec, ShapedSpec, ShapelessSpec, SmeltingSpec, SpawnModifySpec,
-    StackSpec, TagEntry, TileEntitySpec, ToolClass, ToolSpec, WorldgenKind, WorldgenSpec,
+    AchievementSpec, Behavior, BlockModifySpec, BlockSpec, BlockStatesSpec, CreatureKind, EffectSpec, EntitySpec,
+    FluidSpec, FuelSpec, ItemSpec, LootSpec, ParticleSpec, RecipeSpec, RecordSpec, ShapedSpec, ShapelessSpec,
+    SmeltingSpec, SpawnModifySpec, StackSpec, TagEntry, TileEntitySpec, ToolClass, ToolSpec, WorldgenKind,
+    WorldgenSpec,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -82,6 +83,9 @@ impl RegisterCtx
 
     // needs api 1.24
     pub fn particles(&mut self) -> Particles { Particles }
+
+    // needs api 1.25
+    pub fn achievements(&mut self) -> Achievements { Achievements }
 
     pub fn worldgen(&mut self) -> Worldgen { Worldgen }
 
@@ -809,6 +813,16 @@ pub struct Fluids;
 pub struct Effects;
 
 pub struct Particles;
+
+pub struct Achievements;
+
+impl Achievements
+{
+    pub fn register(&self, name: &str, spec: AchievementSpec) -> Result<()>
+    {
+        expectUnit(call(HostCall::RegisterAchievement { name: name.to_owned(), spec }))
+    }
+}
 
 impl Particles
 {

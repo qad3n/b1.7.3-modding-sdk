@@ -438,6 +438,40 @@ impl Player
         expectUnit(call(HostCall::SetHeldStack { player: self.id, stack }))
     }
 
+    // needs api 1.25, true when newly earned; as in beta the parent comes first
+    pub fn unlockAchievement(self, achievement: &str) -> Result<bool>
+    {
+        let achievement: Identifier = Identifier::parse(achievement).map_err(|error| Error(error.to_string()))?;
+        expectBool(call(HostCall::UnlockAchievement { player: self.id, achievement }))
+    }
+
+    // needs api 1.25
+    pub fn hasAchievement(self, achievement: &str) -> bool
+    {
+        let Ok(achievement) = Identifier::parse(achievement)
+        else
+        {
+            return false;
+        };
+        expectBool(call(HostCall::HasAchievement { player: self.id, achievement })).unwrap_or(false)
+    }
+
+    // needs api 1.25, stats are named such as <modid>:bosses_killed or mined/<block id>
+    pub fn addStat(self, stat: &str, amount: i32) -> Result<()>
+    {
+        expectUnit(call(HostCall::AddStat { player: self.id, stat: stat.to_owned(), amount }))
+    }
+
+    // needs api 1.25
+    pub fn stat(self, stat: &str) -> i32
+    {
+        match call(HostCall::StatValue { player: self.id, stat: stat.to_owned() })
+        {
+            HostReply::Int(value) => value,
+            _ => 0,
+        }
+    }
+
     // needs api 1.7, wears the held tool as a use would and breaks it past its last use
     pub fn damageHeld(self, amount: i32) -> Result<()>
     {

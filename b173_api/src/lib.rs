@@ -23,11 +23,11 @@ pub use mod_protocol::abi::{
 use mod_protocol::abi::{EntityInfo as RawEntity, HostCall, HostReply};
 pub use mod_protocol::handshake::ChannelDirection as Direction;
 pub use mod_protocol::spec::{
-    ArmorSlot, ArmorSpec, BedFaces, BlockModelSpec, BlockModifySpec, BlockSpec, BlockStatesSpec, CreatureKind, Cuboid,
-    DropSpec, EffectModifierSpec, EffectSpec, EntityModelSpec, EntitySounds, EntitySpec, FaceTextures, Flammability,
-    FluidSpec, FluidStyle, FoodSpec, ItemSpec, ItemToolSpec, LootEntrySpec, LootSpec, ModelBox, ModelPart,
-    ParticleSpec, PropertySpec, SpawnModifySpec, SpawnSpec, StateVariantSpec, SteeringSpec, TagEntry, TagRef,
-    TileEntitySpec, ToolClass, ToolSpec,
+    AchievementSpec, ArmorSlot, ArmorSpec, BedFaces, BlockModelSpec, BlockModifySpec, BlockSpec, BlockStatesSpec,
+    CreatureKind, Cuboid, DropSpec, EffectModifierSpec, EffectSpec, EntityModelSpec, EntitySounds, EntitySpec,
+    FaceTextures, Flammability, FluidSpec, FluidStyle, FoodSpec, ItemSpec, ItemToolSpec, LootEntrySpec, LootSpec,
+    ModelBox, ModelPart, ParticleSpec, PropertySpec, SpawnModifySpec, SpawnSpec, StateVariantSpec, SteeringSpec,
+    TagEntry, TagRef, TileEntitySpec, ToolClass, ToolSpec,
 };
 pub use register::*;
 pub use serde;

@@ -835,3 +835,15 @@ pub struct ParticleSpec
     #[serde(default)]
     pub gravity: Option<f32>,
 }
+
+// a mod achievement: lang keys or plain text for its title and description, an item icon and an optional parent
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct AchievementSpec
+{
+    pub title: String,
+    pub description: String,
+    pub icon: Identifier,
+    #[serde(default)]
+    pub parent: Option<Identifier>,
+}
