@@ -706,7 +706,8 @@ pub fn recipeList() -> Vec<RecipeView>
 pub fn contentGeneration() -> i32 { expectInt(call(HostCall::ContentGeneration)).unwrap_or(0) }
 
 // the client font's width of a string, zero on a server
-// needs api 1.12, the terrain atlas slot of a block texture for the texture hooks, None when it has none
+// needs api 1.12, the terrain atlas slot of a block texture for the texture hooks, None when it has none; call it
+// once while registering for any texture no block spec names, so the atlas makes room for it
 pub fn terrainSlot(texture: &str) -> Option<i32>
 {
     expectInt(call(HostCall::TerrainSlot { texture: texture.to_owned() })).ok().filter(|slot| *slot >= 0)

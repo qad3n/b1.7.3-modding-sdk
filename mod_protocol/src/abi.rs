@@ -2053,7 +2053,8 @@ pub enum HostCall
         block: i32,
         meta: i32,
     },
-    // api 1.12: the terrain atlas slot of a block texture for the texture hooks, answered with Int, -1 when unknown
+    // api 1.12: the terrain atlas slot of a block texture for the texture hooks, answered with Int, -1 when unknown; a
+    // call during registration also reserves the texture a block spec does not name
     TerrainSlot
     {
         texture: String,
