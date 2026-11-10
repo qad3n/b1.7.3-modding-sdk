@@ -2132,6 +2132,15 @@ pub enum HostCall
         entries: Vec<TagEntry>,
         replace: bool,
     },
+    // api 1.16: turns one column of a mod dimension to a biome of its biome source, as a chunk's biome array edited
+    // in place; only the side that owns the world sets it, the loader saves it with the world and tells every client
+    SetBiome
+    {
+        world: i32,
+        x: i32,
+        z: i32,
+        biome: Identifier,
+    },
 }
 
 // where a stack lives, so a component change applies to that stack and not to a copy

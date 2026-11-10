@@ -104,6 +104,13 @@ impl World
         expectBool(call(HostCall::SwapBlock { world: self.dimension, pos, block, meta }))
     }
 
+    // needs api 1.16, turns one column of a mod dimension to one of its biome source's biomes, kept and synced
+    pub fn setBiome(self, x: i32, z: i32, biome: &str) -> Result<()>
+    {
+        let biome: Identifier = Identifier::parse(biome).map_err(|error| Error(format!("biome {biome}: {error:?}")))?;
+        expectUnit(call(HostCall::SetBiome { world: self.dimension, x, z, biome }))
+    }
+
     // needs api 1.12, rain for some ticks and thunder with it when asked, or clear skies when raining is false
     pub fn setWeather(self, raining: bool, thundering: bool, ticks: i32) -> Result<()>
     {
