@@ -1,8 +1,9 @@
 use crate::Identifier;
 use crate::handshake::ChannelDirection;
-use crate::spec::{
-    BlockModifySpec, BlockSpec, BlockStatesSpec, EntitySpec, ItemSpec, RecipeSpec, SpawnModifySpec, TileEntitySpec,
-    WorldgenSpec,
+use crate::spec::
+{
+    BlockModifySpec, BlockSpec, BlockStatesSpec, CreatureKind, EntitySpec, ItemSpec, RecipeSpec, SpawnModifySpec,
+    TileEntitySpec, WorldgenSpec,
 };
 use serde::{Deserialize, Serialize};
 
@@ -460,7 +461,7 @@ pub struct ScreenSpec
     pub transparent: bool,
 }
 
-// a piece of a player model a mod draws over a player, as armor layers and Aether accessories do
+// a piece of a player model a mod draws over a player, as armor layers and worn accessories do
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
 pub enum BipedPart
 {
@@ -484,11 +485,11 @@ pub struct PlayerLayer
     pub inflate: f32,
     // drawn at full brightness, as glowing armor
     pub glow: bool,
-    // scales the layer about the model origin, Aether gloves shrink by 0.9375
+    // scales the layer about the model origin, slightly smaller layers sit inside the skin
     pub scale: f32,
     // blended by the texture's alpha, as a translucent shield
     pub blend: bool,
-    // extra geometry in the player model's space after the parts, as Aether's valkyrie wings, quads and transforms only
+    // extra geometry in the player model's space after the parts, such as wings, quads and transforms only
     pub ops: Vec<ModelOp>,
 }
 
@@ -797,6 +798,12 @@ pub enum ModelOp
     Normal([f32; 3]),
     // GL_LIGHTING off or back on, for glowing sprites
     Lighting(bool),
+    // api 1.8: a stack held in the hand at the end of a part, drawn as RenderBiped draws a held item
+    HeldItem
+    {
+        part: u16,
+        stack: StackData,
+    },
 }
 
 // the draw program for one frame: pre runs where preRenderCallback does, model replaces ModelBase.render
@@ -957,6 +964,36 @@ pub enum GuestCall
         handler: Handle,
         stack: StackData,
     },
+    // api 1.7: the biome index and grass and leaf colors of every column of a chunk, the reply is Biomes
+    BiomeSource
+    {
+        handler: Handle,
+        chunk: ChunkInfo,
+    },
+    // api 1.8: one frame of a world render handler, ops in block units from the camera, the reply is Pose with model
+    WorldRender
+    {
+        handler: Handle,
+        partial: f32,
+        camera: [f64; 3],
+    },
+    // api 1.9: the creatures of one kind that may spawn at a spot of a mod dimension, as Forge's getPossibleCreatures;
+    // the reply is Spawns
+    Spawns
+    {
+        handler: Handle,
+        world: i32,
+        kind: CreatureKind,
+        pos: BlockPos,
+    },
+    // api 1.10: whether a structure kind starts in a chunk of a world with this seed, the reply is Bool
+    StructureFinder
+    {
+        handler: Handle,
+        seed: i64,
+        chunk_x: i32,
+        chunk_z: i32,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
@@ -985,6 +1022,61 @@ pub enum GuestReply
     },
     Pose(Pose),
     Lines(Vec<String>),
+    // api 1.7: one entry per column of a chunk, x fastest, an index into the source's biome list
+    Biomes
+    {
+        biomes: Vec<u8>,
+    },
+    // api 1.9: the weighted creatures a spawn list handler offers, None keeps the biome's list, empty spawns nothing
+    Spawns
+    {
+        entries: Option<Vec<SpawnEntry>>,
+    },
+}
+
+// api 1.9: one weighted creature of a spawn list, vanilla names such as minecraft:zombie or mod identifiers
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
+pub struct SpawnEntry
+{
+    pub entity: Identifier,
+    pub weight: i32,
+}
+
+// api 1.10: a kind of structure, every start of it lies in one dimension
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub struct StructureSpec
+{
+    pub name: String,
+    pub dimension: Identifier,
+}
+
+// api 1.10: one part of a built structure with inclusive corners, the label is the owning mod's name for the part
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
+pub struct StructurePiece
+{
+    pub min: [i32; 3],
+    pub max: [i32; 3],
+    pub label: String,
+}
+
+// api 1.10: one built structure, the origin tells two starts of a kind apart and the box holds every piece
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
+pub struct StructureStart
+{
+    pub structure: Identifier,
+    pub origin: BlockPos,
+    pub min: [i32; 3],
+    pub max: [i32; 3],
+    pub pieces: Vec<StructurePiece>,
+}
+
+// api 1.10: where locate found a structure, generated is false when only the kind's finder says one starts there
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+pub struct Located
+{
+    pub x: i32,
+    pub z: i32,
+    pub generated: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
@@ -1829,6 +1921,123 @@ pub enum HostCall
     ModName
     {
         modid: String,
+    }, // api 1.7: wears the held stack down as using it would, a stack worn past its last use breaks
+    DamageHeld
+    {
+        player: i32,
+        amount: i32,
+    }, // api 1.7: the biomes of a mod dimension come from the mod, listed in the index order its handler answers with
+    RegisterBiomeSource
+    {
+        dimension: Identifier,
+        biomes: Vec<Identifier>,
+        handler: Handle,
+    },
+    // api 1.7: the seed a world was made with, a multiplayer client has it from the login
+    WorldSeed
+    {
+        world: i32,
+    },
+    // api 1.7: the vanilla grass or foliage colorizer at a temperature and rainfall, white where no colormap is loaded
+    Colorizer
+    {
+        foliage: bool,
+        temperature: f64,
+        rainfall: f64,
+    },
+    // api 1.7: makes the block a mob spawner that spawns this entity, vanilla names or mod identifiers
+    SetSpawner
+    {
+        world: i32,
+        pos: BlockPos,
+        entity: String,
+    },
+    // api 1.7: runs the block's random tick now, as a world tick would when it picks that block
+    RandomTick
+    {
+        world: i32,
+        pos: BlockPos,
+    },
+    // api 1.7: bone meal on the block, a sapling grows, crops ripen and grass sprouts plants
+    Fertilize
+    {
+        world: i32,
+        pos: BlockPos,
+    },
+    // api 1.7: the uses a damageable item has, zero for anything that does not wear
+    MaxDamage
+    {
+        item: i32,
+    },
+    // api 1.8: the pixels of a texture a mod draws at runtime, argb rows from the top left, bound by its name from then
+    // on wherever a texture is named; a no-op on a dedicated server
+    SetDynamicTexture
+    {
+        name: Identifier,
+        width: u32,
+        height: u32,
+        pixels: Vec<u32>,
+    },
+    // api 1.8: the rgb a vanilla map draws a block in, its material's map color, answered with Int and 0 for air
+    BlockMapColor
+    {
+        block: i32,
+    },
+    // api 1.8: the stack a dropped item entity carries, answered with Stack and None for any other entity
+    ItemEntityStack
+    {
+        world: i32,
+        id: i32,
+    },
+    // api 1.8: draws in the world after it and before the hand each frame, the handler answers ops around the camera
+    RegisterWorldRender
+    {
+        handler: Handle,
+    },
+    // api 1.9: a mod dimension taller than vanilla's 128 blocks, a multiple of 16 up to 256, set by the mod that
+    // registered it; world generation fills the full height while players place blocks only below the build limit
+    DimensionHeight
+    {
+        dimension: Identifier,
+        height: i32,
+        build_limit: i32,
+    },
+    // api 1.9: the spawn list handler of a mod dimension, asked for every natural spawn attempt there
+    RegisterSpawns
+    {
+        dimension: Identifier,
+        handler: Handle,
+    },
+    // api 1.10: a kind of structure this mod builds, the finder answers whether one starts in a chunk of a seed
+    RegisterStructure
+    {
+        name: String,
+        spec: StructureSpec,
+        finder: Option<Handle>,
+    },
+    // api 1.10: records a structure the mod built so every mod can find it, once per kind and origin; only the side
+    // that owns the world records, a client gets an error
+    AddStructure
+    {
+        world: i32,
+        start: StructureStart,
+    },
+    // api 1.10: the recorded structures crossing a box, each with only the pieces that cross it, answered with Starts
+    FindStructures
+    {
+        world: i32,
+        min: [i32; 3],
+        max: [i32; 3],
+        structure: Option<Identifier>,
+    },
+    // api 1.10: the nearest structure of a kind within radius chunks, recorded ones first and then the kind's finder,
+    // answered with Located
+    LocateStructure
+    {
+        world: i32,
+        structure: Identifier,
+        from: BlockPos,
+        radius: i32,
     },
 }
 
@@ -1936,6 +2145,9 @@ pub enum HostReply
     // api 1.2
     Stacks(Vec<StackData>),
     Recipes(Vec<RecipeView>),
+    // api 1.10
+    Starts(Vec<StructureStart>),
+    Located(Option<Located>),
 }
 
 // api 1.2: a recipe as a viewer shows it, an ingredient with damage -1 takes any damage

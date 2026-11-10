@@ -1,11 +1,15 @@
 use crate::rt::call;
-use crate::{
-    Error, ItemStack, Result, expectBool, expectBytes, expectEntities, expectEntity, expectInt, expectStack, expectUnit,
+use crate::terrain::structure::StructureBox;
+use crate::
+{
+    Error, ItemStack, Result, expectBool, expectBytes, expectEntities, expectEntity, expectInt, expectLocated,
+    expectStack, expectStarts, expectUnit,
 };
 use mod_protocol::Identifier;
-use mod_protocol::abi::{
-    BlockCtx as RawCtx, BlockInfo, BlockPos, EntityField, EntityInfo, HostCall, HostReply, RayHit, RecipeView,
-    StackRef, StateData, Target,
+use mod_protocol::abi::
+{
+    BlockCtx as RawCtx, BlockInfo, BlockPos, EntityField, EntityInfo, HostCall, HostReply, Located, RayHit, RecipeView,
+    StackRef, StateData, StructureStart, Target,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -56,6 +60,16 @@ impl World
         {
             HostReply::Hit(hit) => hit,
             _ => None,
+        }
+    }
+
+    // needs api 1.8, the rgb a vanilla map draws the block in, 0 for air
+    pub fn mapColor(block: i32) -> u32
+    {
+        match call(HostCall::BlockMapColor { block })
+        {
+            HostReply::Int(color) => color as u32,
+            _ => 0,
         }
     }
 
@@ -159,6 +173,61 @@ impl World
     }
 
     pub fn chance(self, probability: f64) -> bool { (self.random(1_000_000) as f64) < probability * 1_000_000.0 }
+
+    // needs api 1.7, a mob spawner of this entity at the spot, vanilla names such as Spider or mod identifiers
+    pub fn setSpawner(self, pos: BlockPos, entity: &str) -> Result<()>
+    {
+        expectUnit(call(HostCall::SetSpawner { world: self.dimension, pos, entity: entity.to_owned() }))
+    }
+
+    // the block's random tick right now, if it ticks randomly at all
+    pub fn randomTick(self, pos: BlockPos) -> Result<()>
+    {
+        expectUnit(call(HostCall::RandomTick { world: self.dimension, pos }))
+    }
+
+    // bone meal applied to the block
+    pub fn fertilize(self, pos: BlockPos) -> Result<()>
+    {
+        expectUnit(call(HostCall::Fertilize { world: self.dimension, pos }))
+    }
+
+    // needs api 1.7, the seed the world was made with
+    pub fn seed(self) -> i64
+    {
+        match call(HostCall::WorldSeed { world: self.dimension })
+        {
+            HostReply::Long(seed) => seed,
+            _ => 0,
+        }
+    }
+
+    // needs api 1.10, records a structure this mod built here so every mod can find it, on the owning side only
+    pub fn addStructure(self, start: StructureStart) -> Result<()>
+    {
+        expectUnit(call(HostCall::AddStructure { world: self.dimension, start }))
+    }
+
+    // needs api 1.10, the recorded structures crossing a box, each with only the pieces that cross it, of one kind
+    // when named
+    pub fn structures(self, bounds: StructureBox, kind: Option<&Identifier>) -> Result<Vec<StructureStart>>
+    {
+        let StructureBox { m_min: min, m_max: max } = bounds;
+        expectStarts(call(HostCall::FindStructures { world: self.dimension, min, max, structure: kind.cloned() }))
+    }
+
+    // needs api 1.10, the recorded structures whose pieces hold the block
+    pub fn structuresAt(self, pos: BlockPos) -> Result<Vec<StructureStart>>
+    {
+        let at: [i32; 3] = [pos.x, pos.y, pos.z];
+        self.structures(StructureBox::new(at, at), None)
+    }
+
+    // needs api 1.10, the nearest structure of a kind within radius chunks of a spot
+    pub fn locate(self, kind: &Identifier, from: BlockPos, radius: i32) -> Result<Option<Located>>
+    {
+        expectLocated(call(HostCall::LocateStructure { world: self.dimension, structure: kind.clone(), from, radius }))
+    }
 
     pub fn isAuthority(self) -> bool
     {
@@ -321,6 +390,12 @@ impl Player
         expectUnit(call(HostCall::SetHeldStack { player: self.id, stack }))
     }
 
+    // needs api 1.7, wears the held tool as a use would and breaks it past its last use
+    pub fn damageHeld(self, amount: i32) -> Result<()>
+    {
+        expectUnit(call(HostCall::DamageHeld { player: self.id, amount }))
+    }
+
     pub fn teleport(self, dimension: i32, pos: [f64; 3]) -> Result<()>
     {
         expectUnit(call(HostCall::Teleport { player: self.id, dimension, pos }))
@@ -436,6 +511,15 @@ impl Entity
     }
 
     pub fn kill(self) { let _ = call(HostCall::KillEntity { world: self.world.dimension, id: self.id }); }
+
+    // needs api 1.8, the stack a dropped item carries, None for any other entity
+    pub fn itemStack(self) -> Option<ItemStack>
+    {
+        expectStack(call(HostCall::ItemEntityStack { world: self.world.dimension, id: self.id }))
+            .ok()
+            .flatten()
+            .map(ItemStack::fromRaw)
+    }
 
     // bytes the server mirrors to every client that sees the entity, saved with it, one slot per mod so mods never clash
     pub fn synced<T: DeserializeOwned + Default>(self) -> T
@@ -572,6 +656,14 @@ pub fn worldData<T: DeserializeOwned + Default>(key: &str) -> T
         .unwrap_or_default()
 }
 
+// needs api 1.8, the pixels of a texture drawn at runtime, argb rows from the top left; Draw images and model ops
+// that name it draw these pixels from then on, a bare name is taken in this mod's namespace
+pub fn setDynamicTexture(name: &str, width: u32, height: u32, pixels: Vec<u32>) -> crate::Result<()>
+{
+    let name: Identifier = crate::ownId(name)?;
+    expectUnit(call(HostCall::SetDynamicTexture { name, width, height, pixels }))
+}
+
 pub fn setWorldData<T: Serialize>(key: &str, value: &T)
 {
     let _ = call(HostCall::SetWorldData { key: key.to_owned(), data: encode(value) });
@@ -640,3 +732,18 @@ pub fn translate(key: &str) -> String
         _ => key.to_owned(),
     }
 }
+
+fn colorizer(foliage: bool, temperature: f64, rainfall: f64) -> u32
+{
+    match call(HostCall::Colorizer { foliage, temperature, rainfall })
+    {
+        HostReply::Int(color) => color as u32 & 0xFFFFFF,
+        _ => 0xFFFFFF,
+    }
+}
+
+// needs api 1.7, ColorizerGrass at a temperature and rainfall clamped to 0 to 1
+pub fn grassColor(temperature: f64, rainfall: f64) -> u32 { colorizer(false, temperature, rainfall) }
+
+// needs api 1.7, ColorizerFoliage at a temperature and rainfall clamped to 0 to 1
+pub fn foliageColor(temperature: f64, rainfall: f64) -> u32 { colorizer(true, temperature, rainfall) }

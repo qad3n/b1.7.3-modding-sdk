@@ -16,8 +16,9 @@ pub use config::{Config, Setting, configValue};
 pub use mod_protocol::Identifier;
 pub use mod_protocol::abi::{
     BiomeSpec, BipedPart, BlockInfo, BlockPos, ChunkInfo, ConfigScope, DimensionSpec, EntityField, EntityInfo,
-    EventKind, ModelOp, MusicSpec, Permission, PlayerLayer, Pose, PoseInput, Priority, RayHit, RecipeShape, RecipeView,
-    RegistryKind, StackData, StackRef, StateData, Target,
+    EventKind, Located, ModelOp, MusicSpec, Permission, PlayerLayer, Pose, PoseInput, Priority, RayHit, RecipeShape,
+    RecipeView, RegistryKind, SpawnEntry, StackData, StackRef, StateData, StructurePiece, StructureSpec,
+    StructureStart, Target,
 };
 use mod_protocol::abi::{EntityInfo as RawEntity, HostCall, HostReply};
 pub use mod_protocol::handshake::ChannelDirection as Direction;
@@ -120,6 +121,24 @@ pub(crate) fn expectStack(reply: HostReply) -> Result<Option<StackData>>
     }
 }
 
+pub(crate) fn expectStarts(reply: HostReply) -> Result<Vec<StructureStart>>
+{
+    match reply
+    {
+        HostReply::Starts(starts) => Ok(starts),
+        other => Err(unexpected(other)),
+    }
+}
+
+pub(crate) fn expectLocated(reply: HostReply) -> Result<Option<Located>>
+{
+    match reply
+    {
+        HostReply::Located(found) => Ok(found),
+        other => Err(unexpected(other)),
+    }
+}
+
 pub(crate) fn expectEntity(reply: HostReply) -> Option<RawEntity>
 {
     match reply
@@ -167,6 +186,17 @@ pub fn resolve(registry: RegistryKind, id: &Identifier) -> Result<i32>
     let numeric: i32 = expectInt(rt::call(HostCall::Resolve { registry, id: id.clone() }))?;
     RESOLVED.with(|cache| cache.borrow_mut().insert((registry, id.clone()), (epoch, numeric)));
     Ok(numeric)
+}
+
+// needs api 1.7, how many uses the item has before it breaks, zero when it does not wear
+pub fn maxDamage(item: &ItemRef) -> i32
+{
+    let Ok(numeric) = item.id()
+    else
+    {
+        return 0;
+    };
+    expectInt(rt::call(HostCall::MaxDamage { item: numeric })).unwrap_or(0)
 }
 
 pub fn nameOf(registry: RegistryKind, numeric: i32) -> Option<Identifier>
@@ -239,6 +269,14 @@ impl From<&ItemRef> for ItemRef
     fn from(item: &ItemRef) -> ItemRef { item.clone() }
 }
 
+// a biome source's answer for one chunk, one biome index per column with x fastest; grass and leaves take the
+// vanilla colorizer's colour from the biome's temperature and rainfall
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct ChunkBiomes
+{
+    pub biomes: Vec<u8>,
+}
+
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ItemStack
 {
@@ -279,10 +317,11 @@ pub mod prelude
     pub use crate::events::*;
     pub use crate::screen::{Draw, Overlay, Screen};
     pub use crate::services::{Lookup, Service};
-    pub use crate::world::{
-        allPlayers, broadcast, contentGeneration, displayName, isClient, isLoaded, itemCatalog, localPlayer, modName,
-        recipeList, screenSize, send, setStackComponent, setWorldData, setWorldTime, stackComponent, textWidth,
-        translate, worldData,
+    pub use crate::world::
+    {
+        allPlayers, broadcast, contentGeneration, displayName, foliageColor, grassColor, isClient, isLoaded,
+        itemCatalog, localPlayer, modName, recipeList, screenSize, send, setDynamicTexture, setStackComponent,
+        setWorldData, setWorldTime, stackComponent, textWidth, translate, worldData,
     };
     pub use crate::{vanilla, *};
     pub use serde::{Deserialize, Serialize};

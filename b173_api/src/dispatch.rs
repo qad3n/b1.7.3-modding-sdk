@@ -43,8 +43,12 @@ type HudHandler = Rc<dyn Fn(&mut Draw, f32, i32, i32)>;
 type LayerHandler = Rc<dyn Fn(&mod_protocol::abi::EntityInfo, &[u8]) -> Vec<mod_protocol::abi::PlayerLayer>>;
 type InterModHandler = Rc<dyn Fn(&str, &str, &[u8])>;
 type TerrainHandler = Rc<dyn Fn(&ChunkInfo, &mut ChunkBlocks)>;
+type BiomeHandler = Rc<dyn Fn(&ChunkInfo) -> crate::ChunkBiomes>;
+type SpawnHandler = Rc<dyn Fn(&crate::SpawnQuery) -> Option<Vec<mod_protocol::abi::SpawnEntry>>>;
+type FinderHandler = Rc<dyn Fn(i64, i32, i32) -> bool>;
 type ConfigListener = Rc<dyn Fn(&str)>;
 type TooltipHandler = Rc<dyn Fn(&ItemStack, &mut Vec<String>)>;
+type WorldRenderHandler = Rc<dyn Fn(f32, [f64; 3]) -> Vec<mod_protocol::abi::ModelOp>>;
 
 #[derive(Default)]
 struct Tables
@@ -65,9 +69,13 @@ struct Tables
     m_lookups: Vec<Rc<dyn Lookup>>,
     m_generators: Vec<Rc<dyn Fn(ChunkInfo)>>,
     m_terrains: Vec<TerrainHandler>,
+    m_biomeSources: Vec<BiomeHandler>,
+    m_spawnLists: Vec<SpawnHandler>,
+    m_finders: Vec<FinderHandler>,
     m_interMod: Option<InterModHandler>,
     m_configListeners: Vec<ConfigListener>,
     m_tooltips: Vec<TooltipHandler>,
+    m_worldRenders: Vec<WorldRenderHandler>,
 }
 
 thread_local! {
@@ -101,8 +109,12 @@ adder!(addService, m_services, Rc<dyn Service>);
 adder!(addLookup, m_lookups, Rc<dyn Lookup>);
 adder!(addGenerator, m_generators, Rc<dyn Fn(ChunkInfo)>);
 adder!(addTerrain, m_terrains, TerrainHandler);
+adder!(addBiomeSource, m_biomeSources, BiomeHandler);
+adder!(addSpawnList, m_spawnLists, SpawnHandler);
+adder!(addFinder, m_finders, FinderHandler);
 adder!(addConfigListener, m_configListeners, ConfigListener);
 adder!(addTooltip, m_tooltips, TooltipHandler);
+adder!(addWorldRender, m_worldRenders, WorldRenderHandler);
 
 pub(crate) fn addOverlay(overlay: impl crate::screen::Overlay + 'static) -> u32
 {
@@ -383,6 +395,17 @@ pub(crate) fn handle(call: GuestCall) -> GuestReply
             }
             None => GuestReply::Error(format!("no tooltip {handler}")),
         },
+        GuestCall::WorldRender { handler, partial, camera } =>
+        {
+            match get(|tables| tables.m_worldRenders.get(handler as usize))
+            {
+                Some(render) =>
+                {
+                    GuestReply::Pose(mod_protocol::abi::Pose { pre: Vec::new(), model: render(partial, camera) })
+                }
+                None => GuestReply::Error(format!("no world render {handler}")),
+            }
+        }
         GuestCall::Hud { handler, partial, width, height } => match get(|tables| tables.m_huds.get(handler as usize))
         {
             Some(hud) =>
@@ -437,5 +460,35 @@ pub(crate) fn handle(call: GuestCall) -> GuestReply
             }
             None => GuestReply::Error(format!("no terrain generator {handler}")),
         },
+        GuestCall::BiomeSource { handler, chunk } => match get(|tables| tables.m_biomeSources.get(handler as usize))
+        {
+            Some(source) =>
+            {
+                let biomes: crate::ChunkBiomes = source(&chunk);
+                GuestReply::Biomes { biomes: biomes.biomes }
+            }
+            None => GuestReply::Error(format!("no biome source {handler}")),
+        },
+        GuestCall::Spawns { handler, world, kind, pos } =>
+        {
+            match get(|tables| tables.m_spawnLists.get(handler as usize))
+            {
+                Some(spawns) =>
+                {
+                    let query: crate::SpawnQuery =
+                        crate::SpawnQuery { world: crate::world::World { dimension: world }, kind, pos };
+                    GuestReply::Spawns { entries: spawns(&query) }
+                }
+                None => GuestReply::Error(format!("no spawn list {handler}")),
+            }
+        }
+        GuestCall::StructureFinder { handler, seed, chunk_x, chunk_z } =>
+        {
+            match get(|tables| tables.m_finders.get(handler as usize))
+            {
+                Some(finder) => GuestReply::Bool(finder(seed, chunk_x, chunk_z)),
+                None => GuestReply::Error(format!("no structure finder {handler}")),
+            }
+        }
     }
 }

@@ -429,7 +429,7 @@ fn registerWorld(ctx: &mut RegisterCtx) -> Result<()>
             weight: 1,
         },
     )?;
-    ctx.dimensions().register(
+    let realm: Dimension = ctx.dimensions().register(
         "test_realm",
         DimensionSpec {
             beds: false,
@@ -446,7 +446,8 @@ fn registerWorld(ctx: &mut RegisterCtx) -> Result<()>
             generator: None,
         },
     )?;
-    ctx.dimensions().generator(REALM, |chunk| {
+    realm.generator(|chunk|
+    {
         let world: World = World { dimension: chunk.world };
         if (chunk.x + chunk.z) % 3 == 0
         {

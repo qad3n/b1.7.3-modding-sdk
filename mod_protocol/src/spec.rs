@@ -464,7 +464,7 @@ pub struct EntitySpec
     pub immovable: bool,
 }
 
-// a mount a riding player drives with movement keys and jump, as Aether's EntityMountable
+// a mount a riding player drives with movement keys and jump
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Debug)]
 #[serde(default, deny_unknown_fields)]
 pub struct SteeringSpec
