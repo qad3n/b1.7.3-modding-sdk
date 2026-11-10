@@ -16,8 +16,8 @@ use mod_protocol::handshake::ChannelDirection;
 use mod_protocol::spec::
 {
     Behavior, BlockModifySpec, BlockSpec, BlockStatesSpec, CreatureKind, EntitySpec, FuelSpec, ItemSpec, RecipeSpec,
-    RecordSpec, ShapedSpec, ShapelessSpec, SmeltingSpec, SpawnModifySpec, StackSpec, TileEntitySpec, ToolClass,
-    ToolSpec, WorldgenKind, WorldgenSpec,
+    RecordSpec, ShapedSpec, ShapelessSpec, SmeltingSpec, SpawnModifySpec, StackSpec, TagEntry, TileEntitySpec,
+    ToolClass, ToolSpec, WorldgenKind, WorldgenSpec,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -793,6 +793,17 @@ impl Tags
             registry,
             tag: Identifier::parse(tag).map_err(|error| Error(error.to_string()))?,
             values,
+        }))
+    }
+
+    // entries may name other tags as #ns:path or be optional, replace also drops the vanilla members (api 1.15)
+    pub fn addEntries(&self, registry: RegistryKind, tag: &str, entries: Vec<TagEntry>, replace: bool) -> Result<()>
+    {
+        expectUnit(call(HostCall::AddTagEntries {
+            registry,
+            tag: Identifier::parse(tag).map_err(|error| Error(error.to_string()))?,
+            entries,
+            replace,
         }))
     }
 

@@ -25,8 +25,8 @@ pub use mod_protocol::handshake::ChannelDirection as Direction;
 pub use mod_protocol::spec::{
     ArmorSlot, ArmorSpec, BedFaces, BlockModelSpec, BlockModifySpec, BlockSpec, BlockStatesSpec, CreatureKind, Cuboid,
     DropSpec, EntityModelSpec, EntitySounds, EntitySpec, FaceTextures, Flammability, FoodSpec, ItemSpec, ItemToolSpec,
-    ModelBox, ModelPart, PropertySpec, SpawnModifySpec, SpawnSpec, StateVariantSpec, SteeringSpec, TileEntitySpec,
-    ToolClass, ToolSpec,
+    ModelBox, ModelPart, PropertySpec, SpawnModifySpec, SpawnSpec, StateVariantSpec, SteeringSpec, TagEntry, TagRef,
+    TileEntitySpec, ToolClass, ToolSpec,
 };
 pub use register::*;
 pub use serde;

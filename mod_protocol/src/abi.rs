@@ -3,7 +3,7 @@ use crate::handshake::ChannelDirection;
 use crate::spec::
 {
     BlockModifySpec, BlockSpec, BlockStatesSpec, CreatureKind, EntitySpec, ItemSpec, RecipeSpec, SpawnModifySpec,
-    TileEntitySpec, WorldgenSpec,
+    TagEntry, TileEntitySpec, WorldgenSpec,
 };
 use serde::{Deserialize, Serialize};
 
@@ -2122,6 +2122,15 @@ pub enum HostCall
     {
         player: i32,
         block: i32,
+    },
+    // api 1.15: tag entries that may name other tags with #ns:path or be optional, replace drops earlier members
+    // including the vanilla ones
+    AddTagEntries
+    {
+        registry: RegistryKind,
+        tag: Identifier,
+        entries: Vec<TagEntry>,
+        replace: bool,
     },
 }
 

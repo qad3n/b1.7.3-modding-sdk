@@ -1,4 +1,5 @@
 use crate::Identifier;
+use crate::identifier::IdentifierError;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -571,6 +572,35 @@ pub enum RecipeSpec
     Shapeless(ShapelessSpec),
     Smelting(SmeltingSpec),
     Fuel(FuelSpec),
+    ShapedTagged(ShapedTaggedSpec),
+    ShapelessTagged(ShapelessTaggedSpec),
+}
+
+// one recipe slot, an item or any member of an item tag
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct IngredientSpec
+{
+    pub item: Option<Identifier>,
+    pub tag: Option<Identifier>,
+    pub meta: i32,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct ShapedTaggedSpec
+{
+    pub pattern: Vec<String>,
+    pub key: BTreeMap<String, IngredientSpec>,
+    pub result: StackSpec,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct ShapelessTaggedSpec
+{
+    pub ingredients: Vec<IngredientSpec>,
+    pub result: StackSpec,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
@@ -578,8 +608,65 @@ pub enum RecipeSpec
 pub struct TagSpec
 {
     pub replace: bool,
-    pub values: Vec<Identifier>,
+    pub values: Vec<TagValue>,
 }
+
+// a tag member, either one id or every member of another tag
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
+pub enum TagRef
+{
+    Id(Identifier),
+    Tag(Identifier),
+}
+
+impl TagRef
+{
+    // a leading # names another tag
+    pub fn parse(text: &str) -> Result<TagRef, IdentifierError>
+    {
+        match text.strip_prefix('#')
+        {
+            Some(tag) => Identifier::parse(tag).map(TagRef::Tag),
+            None => Identifier::parse(text).map(TagRef::Id),
+        }
+    }
+}
+
+// an optional entry is skipped quietly when its id or tag does not exist
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
+pub struct TagEntry
+{
+    pub target: TagRef,
+    pub required: bool,
+}
+
+// a tag file value, "ns:id", "#ns:tag" or { id = "...", required = false }
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(untagged)]
+pub enum TagValue
+{
+    Plain(String),
+    Entry
+    {
+        id: String,
+        #[serde(default = "required")]
+        required: bool,
+    },
+}
+
+impl TagValue
+{
+    pub fn entry(&self) -> Result<TagEntry, IdentifierError>
+    {
+        match self
+        {
+            TagValue::Plain(text) => Ok(TagEntry { target: TagRef::parse(text)?, required: true }),
+            TagValue::Entry { id, required } => Ok(TagEntry { target: TagRef::parse(id)?, required: *required }),
+        }
+    }
+}
+
+fn required() -> bool { true }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
 #[serde(rename_all = "snake_case")]

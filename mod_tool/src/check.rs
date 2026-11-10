@@ -105,7 +105,9 @@ pub fn run(root: &Path) -> Result<Vec<String>>
                 Some(("spawns", _)) => parse::<SpawnModifySpec>(&path).map(drop),
                 _ => Err("modify files go in modify/blocks/ or modify/spawns/".to_owned()),
             },
-            "tags" => parse::<TagSpec>(&path).map(drop),
+            "tags" => parse::<TagSpec>(&path).and_then(|spec| {
+                spec.values.iter().try_for_each(|value| value.entry().map(drop).map_err(|error| error.to_string()))
+            }),
             other => Err(format!("unknown data kind {other}")),
         };
         if let Err(reason) = result
