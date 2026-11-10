@@ -97,6 +97,13 @@ impl World
         expectBool(call(HostCall::SetBlock { world: self.dimension, pos, block, meta, notify: false }))
     }
 
+    // needs api 1.11, a block change that keeps the tile entity with its inventory and open screens, as a furnace
+    // swaps its idle and lit blocks
+    pub fn swapBlock(self, pos: BlockPos, block: i32, meta: i32) -> Result<bool>
+    {
+        expectBool(call(HostCall::SwapBlock { world: self.dimension, pos, block, meta }))
+    }
+
     // the block at a spot by name with its named properties, compare these instead of numeric ids
     pub fn blockState(self, pos: BlockPos) -> Option<StateData>
     {

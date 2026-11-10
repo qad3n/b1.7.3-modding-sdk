@@ -2039,6 +2039,15 @@ pub enum HostCall
         from: BlockPos,
         radius: i32,
     },
+    // api 1.11: replaces the block and keeps its tile entity with inventory and open screens, as beta's furnace swaps
+    // its idle and lit blocks; only the side that owns the world swaps, answered with whether the block changed
+    SwapBlock
+    {
+        world: i32,
+        pos: BlockPos,
+        block: i32,
+        meta: i32,
+    },
 }
 
 // where a stack lives, so a component change applies to that stack and not to a copy
