@@ -1,5 +1,5 @@
 use crate::{BlockCtx, Entity, EntityInfo, ItemStack, Player, World};
-use mod_protocol::abi::{BlockPos, Pose, PoseInput};
+use mod_protocol::abi::{BlockPos, FaceOverlay, Pose, PoseInput};
 use mod_protocol::spec::{BlockMethod, EntityMethod, ItemMethod, TileMethod};
 
 // write the methods you need inside an impl marked #[block_behavior], only those cross from the game into wasm
@@ -28,6 +28,11 @@ pub trait BlockBehavior
     fn colorMultiplier(&self, _ctx: &mut BlockCtx) -> u32 { 0xFFFFFF }
     // needs api 1.12, a face's sprite slot from where the block stands, as Block.getBlockTexture; None keeps texture
     fn faceTexture(&self, _ctx: &mut BlockCtx, _face: i32) -> Option<i32> { None }
+    // needs api 1.13, the share of the block one tick of the player's digging breaks, 0 for unbreakable; None keeps
+    // beta's hardness and tool speed
+    fn strength(&self, _ctx: &mut BlockCtx, _player: Player) -> Option<f32> { None }
+    // needs api 1.13, a sprite drawn over a face after the block, as a glowing rune
+    fn overlay(&self, _ctx: &mut BlockCtx, _face: i32) -> Option<FaceOverlay> { None }
     fn overridden(&self) -> &'static [&'static str] { unmarked(std::any::type_name::<Self>(), "block_behavior") }
 }
 
@@ -78,7 +83,7 @@ pub trait TileBehavior
     fn overridden(&self) -> &'static [&'static str] { unmarked(std::any::type_name::<Self>(), "tile_behavior") }
 }
 
-pub(crate) const BLOCK_METHODS: [(&str, BlockMethod); 22] = [
+pub(crate) const BLOCK_METHODS: [(&str, BlockMethod); 24] = [
     ("onActivated", BlockMethod::Activated),
     ("onClicked", BlockMethod::Clicked),
     ("onAdded", BlockMethod::Added),
@@ -101,6 +106,8 @@ pub(crate) const BLOCK_METHODS: [(&str, BlockMethod); 22] = [
     ("texture", BlockMethod::Texture),
     ("colorMultiplier", BlockMethod::ColorMultiplier),
     ("faceTexture", BlockMethod::FaceTexture),
+    ("strength", BlockMethod::Strength),
+    ("overlay", BlockMethod::Overlay),
 ];
 
 pub(crate) const ITEM_METHODS: [(&str, ItemMethod); 9] = [

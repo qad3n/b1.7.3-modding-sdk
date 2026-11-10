@@ -146,6 +146,9 @@ pub enum BlockMethod
     ColorMultiplier,
     // api 1.12
     FaceTexture,
+    // api 1.13
+    Strength,
+    Overlay,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash, Debug)]

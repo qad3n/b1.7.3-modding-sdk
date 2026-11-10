@@ -669,6 +669,17 @@ pub enum BlockCall
     {
         ctx: BlockCtx, face: i32
     },
+    // api 1.13: how much of the block one tick of a player's digging breaks, as Forge's
+    // getPlayerRelativeBlockHardness, a negative Float keeps beta's blockStrength
+    Strength
+    {
+        ctx: BlockCtx, player: i32
+    },
+    // api 1.13: a sprite drawn over one face of the block after it, answered with Overlay
+    Overlay
+    {
+        ctx: BlockCtx, face: i32
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
@@ -1037,6 +1048,22 @@ pub enum GuestReply
     {
         entries: Option<Vec<SpawnEntry>>,
     },
+    // api 1.13: the sprite a block draws over one face, None draws nothing there
+    Overlay(Option<FaceOverlay>),
+}
+
+// api 1.13: a sprite laid over a block face, as BlockTFCastleMagic's runes
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Debug)]
+pub struct FaceOverlay
+{
+    // a terrain atlas slot, as terrainSlot answers
+    pub sprite: i32,
+    // multiplies the sprite, 0xFFFFFF keeps its colors
+    pub color: u32,
+    // drawn at full brightness instead of the light in front of the face
+    pub glow: bool,
+    // pixels the sprite floats out from the face
+    pub lift: f32,
 }
 
 // api 1.9: one weighted creature of a spawn list, vanilla names such as minecraft:zombie or mod identifiers
@@ -2073,6 +2100,15 @@ pub enum HostCall
         raining: bool,
         thundering: bool,
         ticks: i32,
+    },
+    // api 1.13: cuts a terrain texture into a grid of tiles, each blown up to a whole sprite of its own, as Twilight
+    // Forest's giant blocks show a quarter of a quarter of the vanilla face; call while registering, then ask
+    // terrainSlot for each tile by name
+    TerrainTiles
+    {
+        texture: String,
+        columns: i32,
+        rows: i32,
     },
 }
 

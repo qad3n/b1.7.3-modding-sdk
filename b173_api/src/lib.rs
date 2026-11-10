@@ -16,8 +16,8 @@ pub use config::{Config, Setting, configValue};
 pub use mod_protocol::Identifier;
 pub use mod_protocol::abi::{
     BiomeSpec, BipedPart, BlockInfo, BlockPos, ChunkInfo, ConfigScope, DimensionSpec, EntityField, EntityInfo,
-    EventKind, Located, ModelOp, MusicSpec, Permission, PlayerLayer, Pose, PoseInput, Priority, RayHit, RecipeShape,
-    RecipeView, RegistryKind, SpawnEntry, StackData, StackRef, StateData, StructurePiece, StructureSpec,
+    EventKind, FaceOverlay, Located, ModelOp, MusicSpec, Permission, PlayerLayer, Pose, PoseInput, Priority, RayHit,
+    RecipeShape, RecipeView, RegistryKind, SpawnEntry, StackData, StackRef, StateData, StructurePiece, StructureSpec,
     StructureStart, Target,
 };
 use mod_protocol::abi::{EntityInfo as RawEntity, HostCall, HostReply};

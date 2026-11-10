@@ -713,6 +713,20 @@ pub fn terrainSlot(texture: &str) -> Option<i32>
     expectInt(call(HostCall::TerrainSlot { texture: texture.to_owned() })).ok().filter(|slot| *slot >= 0)
 }
 
+// needs api 1.13, cuts a terrain texture into columns by rows tiles that each become a sprite of their own; call it
+// while registering, then find each tile's slot with terrainSlot(tileName(texture, column, row))
+pub fn terrainTiles(texture: &str, columns: i32, rows: i32) -> crate::Result<()>
+{
+    expectUnit(call(HostCall::TerrainTiles { texture: texture.to_owned(), columns, rows }))
+}
+
+// the texture name of one tile terrainTiles cut, counted from the left and the top
+pub fn tileName(texture: &str, column: i32, row: i32) -> String
+{
+    let (namespace, path): (&str, &str) = texture.split_once(':').unwrap_or(("minecraft", texture));
+    format!("loader:tiles/{namespace}/{path}/{column}_{row}")
+}
+
 pub fn textWidth(text: &str) -> i32 { expectInt(call(HostCall::TextWidth { text: text.to_owned() })).unwrap_or(0) }
 
 // the scaled gui size of the client screen, none on a server
