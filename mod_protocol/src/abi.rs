@@ -680,6 +680,12 @@ pub enum BlockCall
     {
         ctx: BlockCtx, face: i32
     },
+    // api 1.14: quarter turns of each face's sprite where the block stands, as RenderBlocks' uvRotate fields, answered
+    // with Bytes of six values by face index, anything else keeps every face unturned
+    FaceRotation
+    {
+        ctx: BlockCtx
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
@@ -2109,6 +2115,13 @@ pub enum HostCall
         texture: String,
         columns: i32,
         rows: i32,
+    },
+    // api 1.14: how fast a player digs a block with what it holds, EntityPlayer.getCurrentPlayerStrVsBlock, answered
+    // with Float
+    DigSpeed
+    {
+        player: i32,
+        block: i32,
     },
 }
 

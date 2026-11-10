@@ -198,6 +198,11 @@ fn block(handle: u32, call: BlockCall) -> GuestReply
             GuestReply::Float(behavior.strength(&mut wrap(ctx), Player { id: player }).unwrap_or(-1.0))
         }
         BlockCall::Overlay { ctx, face } => GuestReply::Overlay(behavior.overlay(&mut wrap(ctx), face)),
+        BlockCall::FaceRotation { ctx } => match behavior.faceRotations(&mut wrap(ctx))
+        {
+            Some(turns) => GuestReply::Bytes(turns.to_vec()),
+            None => GuestReply::Unit,
+        },
     }
 }
 

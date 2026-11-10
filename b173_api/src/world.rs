@@ -392,6 +392,16 @@ impl Player
         expectUnit(call(HostCall::Give { player: self.id, stack: stack.raw()? }))
     }
 
+    // needs api 1.14, how fast it digs a block with what it holds, as EntityPlayer.getCurrentPlayerStrVsBlock
+    pub fn digSpeed(self, block: i32) -> f32
+    {
+        match call(HostCall::DigSpeed { player: self.id, block })
+        {
+            HostReply::Float(speed) => speed,
+            _ => 1.0,
+        }
+    }
+
     pub fn held(self) -> Option<ItemStack>
     {
         expectStack(call(HostCall::HeldStack { player: self.id })).ok().flatten().map(ItemStack::fromRaw)

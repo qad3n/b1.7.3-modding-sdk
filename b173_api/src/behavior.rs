@@ -33,6 +33,8 @@ pub trait BlockBehavior
     fn strength(&self, _ctx: &mut BlockCtx, _player: Player) -> Option<f32> { None }
     // needs api 1.13, a sprite drawn over a face after the block, as a glowing rune
     fn overlay(&self, _ctx: &mut BlockCtx, _face: i32) -> Option<FaceOverlay> { None }
+    // needs api 1.14, quarter turns of each face's sprite by face index, as a block drawn on its side
+    fn faceRotations(&self, _ctx: &mut BlockCtx) -> Option<[u8; 6]> { None }
     fn overridden(&self) -> &'static [&'static str] { unmarked(std::any::type_name::<Self>(), "block_behavior") }
 }
 
@@ -83,7 +85,7 @@ pub trait TileBehavior
     fn overridden(&self) -> &'static [&'static str] { unmarked(std::any::type_name::<Self>(), "tile_behavior") }
 }
 
-pub(crate) const BLOCK_METHODS: [(&str, BlockMethod); 24] = [
+pub(crate) const BLOCK_METHODS: [(&str, BlockMethod); 25] = [
     ("onActivated", BlockMethod::Activated),
     ("onClicked", BlockMethod::Clicked),
     ("onAdded", BlockMethod::Added),
@@ -108,6 +110,7 @@ pub(crate) const BLOCK_METHODS: [(&str, BlockMethod); 24] = [
     ("faceTexture", BlockMethod::FaceTexture),
     ("strength", BlockMethod::Strength),
     ("overlay", BlockMethod::Overlay),
+    ("faceRotations", BlockMethod::FaceRotation),
 ];
 
 pub(crate) const ITEM_METHODS: [(&str, ItemMethod); 9] = [

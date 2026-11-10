@@ -149,6 +149,8 @@ pub enum BlockMethod
     // api 1.13
     Strength,
     Overlay,
+    // api 1.14
+    FaceRotation,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash, Debug)]
