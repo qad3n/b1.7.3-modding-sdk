@@ -2286,6 +2286,12 @@ pub enum HostCall
     {
         texture: String,
     },
+    // api 1.24: a particle spawned by the name <modid>:<name> on any world, built on a beta particle
+    RegisterParticle
+    {
+        name: String,
+        spec: crate::spec::ParticleSpec,
+    },
 }
 
 // how a modifier combines with an attribute: adds first, then base multipliers summed, then total multipliers one by one

@@ -26,8 +26,8 @@ pub use mod_protocol::spec::{
     ArmorSlot, ArmorSpec, BedFaces, BlockModelSpec, BlockModifySpec, BlockSpec, BlockStatesSpec, CreatureKind, Cuboid,
     DropSpec, EffectModifierSpec, EffectSpec, EntityModelSpec, EntitySounds, EntitySpec, FaceTextures, Flammability,
     FluidSpec, FluidStyle, FoodSpec, ItemSpec, ItemToolSpec, LootEntrySpec, LootSpec, ModelBox, ModelPart,
-    PropertySpec, SpawnModifySpec, SpawnSpec, StateVariantSpec, SteeringSpec, TagEntry, TagRef, TileEntitySpec,
-    ToolClass, ToolSpec,
+    ParticleSpec, PropertySpec, SpawnModifySpec, SpawnSpec, StateVariantSpec, SteeringSpec, TagEntry, TagRef,
+    TileEntitySpec, ToolClass, ToolSpec,
 };
 pub use register::*;
 pub use serde;

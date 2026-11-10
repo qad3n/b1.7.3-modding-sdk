@@ -818,3 +818,20 @@ pub struct EffectModifierSpec
     pub amount: f64,
     pub operation: crate::abi::ModifierOperation,
 }
+
+// a mod particle on top of a beta one named as spawnParticle takes it, such as smoke, flame or reddust; colour is
+// 0xRRGGBB, scale multiplies the beta size, lifetime is in ticks, gravity only moves particles that fall
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct ParticleSpec
+{
+    pub base: String,
+    #[serde(default)]
+    pub color: Option<u32>,
+    #[serde(default)]
+    pub scale: Option<f32>,
+    #[serde(default)]
+    pub lifetime: Option<i32>,
+    #[serde(default)]
+    pub gravity: Option<f32>,
+}

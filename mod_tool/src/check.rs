@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use mod_protocol::Identifier;
 use mod_protocol::identifier::isValidModId;
 use mod_protocol::spec::{
-    BlockModifySpec, BlockSpec, BlockStatesSpec, EffectSpec, FluidSpec, ItemSpec, LootSpec, RecipeSpec,
+    BlockModifySpec, BlockSpec, BlockStatesSpec, EffectSpec, FluidSpec, ItemSpec, LootSpec, ParticleSpec, RecipeSpec,
     SpawnModifySpec, TagSpec, WorldgenSpec,
 };
 use serde::Deserialize;
@@ -109,6 +109,7 @@ pub fn run(root: &Path) -> Result<Vec<String>>
             "loot" => parse::<LootSpec>(&path).map(drop),
             "fluids" => parse::<FluidSpec>(&path).map(drop),
             "effects" => parse::<EffectSpec>(&path).map(drop),
+            "particles" => parse::<ParticleSpec>(&path).map(drop),
             "tags" => parse::<TagSpec>(&path).and_then(|spec| {
                 spec.values.iter().try_for_each(|value| value.entry().map(drop).map_err(|error| error.to_string()))
             }),
