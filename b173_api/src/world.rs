@@ -540,6 +540,13 @@ impl Entity
             .unwrap_or(false)
     }
 
+    // needs api 1.17, kind names a vanilla damage type such as minecraft:fall
+    pub fn damageAs(self, amount: i32, source: Option<i32>, kind: &str) -> Result<bool>
+    {
+        let kind: Identifier = Identifier::parse(kind).map_err(|error| Error(error.to_string()))?;
+        expectBool(call(HostCall::DamageEntityAs { world: self.world.dimension, id: self.id, source, amount, kind }))
+    }
+
     pub fn kill(self) { let _ = call(HostCall::KillEntity { world: self.world.dimension, id: self.id }); }
 
     // needs api 1.8, the stack a dropped item carries, None for any other entity
@@ -798,3 +805,13 @@ pub fn grassColor(temperature: f64, rainfall: f64) -> u32 { colorizer(false, tem
 
 // needs api 1.7, ColorizerFoliage at a temperature and rainfall clamped to 0 to 1
 pub fn foliageColor(temperature: f64, rainfall: f64) -> u32 { colorizer(true, temperature, rainfall) }
+
+// needs api 1.17, the damage type of the hit an attack, hurt or onHurt call is handling
+pub fn damageType() -> Option<Identifier>
+{
+    match call(HostCall::DamageType)
+    {
+        HostReply::Id(kind) => kind,
+        _ => None,
+    }
+}

@@ -33,7 +33,7 @@ pub use serde;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::fmt;
-pub use world::{BlockCtx, Entity, Player, World};
+pub use world::{BlockCtx, Entity, Player, World, damageType};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Error(pub String);

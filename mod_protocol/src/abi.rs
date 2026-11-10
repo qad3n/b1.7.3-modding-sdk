@@ -2141,6 +2141,18 @@ pub enum HostCall
         z: i32,
         biome: Identifier,
     },
+    // api 1.17: the damage type of the hit being handled, such as minecraft:fall or minecraft:arrow, answered with Id
+    // and None outside an attack, hurt or onHurt call
+    DamageType,
+    // api 1.17: DamageEntity with a vanilla damage type, answered with Bool
+    DamageEntityAs
+    {
+        world: i32,
+        id: i32,
+        source: Option<i32>,
+        amount: i32,
+        kind: Identifier,
+    },
 }
 
 // where a stack lives, so a component change applies to that stack and not to a copy
