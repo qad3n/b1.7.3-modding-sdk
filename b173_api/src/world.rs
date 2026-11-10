@@ -399,6 +399,24 @@ impl Player
         expectUnit(call(HostCall::Give { player: self.id, stack: stack.raw()? }))
     }
 
+    // needs api 1.20, holds its current item in use for ticks, the item's onUsingTick, onStoppedUsing and onUseFinish
+    // follow; 0 lets go without telling the item
+    pub fn setItemInUse(self, ticks: i32) -> Result<()>
+    {
+        expectUnit(call(HostCall::SetItemInUse { player: self.id, ticks }))
+    }
+
+    // needs api 1.20, lets go of the item in use as releasing the use key does
+    pub fn stopUsingItem(self) -> Result<()> { expectUnit(call(HostCall::StopUsingItem { player: self.id })) }
+
+    // needs api 1.20, ticks left on the item in use, 0 when nothing is in use
+    pub fn itemInUse(self) -> i32
+    {
+        self.info().map_or(0, |info| {
+            Entity { world: World { dimension: info.world }, id: self.id }.field(EntityField::ItemInUse) as i32
+        })
+    }
+
     // needs api 1.14, how fast it digs a block with what it holds, as EntityPlayer.getCurrentPlayerStrVsBlock
     pub fn digSpeed(self, block: i32) -> f32
     {

@@ -167,6 +167,12 @@ pub enum ItemMethod
     StrVsBlock,
     CanHarvest,
     Crafted,
+    // api 1.20
+    UseDuration,
+    UseAction,
+    UsingTick,
+    StoppedUsing,
+    UseFinish,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -190,6 +196,8 @@ pub enum TileMethod
 {
     Tick,
     Removed,
+    // api 1.20
+    Pose,
 }
 
 // behavior binds a spec to a guest object, set by the sdk and absent for data content

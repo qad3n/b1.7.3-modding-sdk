@@ -265,6 +265,21 @@ fn item(handle: u32, call: ItemCall) -> GuestReply
         {
             unit(|| behavior.onCrafted(ItemStack::fromRaw(stack), Player { id: player }))
         }
+        ItemCall::UseDuration { stack } => GuestReply::Int(behavior.useDuration(ItemStack::fromRaw(stack))),
+        ItemCall::UseAction { stack } => GuestReply::Int(behavior.useAction(ItemStack::fromRaw(stack)) as i32),
+        ItemCall::UsingTick { world, player, stack, left } => unit(|| {
+            behavior.onUsingTick(World { dimension: world }, Player { id: player }, ItemStack::fromRaw(stack), left)
+        }),
+        ItemCall::StoppedUsing { world, player, stack, left } => useReply(behavior.onStoppedUsing(
+            World { dimension: world },
+            Player { id: player },
+            ItemStack::fromRaw(stack),
+            left,
+        )),
+        ItemCall::UseFinish { world, player, stack } =>
+        {
+            useReply(behavior.onUseFinish(World { dimension: world }, Player { id: player }, ItemStack::fromRaw(stack)))
+        }
     }
 }
 
@@ -308,6 +323,10 @@ fn tile(handle: u32, call: TileCall) -> GuestReply
     {
         TileCall::Tick { ctx } => unit(|| behavior.onTick(&mut BlockCtx { raw: ctx })),
         TileCall::Removed { ctx } => unit(|| behavior.onRemoved(&mut BlockCtx { raw: ctx })),
+        TileCall::Pose { ctx, partial, ticks } =>
+        {
+            GuestReply::Pose(behavior.pose(&mut BlockCtx { raw: ctx }, partial, ticks))
+        }
     }
 }
 

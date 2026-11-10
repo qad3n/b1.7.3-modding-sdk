@@ -727,6 +727,43 @@ pub enum ItemCall
     {
         stack: StackData, player: i32
     },
+    // api 1.20: Item.getMaxItemUseDuration, answered with Int, 0 for an item that is not held in use
+    UseDuration
+    {
+        stack: StackData
+    },
+    // api 1.20: Item.getItemUseAction, answered with Int as a UseAction
+    UseAction
+    {
+        stack: StackData
+    },
+    // api 1.20: Item.onUsingTick each tick the player holds it in use, left ticks to go
+    UsingTick
+    {
+        world: i32, player: i32, stack: StackData, left: i32
+    },
+    // api 1.20: Item.onPlayerStoppedUsing when the player lets go early, answered with Use
+    StoppedUsing
+    {
+        world: i32, player: i32, stack: StackData, left: i32
+    },
+    // api 1.20: Item.onEaten when the use runs its full duration, answered with Use
+    UseFinish
+    {
+        world: i32, player: i32, stack: StackData
+    },
+}
+
+// api 1.20: EnumAction, how a player holds an item in use, a bow also narrows the view as it draws
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum UseAction
+{
+    #[default]
+    None,
+    Eat,
+    Drink,
+    Block,
+    Bow,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
@@ -846,6 +883,12 @@ pub enum TileCall
     Removed
     {
         ctx: BlockCtx
+    },
+    // api 1.20: one frame of a tile entity drawn with the model its type registered, answered with Pose whose ops
+    // run in block space with the origin at the block's lower corner
+    Pose
+    {
+        ctx: BlockCtx, partial: f32, ticks: i32
     },
 }
 
@@ -2179,6 +2222,23 @@ pub enum HostCall
         target: Identifier,
         spec: LootSpec,
     },
+    // api 1.20: holds the player's current item in use for ticks, as EntityPlayer.setItemInUse, 0 lets it go
+    SetItemInUse
+    {
+        player: i32,
+        ticks: i32,
+    },
+    // api 1.20: the player lets go of the item in use, its item hears onStoppedUsing
+    StopUsingItem
+    {
+        player: i32,
+    },
+    // api 1.20: the model a tile entity type draws with, posed every frame by its behavior's pose, before any world
+    TileModel
+    {
+        tile: Identifier,
+        model: crate::spec::EntityModelSpec,
+    },
 }
 
 // how a modifier combines with an attribute: adds first, then base multipliers summed, then total multipliers one by one
@@ -2272,6 +2332,8 @@ pub enum EntityField
     DeathTime,
     // api 1.12: the metadata a moving_block entity draws its block with
     BlockMeta,
+    // api 1.20: ticks left on a player's item in use, 0 when it holds nothing in use, read only
+    ItemInUse,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]

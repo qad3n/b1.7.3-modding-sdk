@@ -442,6 +442,12 @@ impl TileEntities
         }
         expectUnit(call(HostCall::RegisterTileEntity { name: parse(name)?.to_string(), spec }))
     }
+
+    // needs api 1.20, the model every tile of the type draws with, posed each frame by its behavior's pose
+    pub fn model(&self, name: &str, model: crate::EntityModelSpec) -> Result<()>
+    {
+        expectUnit(call(HostCall::TileModel { tile: parse(name)?, model }))
+    }
 }
 
 pub struct Recipes;

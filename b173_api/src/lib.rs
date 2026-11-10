@@ -18,7 +18,7 @@ pub use mod_protocol::abi::{
     BiomeSpec, BipedPart, BlockInfo, BlockPos, ChunkInfo, ConfigScope, DimensionSpec, EntityField, EntityInfo,
     EventKind, FaceOverlay, Located, ModelOp, ModifierOperation, MusicSpec, Permission, PlayerLayer, Pose, PoseInput,
     Priority, RayHit, RecipeShape, RecipeView, RegistryKind, SpawnEntry, StackData, StackRef, StateData,
-    StructurePiece, StructureSpec, StructureStart, Target,
+    StructurePiece, StructureSpec, StructureStart, Target, UseAction,
 };
 use mod_protocol::abi::{EntityInfo as RawEntity, HostCall, HostReply};
 pub use mod_protocol::handshake::ChannelDirection as Direction;

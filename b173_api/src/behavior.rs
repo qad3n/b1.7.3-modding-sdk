@@ -1,5 +1,5 @@
 use crate::{BlockCtx, Entity, EntityInfo, ItemStack, Player, World};
-use mod_protocol::abi::{BlockPos, FaceOverlay, Pose, PoseInput};
+use mod_protocol::abi::{BlockPos, FaceOverlay, Pose, PoseInput, UseAction};
 use mod_protocol::spec::{BlockMethod, EntityMethod, ItemMethod, TileMethod};
 
 // write the methods you need inside an impl marked #[block_behavior], only those cross from the game into wasm
@@ -59,6 +59,17 @@ pub trait ItemBehavior
     fn strVsBlock(&self, _stack: ItemStack, _block: i32) -> f32 { 1.0 }
     fn canHarvest(&self, _block: i32) -> bool { false }
     fn onCrafted(&self, _stack: ItemStack, _player: Player) {}
+    // needs api 1.20, how many ticks the item can be held in use, 0 for an item never held; onRightClick starts the
+    // use with Player::setItemInUse
+    fn useDuration(&self, _stack: ItemStack) -> i32 { 0 }
+    // needs api 1.20, how the player holds it in use, a bow also narrows the view while it draws
+    fn useAction(&self, _stack: ItemStack) -> UseAction { UseAction::None }
+    // needs api 1.20, every tick it is held in use, left ticks to go
+    fn onUsingTick(&self, _world: World, _player: Player, _stack: ItemStack, _left: i32) {}
+    // needs api 1.20, the player let go with left ticks to go, as ItemBow.onPlayerStoppedUsing
+    fn onStoppedUsing(&self, _world: World, _player: Player, _stack: ItemStack, _left: i32) -> Use { Use::Pass }
+    // needs api 1.20, the use ran its whole duration, as Item.onEaten
+    fn onUseFinish(&self, _world: World, _player: Player, _stack: ItemStack) -> Use { Use::Pass }
     fn overridden(&self) -> &'static [&'static str] { unmarked(std::any::type_name::<Self>(), "item_behavior") }
 }
 
@@ -82,6 +93,8 @@ pub trait TileBehavior
 {
     fn onTick(&self, _ctx: &mut BlockCtx) {}
     fn onRemoved(&self, _ctx: &mut BlockCtx) {}
+    // needs api 1.20, the ops that draw the tile's registered model this frame, in block space from its lower corner
+    fn pose(&self, _ctx: &mut BlockCtx, _partial: f32, _ticks: i32) -> Pose { Pose::default() }
     fn overridden(&self) -> &'static [&'static str] { unmarked(std::any::type_name::<Self>(), "tile_behavior") }
 }
 
@@ -113,7 +126,7 @@ pub(crate) const BLOCK_METHODS: [(&str, BlockMethod); 25] = [
     ("faceRotations", BlockMethod::FaceRotation),
 ];
 
-pub(crate) const ITEM_METHODS: [(&str, ItemMethod); 9] = [
+pub(crate) const ITEM_METHODS: [(&str, ItemMethod); 14] = [
     ("onRightClick", ItemMethod::RightClick),
     ("onUseOnBlock", ItemMethod::UseOnBlock),
     ("onHitEntity", ItemMethod::HitEntity),
@@ -123,6 +136,11 @@ pub(crate) const ITEM_METHODS: [(&str, ItemMethod); 9] = [
     ("strVsBlock", ItemMethod::StrVsBlock),
     ("canHarvest", ItemMethod::CanHarvest),
     ("onCrafted", ItemMethod::Crafted),
+    ("useDuration", ItemMethod::UseDuration),
+    ("useAction", ItemMethod::UseAction),
+    ("onUsingTick", ItemMethod::UsingTick),
+    ("onStoppedUsing", ItemMethod::StoppedUsing),
+    ("onUseFinish", ItemMethod::UseFinish),
 ];
 
 pub(crate) const ENTITY_METHODS: [(&str, EntityMethod); 8] = [
@@ -136,8 +154,8 @@ pub(crate) const ENTITY_METHODS: [(&str, EntityMethod); 8] = [
     ("onAi", EntityMethod::Ai),
 ];
 
-pub(crate) const TILE_METHODS: [(&str, TileMethod); 2] =
-    [("onTick", TileMethod::Tick), ("onRemoved", TileMethod::Removed)];
+pub(crate) const TILE_METHODS: [(&str, TileMethod); 3] =
+    [("onTick", TileMethod::Tick), ("onRemoved", TileMethod::Removed), ("pose", TileMethod::Pose)];
 
 // the attribute macro replaces overridden, so this default only runs for an impl that forgot it
 fn unmarked(name: &str, attribute: &str) -> &'static [&'static str]
