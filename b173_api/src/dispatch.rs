@@ -48,6 +48,8 @@ type TerrainHandler = Rc<dyn Fn(&ChunkInfo, &mut ChunkBlocks)>;
 type BiomeHandler = Rc<dyn Fn(&ChunkInfo) -> crate::ChunkBiomes>;
 type SpawnHandler = Rc<dyn Fn(&crate::SpawnQuery) -> Option<Vec<mod_protocol::abi::SpawnEntry>>>;
 type FinderHandler = Rc<dyn Fn(i64, i32, i32) -> bool>;
+type LootCondition = Rc<dyn Fn(&crate::LootQuery) -> bool>;
+type LootCount = Rc<dyn Fn(&crate::LootQuery) -> i32>;
 type ConfigListener = Rc<dyn Fn(&str)>;
 type TooltipHandler = Rc<dyn Fn(&ItemStack, &mut Vec<String>)>;
 type WorldRenderHandler = Rc<dyn Fn(f32, [f64; 3]) -> Vec<mod_protocol::abi::ModelOp>>;
@@ -80,8 +82,8 @@ struct Tables
     m_tooltips: Vec<TooltipHandler>,
     m_worldRenders: Vec<WorldRenderHandler>,
     m_features: Vec<crate::features::FeatureHandler>,
-    m_lootConditions: Vec<Rc<dyn Fn(&crate::LootQuery) -> bool>>,
-    m_lootCounts: Vec<Rc<dyn Fn(&crate::LootQuery) -> i32>>,
+    m_lootConditions: Vec<LootCondition>,
+    m_lootCounts: Vec<LootCount>,
 }
 
 thread_local!
@@ -127,8 +129,8 @@ adder!(addConfigListener, m_configListeners, ConfigListener);
 adder!(addTooltip, m_tooltips, TooltipHandler);
 adder!(addWorldRender, m_worldRenders, WorldRenderHandler);
 adder!(addFeature, m_features, crate::features::FeatureHandler);
-adder!(addLootCondition, m_lootConditions, Rc<dyn Fn(&crate::LootQuery) -> bool>);
-adder!(addLootCount, m_lootCounts, Rc<dyn Fn(&crate::LootQuery) -> i32>);
+adder!(addLootCondition, m_lootConditions, LootCondition);
+adder!(addLootCount, m_lootCounts, LootCount);
 
 pub(crate) fn feature(handle: u32) -> Option<crate::features::FeatureHandler>
 {
