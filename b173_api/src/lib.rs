@@ -5,13 +5,14 @@ mod behavior;
 mod config;
 mod dispatch;
 pub mod events;
-mod names;
 pub mod math;
+mod names;
 mod register;
 mod reply;
 pub mod rt;
 pub mod screen;
 pub mod services;
+mod states;
 pub mod terrain;
 pub mod vanilla;
 pub mod world;
@@ -19,7 +20,6 @@ pub mod world;
 pub use b173_api_macros::{block_behavior, effect_behavior, entity_behavior, item_behavior, mod_main, tile_behavior};
 pub use behavior::{BlockBehavior, EffectBehavior, EntityBehavior, ItemBehavior, TileBehavior, Use};
 pub use config::{Config, Setting, configValue};
-pub use names::{blockIs, blockTagged, nameOf, named, tagMembers, tagged};
 pub use mod_protocol::Identifier;
 use mod_protocol::abi::HostCall;
 pub use mod_protocol::abi::
@@ -37,11 +37,12 @@ pub use mod_protocol::spec::
     AchievementSpec, ArmorSlot, ArmorSpec, AttributeSpec, BedFaces, BlockModelSpec, BlockModifySpec, BlockSpec,
     BlockStatesSpec, CreatureKind, Cuboid, DropSpec, EffectModifierSpec, EffectSpec, EnergySpec, EntityModelSpec,
     EntitySounds, EntitySpec, FaceTextures, Flammability, FluidSpec, FluidStyle, FoodSpec, GameRuleCategory,
-    GameRuleSpec, ItemSpec, ItemToolSpec, LootEntrySpec, LootSpec, MachineRecipeSpec, MachineSlotSpec, MachineSpec,
-    ModelBox, ModelPart, ParticleSpec, PropertySpec, SpawnModifySpec, SpawnSpec, StateVariantSpec, SteeringSpec,
-    TagEntry, TagRef, TileEntitySpec, ToolClass, ToolSpec,
+    GameRuleSpec, IngredientSpec, ItemSpec, ItemToolSpec, LootEntrySpec, LootSpec, MachineRecipeSpec, MachineSlotSpec,
+    MachineSpec, ModelBox, ModelPart, ParticleSpec, PropertySpec, SpawnModifySpec, SpawnSpec, StateVariantSpec,
+    SteeringSpec, TagEntry, TagRef, TileEntitySpec, ToolClass, ToolSpec,
 };
 use mod_protocol::wire::WireError;
+pub use names::{blockIs, blockTagged, nameOf, named, tagMembers, tagged};
 pub use register::*;
 pub(crate) use reply::
 {
@@ -50,6 +51,7 @@ pub(crate) use reply::
     expectStarts, expectState, expectText, expectUnit, fetchData,
 };
 pub use serde;
+pub use states::{StateHandle, stateOf};
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::fmt;
@@ -128,7 +130,6 @@ pub fn maxDamage(item: &ItemRef) -> i32
 
     expectInt(rt::call(HostCall::MaxDamage { item: numeric })).unwrap_or(0)
 }
-
 
 /// an item named by identifier, resolved to its numeric id when it crosses into the game
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]

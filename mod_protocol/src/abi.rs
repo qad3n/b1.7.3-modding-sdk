@@ -3140,6 +3140,21 @@ pub enum HostCall
     {
         texture: Identifier,
     },
+
+    /// api 1.39: the numeric id and metadata a block state is stored as until the next remap, answered with Size, so
+    /// code placing many blocks resolves each state once instead of sending its name every time
+    ResolveState
+    {
+        state: StateData,
+    },
+
+    /// api 1.39: the named state a numeric id and metadata hold, answered with State, the same answer BlockState
+    /// gives for a block in the world
+    DescribeState
+    {
+        block: i32,
+        meta: i32,
+    },
 }
 
 /// api 1.32: the value of a game rule, in data files written as {bool = true} or {int = 3}

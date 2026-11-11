@@ -2,7 +2,10 @@ use crate::rt::call;
 use crate::{Error, ItemRef, ItemStack, Result, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
 use mod_protocol::abi::HostCall;
-use mod_protocol::spec::{FuelSpec, RecipeSpec, ShapedSpec, ShapelessSpec, SmeltingSpec, StackSpec};
+use mod_protocol::spec::
+{
+    FuelSpec, IngredientSpec, RecipeSpec, ShapedSpec, ShapelessSpec, ShapelessTaggedSpec, SmeltingSpec, StackSpec,
+};
 use std::collections::BTreeMap;
 
 fn stackSpec(stack: &ItemStack) -> Result<StackSpec>
@@ -86,6 +89,14 @@ impl Recipes
     {
         let ingredients: Vec<StackSpec> = ingredients.iter().map(stackSpec).collect::<Result<_>>()?;
         let spec: RecipeSpec = RecipeSpec::Shapeless(ShapelessSpec { ingredients, result: stackSpec(&result)? });
+        expectUnit(call(HostCall::RegisterRecipe { name: name.to_owned(), spec }))
+    }
+
+    /// needs api 1.39, a shapeless recipe whose ingredients may each be any member of an item tag
+    pub fn shapelessTagged(&self, name: &str, result: ItemStack, ingredients: Vec<IngredientSpec>) -> Result<()>
+    {
+        let spec: RecipeSpec =
+            RecipeSpec::ShapelessTagged(ShapelessTaggedSpec { ingredients, result: stackSpec(&result)? });
         expectUnit(call(HostCall::RegisterRecipe { name: name.to_owned(), spec }))
     }
 
