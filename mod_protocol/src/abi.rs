@@ -3133,6 +3133,13 @@ pub enum HostCall
 
     /// api 1.35: every machine with its workstations and recipes resolved to stacks, answered with Machines
     MachineList,
+
+    /// api 1.35: the pixels of a terrain or item sprite as the active texture packs give it, first frame of an
+    /// animation, answered with Pixels; the base image a TextureFX copies before drawing over it, client only
+    SpritePixels
+    {
+        texture: Identifier,
+    },
 }
 
 /// api 1.32: the value of a game rule, in data files written as {bool = true} or {int = 3}
@@ -3355,6 +3362,12 @@ pub enum HostReply
     Loot(Vec<LootView>),
     /// api 1.35
     Machines(Vec<MachineView>),
+    /// api 1.35: square argb pixels of a sprite, size 0 when there is none
+    Pixels
+    {
+        size: u32,
+        pixels: Vec<u32>,
+    },
 }
 
 /// api 1.35: a machine category as a recipe viewer shows it

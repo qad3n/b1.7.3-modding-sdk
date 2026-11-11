@@ -504,6 +504,19 @@ pub fn paintSprite(texture: &str, size: u32, pixels: Vec<u32>) -> Result<()>
     expectUnit(call(HostCall::PaintSprite { texture, size, pixels }))
 }
 
+/// needs api 1.35, the square argb pixels and size of a sprite as the active texture packs draw it, the base a
+/// TextureFX copies before painting; None on a server or for a texture no sheet holds
+pub fn spritePixels(texture: &str) -> Option<(u32, Vec<u32>)>
+{
+    let texture: Identifier = Identifier::parse(texture).ok()?;
+
+    match call(HostCall::SpritePixels { texture })
+    {
+        HostReply::Pixels { size, pixels } if size > 0 => Some((size, pixels)),
+        _ => None,
+    }
+}
+
 /// needs api 1.33, what the crafting table makes of a 3 by 3 grid given in row order
 pub fn craftResult(grid: &[Option<ItemStack>; 9]) -> Option<ItemStack>
 {

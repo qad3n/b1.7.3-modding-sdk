@@ -261,8 +261,8 @@ pub mod prelude
         allPlayers, broadcast, containerItem, contentGeneration, craftResult, displayName, foliageColor, fuelTicks,
         gameRule, grassColor, isClient, isLoaded, itemCatalog, localPlayer, lootList, machineList, mobList, modName,
         paintSprite, recipeList, rollLoot, screenSize, send, setDynamicTexture, setGameRule, setSharedData,
-        setStackComponent, setWorldData, setWorldTime, sharedData, stackComponent, textWidth, translate, unified,
-        worldData,
+        setStackComponent, setWorldData, setWorldTime, sharedData, spritePixels, stackComponent, textWidth, translate,
+        unified, worldData,
     };
     pub use crate::{vanilla, *};
     pub use serde::{Deserialize, Serialize};
