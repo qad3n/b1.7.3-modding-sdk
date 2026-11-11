@@ -53,7 +53,14 @@ impl BlockSpecBuilder
 {
     pub fn template(template: &str) -> BlockSpecBuilder
     {
-        BlockSpecBuilder { m_spec: BlockSpec { template: Identifier::parse(template).ok(), ..BlockSpec::default() } }
+        BlockSpecBuilder
+        {
+            m_spec: BlockSpec
+            {
+                template: super::named(Identifier::parse(template), "template"),
+                ..BlockSpec::default()
+            },
+        }
     }
 
     setters!
@@ -92,7 +99,7 @@ impl BlockSpecBuilder
 
     pub fn tileEntity(mut self, tile: &str) -> Self
     {
-        self.m_spec.tile_entity = ownId(tile).ok();
+        self.m_spec.tile_entity = super::named(ownId(tile), "tile entity");
         self
     }
 
@@ -119,7 +126,7 @@ impl BlockSpecBuilder
 
     pub fn tag(mut self, tag: &str) -> Self
     {
-        if let Ok(tag) = Identifier::parse(tag)
+        if let Some(tag) = super::named(Identifier::parse(tag), "tag")
         {
             self.m_spec.tags.push(tag);
         }
@@ -129,7 +136,7 @@ impl BlockSpecBuilder
 
     pub fn vanillaFallback(mut self, block: &str) -> Self
     {
-        self.m_spec.vanilla_fallback = Identifier::parse(block).ok();
+        self.m_spec.vanilla_fallback = super::named(Identifier::parse(block), "vanilla fallback");
         self
     }
 

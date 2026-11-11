@@ -36,7 +36,10 @@ impl ItemSpecBuilder
 
     pub fn template(template: &str) -> ItemSpecBuilder
     {
-        ItemSpecBuilder { m_spec: ItemSpec { template: Identifier::parse(template).ok(), ..ItemSpec::default() } }
+        ItemSpecBuilder
+        {
+            m_spec: ItemSpec { template: super::named(Identifier::parse(template), "template"), ..ItemSpec::default() },
+        }
     }
 
     setters!
@@ -71,7 +74,7 @@ impl ItemSpecBuilder
 
     pub fn tag(mut self, tag: &str) -> Self
     {
-        if let Ok(tag) = Identifier::parse(tag)
+        if let Some(tag) = super::named(Identifier::parse(tag), "tag")
         {
             self.m_spec.tags.push(tag);
         }

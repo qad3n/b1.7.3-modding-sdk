@@ -90,6 +90,12 @@ impl Lang
     pub fn translate(&self, key: &str) -> String { crate::world::translate(key) }
 }
 
+// a builder step cannot fail, a name that does not parse is logged and the step is skipped
+fn named<E: std::fmt::Display>(parsed: std::result::Result<Identifier, E>, what: &str) -> Option<Identifier>
+{
+    parsed.map_err(|error| crate::warn(&format!("{what}: {error}"))).ok()
+}
+
 pub fn ownIdentifier(name: &str) -> Result<Identifier> { ownId(name) }
 
 pub fn bytes<T: Serialize>(value: &T) -> Vec<u8> { crate::world::encode(value) }
