@@ -3086,6 +3086,18 @@ pub enum HostCall
         table: Identifier,
         seed: i64,
     },
+
+    /// api 1.34: an explosion the host runs whole as Explosion does, blocks dropped with chance drop, entity damage
+    /// scaled by damage and fire lit where fire is set, so a blast of any size fits in one guest call's time budget
+    ExplodeWith
+    {
+        world: i32,
+        at: [f64; 3],
+        power: f32,
+        drop: f32,
+        damage: f32,
+        fire: bool,
+    },
 }
 
 /// api 1.32: the value of a game rule, in data files written as {bool = true} or {int = 3}

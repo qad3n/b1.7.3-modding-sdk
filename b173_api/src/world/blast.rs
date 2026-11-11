@@ -6,7 +6,10 @@ use mod_protocol::abi::{BlockPos, HostCall};
 impl World
 {
     /// needs api 1.33, Block.getExplosionResistance of a block id, what an explosion ray loses on it
-    pub fn explosionResistance(block: i32) -> f32 { expectFloat(call(HostCall::ExplosionResistance { block })).unwrap_or(0.0) }
+    pub fn explosionResistance(block: i32) -> f32
+    {
+        expectFloat(call(HostCall::ExplosionResistance { block })).unwrap_or(0.0)
+    }
 
     /// needs api 1.33, takes a block out as an explosion does: drops kept with a chance, then its explosion callback,
     /// so explosives set each other off
@@ -19,5 +22,12 @@ impl World
     pub fn blockDensity(self, from: [f64; 3], entity: i32) -> f32
     {
         expectFloat(call(HostCall::BlockDensity { world: self.dimension, from, id: entity })).unwrap_or(0.0)
+    }
+
+    /// needs api 1.34, a whole explosion run by the host as Explosion.doExplosionA and doExplosionB do, with the
+    /// caller's block drop chance and entity damage scale, vanilla uses 0.3 and 1
+    pub fn explodeWith(self, at: [f64; 3], power: f32, drop: f32, damage: f32, fire: bool) -> Result<()>
+    {
+        expectUnit(call(HostCall::ExplodeWith { world: self.dimension, at, power, drop, damage, fire }))
     }
 }
