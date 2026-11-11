@@ -4,7 +4,8 @@ use mod_protocol::Identifier;
 use mod_protocol::abi::HostCall;
 use mod_protocol::spec::
 {
-    FuelSpec, IngredientSpec, RecipeSpec, ShapedSpec, ShapelessSpec, ShapelessTaggedSpec, SmeltingSpec, StackSpec,
+    FuelSpec, IngredientSpec, RecipeSpec, ShapedSpec, ShapedTaggedSpec, ShapelessSpec, ShapelessTaggedSpec,
+    SmeltingSpec, StackSpec,
 };
 use std::collections::BTreeMap;
 
@@ -22,6 +23,7 @@ pub struct ShapedBuilder
     m_result: ItemStack,
     m_pattern: Vec<String>,
     m_key: BTreeMap<String, StackSpec>,
+    m_tags: BTreeMap<String, Identifier>,
     m_error: Option<Error>,
 }
 
@@ -54,6 +56,22 @@ impl ShapedBuilder
         self
     }
 
+    /// needs api 1.15, a key any member of an item tag fills, so other mods' items take part
+    pub fn keyTag(mut self, symbol: char, tag: &str) -> Self
+    {
+        match Identifier::parse(tag.trim_start_matches('#'))
+        {
+            Ok(tag) =>
+            {
+                self.m_tags.insert(symbol.to_string(), tag);
+            }
+
+            Err(error) => self.m_error = Some(error.into()),
+        }
+
+        self
+    }
+
     pub fn build(self) -> Result<()>
     {
         if let Some(error) = self.m_error
@@ -61,14 +79,31 @@ impl ShapedBuilder
             return Err(error);
         }
 
-        let spec: RecipeSpec = RecipeSpec::Shaped(ShapedSpec
+        let result: StackSpec = stackSpec(&self.m_result)?;
+        let spec: RecipeSpec = if self.m_tags.is_empty()
         {
-            pattern: self.m_pattern,
-            key: self.m_key,
-            result: stackSpec(&self.m_result)?,
-        });
+            RecipeSpec::Shaped(ShapedSpec { pattern: self.m_pattern, key: self.m_key, result })
+        }
+        else
+        {
+            RecipeSpec::ShapedTagged(ShapedTaggedSpec
+            {
+                pattern: self.m_pattern,
+                key: tagged(self.m_key, self.m_tags),
+                result,
+            })
+        };
         expectUnit(call(HostCall::RegisterRecipe { name: self.m_name, spec }))
     }
+}
+
+fn tagged(items: BTreeMap<String, StackSpec>, tags: BTreeMap<String, Identifier>) -> BTreeMap<String, IngredientSpec>
+{
+    let items = items
+        .into_iter()
+        .map(|(symbol, stack)| (symbol, IngredientSpec { item: Some(stack.item), tag: None, meta: stack.meta }));
+    let tags = tags.into_iter().map(|(symbol, tag)| (symbol, IngredientSpec { item: None, tag: Some(tag), meta: 0 }));
+    items.chain(tags).collect()
 }
 
 impl Recipes
@@ -81,6 +116,7 @@ impl Recipes
             m_result: result,
             m_pattern: Vec::new(),
             m_key: BTreeMap::new(),
+            m_tags: BTreeMap::new(),
             m_error: None,
         }
     }
