@@ -2707,6 +2707,36 @@ pub enum HostCall
     /// api 1.31: every registered living entity a mob spawner can make, vanilla and mod, in numeric id order,
     /// answered with Ids
     MobList,
+
+    /// api 1.32: a game rule named <modid>:<name>, vanilla and mod rules share /gamerule
+    RegisterGameRule
+    {
+        name: String,
+        spec: crate::spec::GameRuleSpec,
+    },
+
+    /// api 1.32: a rule's value in the save, answered with Bool or Int, vanilla rules are minecraft:<name> such
+    /// as minecraft:keep_inventory; a multiplayer client only knows the defaults
+    GameRule
+    {
+        rule: Identifier,
+    },
+
+    /// api 1.32: changes a rule for every dimension of the save, the value must match the rule's type and range
+    SetGameRule
+    {
+        rule: Identifier,
+        value: GameRuleValue,
+    },
+}
+
+/// api 1.32: the value of a game rule, in data files written as {bool = true} or {int = 3}
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum GameRuleValue
+{
+    Bool(bool),
+    Int(i32),
 }
 
 /// how a modifier combines with an attribute: adds first, then base multipliers summed, then total multipliers one by one

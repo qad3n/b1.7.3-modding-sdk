@@ -878,3 +878,44 @@ impl Default for AttributeSpec
 {
     fn default() -> AttributeSpec { AttributeSpec { default: 0.0, min: f64::MIN, max: f64::MAX } }
 }
+
+/// api 1.32: where /gamerule lists a rule
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum GameRuleCategory
+{
+    Player,
+    Mobs,
+    Spawning,
+    Drops,
+    Updates,
+    Chat,
+    #[default]
+    Misc,
+}
+
+/// api 1.32: a world setting saved with the save and changed with /gamerule, a whole number rule stays within min
+/// and max and a true or false rule ignores them
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Debug)]
+#[serde(default, deny_unknown_fields)]
+pub struct GameRuleSpec
+{
+    pub default: crate::abi::GameRuleValue,
+    pub category: GameRuleCategory,
+    pub min: i32,
+    pub max: i32,
+}
+
+impl Default for GameRuleSpec
+{
+    fn default() -> GameRuleSpec
+    {
+        GameRuleSpec
+        {
+            default: crate::abi::GameRuleValue::Bool(false),
+            category: GameRuleCategory::Misc,
+            min: i32::MIN,
+            max: i32::MAX,
+        }
+    }
+}

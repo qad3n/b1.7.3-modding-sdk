@@ -1,6 +1,6 @@
 use crate::{Error, Located, Result, StackData, StateData, StructureStart};
 use mod_protocol::Identifier;
-use mod_protocol::abi::{EntityInfo, HostReply};
+use mod_protocol::abi::{EntityInfo, GameRuleValue, HostReply};
 use serde::de::DeserializeOwned;
 
 // host replies the SDK expects, anything else becomes an Error carrying the host's reason
@@ -73,6 +73,16 @@ pub(crate) fn expectStarts(reply: HostReply) -> Result<Vec<StructureStart>>
     match reply
     {
         HostReply::Starts(starts) => Ok(starts),
+        other => Err(unexpected(other)),
+    }
+}
+
+pub(crate) fn expectRule(reply: HostReply) -> Result<GameRuleValue>
+{
+    match reply
+    {
+        HostReply::Bool(value) => Ok(GameRuleValue::Bool(value)),
+        HostReply::Int(value) => Ok(GameRuleValue::Int(value)),
         other => Err(unexpected(other)),
     }
 }

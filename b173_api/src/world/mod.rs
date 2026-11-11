@@ -17,10 +17,12 @@ use serde::de::DeserializeOwned;
 mod block;
 mod entity;
 mod player;
+mod rules;
 
 pub use block::BlockCtx;
 pub use entity::Entity;
 pub use player::{Player, allPlayers, broadcast, displayName, send, setWorldTime};
+pub use rules::{gameRule, setGameRule};
 
 pub fn encode<T: Serialize>(value: &T) -> Vec<u8> { mod_protocol::wire::encode(value) }
 

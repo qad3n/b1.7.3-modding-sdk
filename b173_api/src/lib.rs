@@ -23,9 +23,9 @@ use mod_protocol::abi::HostCall;
 pub use mod_protocol::abi::
 {
     BiomeSpec, BipedPart, BlockInfo, BlockPos, ChunkInfo, ConfigScope, DimensionSpec, EntityField, EntityInfo,
-    EventKind, FaceOverlay, Located, ModelOp, ModifierOperation, MusicSpec, Permission, PlayerLayer, Pose, PoseInput,
-    Priority, RayHit, RecipeShape, RecipeView, RegistryKind, SpawnEntry, StackData, StackRef, StateData,
-    StructurePiece, StructureSpec, StructureStart, Target, UseAction,
+    EventKind, FaceOverlay, GameRuleValue, Located, ModelOp, ModifierOperation, MusicSpec, Permission, PlayerLayer,
+    Pose, PoseInput, Priority, RayHit, RecipeShape, RecipeView, RegistryKind, SpawnEntry, StackData, StackRef,
+    StateData, StructurePiece, StructureSpec, StructureStart, Target, UseAction,
 };
 pub use mod_protocol::handshake::ChannelDirection as Direction;
 use mod_protocol::identifier::IdentifierError;
@@ -33,16 +33,16 @@ pub use mod_protocol::spec::
 {
     AchievementSpec, ArmorSlot, ArmorSpec, AttributeSpec, BedFaces, BlockModelSpec, BlockModifySpec, BlockSpec,
     BlockStatesSpec, CreatureKind, Cuboid, DropSpec, EffectModifierSpec, EffectSpec, EntityModelSpec, EntitySounds,
-    EntitySpec, FaceTextures, Flammability, FluidSpec, FluidStyle, FoodSpec, ItemSpec, ItemToolSpec, LootEntrySpec,
-    LootSpec, ModelBox, ModelPart, ParticleSpec, PropertySpec, SpawnModifySpec, SpawnSpec, StateVariantSpec,
-    SteeringSpec, TagEntry, TagRef, TileEntitySpec, ToolClass, ToolSpec,
+    EntitySpec, FaceTextures, Flammability, FluidSpec, FluidStyle, FoodSpec, GameRuleCategory, GameRuleSpec, ItemSpec,
+    ItemToolSpec, LootEntrySpec, LootSpec, ModelBox, ModelPart, ParticleSpec, PropertySpec, SpawnModifySpec, SpawnSpec,
+    StateVariantSpec, SteeringSpec, TagEntry, TagRef, TileEntitySpec, ToolClass, ToolSpec,
 };
 use mod_protocol::wire::WireError;
 pub use register::*;
 pub(crate) use reply::
 {
     expectBool, expectBytes, expectDouble, expectEntities, expectEntity, expectFloat, expectId, expectInt,
-    expectLocated, expectLong, expectStack, expectStarts, expectState, expectText, expectUnit, fetchData,
+    expectLocated, expectLong, expectRule, expectStack, expectStarts, expectState, expectText, expectUnit, fetchData,
 };
 pub use serde;
 use std::cell::{Cell, RefCell};
@@ -248,9 +248,9 @@ pub mod prelude
     pub use crate::services::{Lookup, Service};
     pub use crate::world::
     {
-        allPlayers, broadcast, contentGeneration, displayName, foliageColor, grassColor, isClient, isLoaded,
-        itemCatalog, localPlayer, mobList, modName, recipeList, screenSize, send, setDynamicTexture, setStackComponent,
-        setWorldData, setWorldTime, stackComponent, textWidth, translate, worldData,
+        allPlayers, broadcast, contentGeneration, displayName, foliageColor, gameRule, grassColor, isClient, isLoaded,
+        itemCatalog, localPlayer, mobList, modName, recipeList, screenSize, send, setDynamicTexture, setGameRule,
+        setStackComponent, setWorldData, setWorldTime, stackComponent, textWidth, translate, worldData,
     };
     pub use crate::{vanilla, *};
     pub use serde::{Deserialize, Serialize};

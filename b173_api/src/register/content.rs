@@ -5,7 +5,8 @@ use mod_protocol::Identifier;
 use mod_protocol::abi::{HostCall, HostReply, RegistryKind};
 use mod_protocol::spec::
 {
-    AchievementSpec, AttributeSpec, Behavior, EffectMethod, EffectSpec, FluidSpec, LootSpec, ParticleSpec, TagEntry,
+    AchievementSpec, AttributeSpec, Behavior, EffectMethod, EffectSpec, FluidSpec, GameRuleSpec, LootSpec,
+    ParticleSpec, TagEntry,
 };
 use std::rc::Rc;
 
@@ -22,6 +23,17 @@ pub struct Particles;
 pub struct Achievements;
 
 pub struct Attributes;
+
+pub struct GameRules;
+
+impl GameRules
+{
+    /// read it with world::gameRule and change it with world::setGameRule or /gamerule under <modid>:<name>
+    pub fn register(&self, name: &str, spec: GameRuleSpec) -> Result<()>
+    {
+        expectUnit(call(HostCall::RegisterGameRule { name: name.to_owned(), spec }))
+    }
+}
 
 impl Attributes
 {
