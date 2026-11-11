@@ -183,6 +183,16 @@ impl PoolBuilder
         }
         self
     }
+
+    /// the entry added last drops its item with this damage value
+    pub fn damage(mut self, damage: i32) -> Self
+    {
+        if let Some(last) = self.m_spec.entries.last_mut()
+        {
+            last.meta = damage;
+        }
+        self
+    }
 }
 
 fn setLoot(registry: RegistryKind, target: &str, spec: LootSpec) -> Result<()>
