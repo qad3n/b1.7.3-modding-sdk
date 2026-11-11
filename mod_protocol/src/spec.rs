@@ -245,6 +245,14 @@ pub struct PropertySpec
     pub values: Vec<String>,
 }
 
+impl PropertySpec
+{
+    pub fn new(name: &str, values: &[&str]) -> PropertySpec
+    {
+        PropertySpec { name: name.to_owned(), values: values.iter().map(|value| (*value).to_owned()).collect() }
+    }
+}
+
 /// textures for the states whose properties match every entry of when
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
 #[serde(default, deny_unknown_fields)]

@@ -3,6 +3,7 @@ use crate::Result;
 use mod_protocol::abi::{BlockCtx as RawCtx, BlockPos, StateData, Target};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
+use std::rc::Rc;
 
 /// what a block callback knows: where it runs and whether this side owns the world
 #[derive(Clone, Copy, Debug)]
@@ -23,6 +24,9 @@ impl BlockCtx
     pub fn state(&self) -> Option<StateData> { self.world().blockState(self.raw.pos) }
 
     pub fn setState(&self, state: StateData) -> Result<bool> { self.world().setBlockState(self.raw.pos, state) }
+
+    /// needs api 1.39, this block's named state from the per epoch cache, still the removed one's in removal callbacks
+    pub fn stateAt(&self) -> Option<Rc<StateData>> { crate::stateOf(self.raw.block, self.raw.meta) }
 
     /// needs api 1.37, this block is the named one, a bare name means this mod's
     pub fn is(&self, name: &str) -> bool { crate::blockIs(self.raw.block, name) }

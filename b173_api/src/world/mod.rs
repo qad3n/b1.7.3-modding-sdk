@@ -13,6 +13,7 @@ use mod_protocol::abi::
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
+use std::rc::Rc;
 
 mod blast;
 mod block;
@@ -164,6 +165,9 @@ impl World
 
     pub fn isAir(self, pos: BlockPos) -> bool { self.block(pos) == 0 }
 
+    /// air here with neighbour updates, the way a block removes itself
+    pub fn clear(self, pos: BlockPos) -> Result<bool> { self.setBlock(pos, 0, 0) }
+
     /// needs api 1.37, the block's registry name, a hidden state page answers with its block
     pub fn blockName(self, pos: BlockPos) -> Option<Identifier> { crate::nameOf(crate::RegistryKind::Block, self.block(pos)) }
 
@@ -249,6 +253,9 @@ impl World
     {
         crate::expectState(call(HostCall::BlockState { world: self.dimension, pos })).ok().flatten()
     }
+
+    /// needs api 1.39, the named state here from the per epoch cache, cheap enough for ticks and renders
+    pub fn stateAt(self, pos: BlockPos) -> Option<Rc<StateData>> { crate::stateOf(self.block(pos), self.meta(pos)) }
 
     /// from api 1.38 another state of the block already there changes only its metadata and keeps its tile entity
     pub fn setBlockState(self, pos: BlockPos, state: StateData) -> Result<bool>
