@@ -9,7 +9,7 @@ use mod_protocol::Identifier;
 use mod_protocol::abi::
 {
     BlockInfo, BlockPos, EnergyDemand, EntityInfo, FluidBlock, FluidStack, HostCall, HostReply, Located, LootView,
-    RayHit, RecipeView, StackData, StackRef, StateData, StructureStart,
+    MachineView, RayHit, RecipeView, StackData, StackRef, StateData, StructureStart,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -578,6 +578,16 @@ pub fn lootList() -> Vec<LootView>
     match call(HostCall::LootList)
     {
         HostReply::Loot(tables) => tables,
+        _ => Vec::new(),
+    }
+}
+
+/// needs api 1.35, every machine recipe viewers show with its workstations and recipes
+pub fn machineList() -> Vec<MachineView>
+{
+    match call(HostCall::MachineList)
+    {
+        HostReply::Machines(machines) => machines,
         _ => Vec::new(),
     }
 }

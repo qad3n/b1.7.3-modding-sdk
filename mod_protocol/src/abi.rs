@@ -2,8 +2,8 @@ use crate::Identifier;
 use crate::handshake::ChannelDirection;
 use crate::spec::
 {
-    BlockModifySpec, BlockSpec, BlockStatesSpec, CreatureKind, EntitySpec, ItemSpec, LootSpec, RecipeSpec,
-    SpawnModifySpec, TagEntry, TileEntitySpec, WorldgenSpec,
+    BlockModifySpec, BlockSpec, BlockStatesSpec, CreatureKind, EntitySpec, ItemSpec, LootSpec, MachineRecipeSpec,
+    MachineSpec, RecipeSpec, SpawnModifySpec, TagEntry, TileEntitySpec, WorldgenSpec,
 };
 use serde::{Deserialize, Serialize};
 
@@ -3098,6 +3098,30 @@ pub enum HostCall
         damage: f32,
         fire: bool,
     },
+
+    /// api 1.35: a machine named <modid>:<name> recipe viewers show as a category
+    RegisterMachine
+    {
+        name: Identifier,
+        spec: MachineSpec,
+    },
+
+    /// api 1.35: a recipe for any mod's registered machine
+    AddMachineRecipe
+    {
+        machine: Identifier,
+        recipe: MachineRecipeSpec,
+    },
+
+    /// api 1.35: an item that runs a machine, minecraft:crafting and minecraft:smelting take workstations too
+    AddWorkstation
+    {
+        machine: Identifier,
+        item: Identifier,
+    },
+
+    /// api 1.35: every machine with its workstations and recipes resolved to stacks, answered with Machines
+    MachineList,
 }
 
 /// api 1.32: the value of a game rule, in data files written as {bool = true} or {int = 3}
@@ -3313,6 +3337,34 @@ pub enum HostReply
     ItemInfo(Option<ItemInfo>),
     /// api 1.33
     Loot(Vec<LootView>),
+    /// api 1.35
+    Machines(Vec<MachineView>),
+}
+
+/// api 1.35: a machine category as a recipe viewer shows it
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub struct MachineView
+{
+    pub id: Identifier,
+    pub title: String,
+    pub workstations: Vec<StackData>,
+    pub recipes: Vec<MachineRecipeView>,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub struct MachineRecipeView
+{
+    pub inputs: Vec<MachineSlot>,
+    pub outputs: Vec<MachineSlot>,
+    pub notes: Vec<String>,
+}
+
+/// one slot of a machine recipe, several stacks where a tag fills it, damage -1 takes any
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub struct MachineSlot
+{
+    pub stacks: Vec<StackData>,
+    pub chance: f32,
 }
 
 /// api 1.33: one drop table as a recipe viewer shows it

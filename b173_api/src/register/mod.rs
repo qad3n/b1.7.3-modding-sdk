@@ -7,6 +7,7 @@ mod blocks;
 mod content;
 mod entities;
 mod items;
+mod machines;
 mod net;
 mod recipes;
 mod services;
@@ -20,6 +21,7 @@ pub use content::
 };
 pub use entities::{Entities, TileEntities};
 pub use items::{ItemSpecBuilder, Items};
+pub use machines::{MachineRecipeBuilder, Machines};
 pub use net::{Channels, Commands, Events, Keybinds};
 pub use recipes::{Recipes, ShapedBuilder};
 pub use services::Services;
@@ -85,6 +87,9 @@ impl RegisterCtx
 
     /// needs api 1.33
     pub fn energy(&mut self) -> Energies { Energies }
+
+    /// needs api 1.35
+    pub fn machines(&mut self) -> Machines { Machines }
 
     pub fn worldgen(&mut self) -> Worldgen { Worldgen }
 

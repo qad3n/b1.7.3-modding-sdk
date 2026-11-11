@@ -24,9 +24,9 @@ pub use mod_protocol::abi::
 {
     BiomeSpec, BipedPart, BlockInfo, BlockPos, ChunkInfo, ConfigScope, DimensionSpec, EnergyDemand, EntityField,
     EntityInfo, EventKind, FaceOverlay, FluidBlock, FluidStack, GameRuleValue, ItemInfo, ItemModelSpec, Located,
-    LootDrop, LootSource, LootView, ModelOp, ModifierOperation, MusicSpec, Permission, PlayerLayer, Pose, PoseInput,
-    Priority, RayHit, RecipeShape, RecipeView, RegistryKind, SpawnEntry, StackData, StackRef, StateData,
-    StructurePiece, StructureSpec, StructureStart, Target, UseAction, capability,
+    LootDrop, LootSource, LootView, MachineRecipeView, MachineSlot, MachineView, ModelOp, ModifierOperation, MusicSpec,
+    Permission, PlayerLayer, Pose, PoseInput, Priority, RayHit, RecipeShape, RecipeView, RegistryKind, SpawnEntry,
+    StackData, StackRef, StateData, StructurePiece, StructureSpec, StructureStart, Target, UseAction, capability,
 };
 pub use mod_protocol::handshake::ChannelDirection as Direction;
 use mod_protocol::identifier::IdentifierError;
@@ -35,8 +35,9 @@ pub use mod_protocol::spec::
     AchievementSpec, ArmorSlot, ArmorSpec, AttributeSpec, BedFaces, BlockModelSpec, BlockModifySpec, BlockSpec,
     BlockStatesSpec, CreatureKind, Cuboid, DropSpec, EffectModifierSpec, EffectSpec, EnergySpec, EntityModelSpec,
     EntitySounds, EntitySpec, FaceTextures, Flammability, FluidSpec, FluidStyle, FoodSpec, GameRuleCategory,
-    GameRuleSpec, ItemSpec, ItemToolSpec, LootEntrySpec, LootSpec, ModelBox, ModelPart, ParticleSpec, PropertySpec,
-    SpawnModifySpec, SpawnSpec, StateVariantSpec, SteeringSpec, TagEntry, TagRef, TileEntitySpec, ToolClass, ToolSpec,
+    GameRuleSpec, ItemSpec, ItemToolSpec, LootEntrySpec, LootSpec, MachineRecipeSpec, MachineSlotSpec, MachineSpec,
+    ModelBox, ModelPart, ParticleSpec, PropertySpec, SpawnModifySpec, SpawnSpec, StateVariantSpec, SteeringSpec,
+    TagEntry, TagRef, TileEntitySpec, ToolClass, ToolSpec,
 };
 use mod_protocol::wire::WireError;
 pub use register::*;
@@ -258,9 +259,10 @@ pub mod prelude
     pub use crate::world::
     {
         allPlayers, broadcast, containerItem, contentGeneration, craftResult, displayName, foliageColor, fuelTicks,
-        gameRule, grassColor, isClient, isLoaded, itemCatalog, localPlayer, lootList, mobList, modName, paintSprite,
-        recipeList, rollLoot, screenSize, send, setDynamicTexture, setGameRule, setSharedData, setStackComponent,
-        setWorldData, setWorldTime, sharedData, stackComponent, textWidth, translate, unified, worldData,
+        gameRule, grassColor, isClient, isLoaded, itemCatalog, localPlayer, lootList, machineList, mobList, modName,
+        paintSprite, recipeList, rollLoot, screenSize, send, setDynamicTexture, setGameRule, setSharedData,
+        setStackComponent, setWorldData, setWorldTime, sharedData, stackComponent, textWidth, translate, unified,
+        worldData,
     };
     pub use crate::{vanilla, *};
     pub use serde::{Deserialize, Serialize};

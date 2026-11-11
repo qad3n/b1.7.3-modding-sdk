@@ -943,3 +943,40 @@ impl Default for GameRuleSpec
         }
     }
 }
+
+/// api 1.35: a machine recipe viewers show as its own category, its workstations are the items that run it and the
+/// first is the category icon, the title falls back to that item's name
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct MachineSpec
+{
+    pub title: Option<String>,
+    pub workstations: Vec<Identifier>,
+}
+
+/// api 1.35: one job of a machine as viewers show it, inputs to outputs with notes such as energy, time or heat
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct MachineRecipeSpec
+{
+    pub inputs: Vec<MachineSlotSpec>,
+    pub outputs: Vec<MachineSlotSpec>,
+    pub notes: Vec<String>,
+}
+
+/// api 1.35: an item or every item of a tag, meta -1 takes any damage, chance from 0 to 1 for an output
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct MachineSlotSpec
+{
+    #[serde(default)]
+    pub item: Option<Identifier>,
+    #[serde(default)]
+    pub tag: Option<Identifier>,
+    #[serde(default)]
+    pub meta: i32,
+    #[serde(default = "one")]
+    pub count: i32,
+    #[serde(default = "always")]
+    pub chance: f32,
+}
