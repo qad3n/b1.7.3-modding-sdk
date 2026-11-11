@@ -94,7 +94,8 @@ thread_local!
     static MOD_ID: RefCell<String> = const { RefCell::new(String::new()) };
     // numeric ids change when a world or server remaps, the epoch invalidates cached lookups
     static EPOCH: Cell<u32> = const { Cell::new(0) };
-    static RESOLVED: RefCell<HashMap<(RegistryKind, Identifier), (u32, i32)>> = RefCell::new(HashMap::new());
+    // nested so a hit borrows the identifier instead of cloning it into a key
+    static RESOLVED: RefCell<HashMap<RegistryKind, HashMap<Identifier, (u32, i32)>>> = RefCell::new(HashMap::new());
 }
 
 pub fn modId() -> String { MOD_ID.with(|id| id.borrow().clone()) }
@@ -108,14 +109,15 @@ pub(crate) fn epoch() -> u32 { EPOCH.with(Cell::get) }
 pub fn resolve(registry: RegistryKind, id: &Identifier) -> Result<i32>
 {
     let epoch: u32 = epoch();
-    if let Some((cachedEpoch, numeric)) = RESOLVED.with(|cache| cache.borrow().get(&(registry, id.clone())).copied())
+    if let Some((cachedEpoch, numeric)) =
+        RESOLVED.with(|cache| cache.borrow().get(&registry).and_then(|ids| ids.get(id)).copied())
         && cachedEpoch == epoch
     {
         return Ok(numeric);
     }
 
     let numeric: i32 = expectInt(rt::call(HostCall::Resolve { registry, id: id.clone() }))?;
-    RESOLVED.with(|cache| cache.borrow_mut().insert((registry, id.clone()), (epoch, numeric)));
+    RESOLVED.with(|cache| cache.borrow_mut().entry(registry).or_default().insert(id.clone(), (epoch, numeric)));
     Ok(numeric)
 }
 
