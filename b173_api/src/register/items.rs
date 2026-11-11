@@ -39,28 +39,15 @@ impl ItemSpecBuilder
         ItemSpecBuilder { m_spec: ItemSpec { template: Identifier::parse(template).ok(), ..ItemSpec::default() } }
     }
 
-    pub fn texture(mut self, texture: &str) -> Self
+    setters!
     {
-        self.m_spec.texture = Some(texture.to_owned());
-        self
-    }
-
-    pub fn name(mut self, name: &str) -> Self
-    {
-        self.m_spec.name = Some(name.to_owned());
-        self
-    }
-
-    pub fn maxStack(mut self, size: i32) -> Self
-    {
-        self.m_spec.max_stack = Some(size);
-        self
-    }
-
-    pub fn maxDamage(mut self, damage: i32) -> Self
-    {
-        self.m_spec.max_damage = Some(damage);
-        self
+        texture(&str) => texture;
+        name(&str) => name;
+        maxStack(i32) => max_stack;
+        maxDamage(i32) => max_damage;
+        armor(mod_protocol::spec::ArmorSpec) => armor;
+        fuel(i32) => fuel;
+        color(u32) => color;
     }
 
     pub fn food(mut self, heal: i32) -> Self
@@ -73,24 +60,6 @@ impl ItemSpecBuilder
     {
         self.m_spec.tool = Some(mod_protocol::spec::ItemToolSpec { class, level, speed, damage, durability });
         self.m_spec.full3d = Some(true);
-        self
-    }
-
-    pub fn armor(mut self, armor: mod_protocol::spec::ArmorSpec) -> Self
-    {
-        self.m_spec.armor = Some(armor);
-        self
-    }
-
-    pub fn fuel(mut self, ticks: i32) -> Self
-    {
-        self.m_spec.fuel = Some(ticks);
-        self
-    }
-
-    pub fn color(mut self, color: u32) -> Self
-    {
-        self.m_spec.color = Some(color);
         self
     }
 

@@ -56,69 +56,31 @@ impl BlockSpecBuilder
         BlockSpecBuilder { m_spec: BlockSpec { template: Identifier::parse(template).ok(), ..BlockSpec::default() } }
     }
 
-    pub fn hardness(mut self, value: f32) -> Self
+    setters!
     {
-        self.m_spec.hardness = Some(value);
-        self
-    }
-
-    pub fn resistance(mut self, value: f32) -> Self
-    {
-        self.m_spec.resistance = Some(value);
-        self
-    }
-
-    pub fn light(mut self, value: f32) -> Self
-    {
-        self.m_spec.light = Some(value);
-        self
-    }
-
-    pub fn material(mut self, material: &str) -> Self
-    {
-        self.m_spec.material = Some(material.to_owned());
-        self
-    }
-
-    pub fn texture(mut self, texture: &str) -> Self
-    {
-        self.m_spec.texture = Some(texture.to_owned());
-        self
-    }
-
-    pub fn faces(mut self, faces: mod_protocol::spec::FaceTextures) -> Self
-    {
-        self.m_spec.textures = Some(faces);
-        self
-    }
-
-    pub fn color(mut self, color: u32) -> Self
-    {
-        self.m_spec.color = Some(color);
-        self
-    }
-
-    pub fn sound(mut self, sound: &str) -> Self
-    {
-        self.m_spec.sound = Some(sound.to_owned());
-        self
-    }
-
-    pub fn name(mut self, name: &str) -> Self
-    {
-        self.m_spec.name = Some(name.to_owned());
-        self
+        hardness(f32) => hardness;
+        resistance(f32) => resistance;
+        light(f32) => light;
+        material(&str) => material;
+        texture(&str) => texture;
+        faces(mod_protocol::spec::FaceTextures) => textures;
+        color(u32) => color;
+        sound(&str) => sound;
+        name(&str) => name;
+        drops(Vec<mod_protocol::spec::DropSpec>) => drops;
+        fuel(i32) => fuel;
+        model(mod_protocol::spec::BlockModelSpec) => model;
+        /// a bed of the bed template, its sprites picked by half and facing
+        bed(mod_protocol::spec::BedFaces) => bed;
+        slipperiness(f32) => slipperiness;
+        opacity(i32) => opacity;
+        leaves(bool) => leaves;
+        collision(Vec<mod_protocol::spec::Cuboid>) => collision;
     }
 
     pub fn tool(mut self, class: ToolClass, level: i32) -> Self
     {
         self.m_spec.tool = Some(ToolSpec { class, level });
-        self
-    }
-
-    pub fn drops(mut self, drops: Vec<mod_protocol::spec::DropSpec>) -> Self
-    {
-        self.m_spec.drops = Some(drops);
         self
     }
 
@@ -131,12 +93,6 @@ impl BlockSpecBuilder
     pub fn tileEntity(mut self, tile: &str) -> Self
     {
         self.m_spec.tile_entity = ownId(tile).ok();
-        self
-    }
-
-    pub fn fuel(mut self, ticks: i32) -> Self
-    {
-        self.m_spec.fuel = Some(ticks);
         self
     }
 
@@ -155,46 +111,9 @@ impl BlockSpecBuilder
         self
     }
 
-    pub fn model(mut self, model: mod_protocol::spec::BlockModelSpec) -> Self
-    {
-        self.m_spec.model = Some(model);
-        self
-    }
-
-    /// a bed of the bed template, its sprites picked by half and facing
-    pub fn bed(mut self, faces: mod_protocol::spec::BedFaces) -> Self
-    {
-        self.m_spec.bed = Some(faces);
-        self
-    }
-
-    pub fn slipperiness(mut self, value: f32) -> Self
-    {
-        self.m_spec.slipperiness = Some(value);
-        self
-    }
-
-    pub fn opacity(mut self, value: i32) -> Self
-    {
-        self.m_spec.opacity = Some(value);
-        self
-    }
-
-    pub fn leaves(mut self, decays: bool) -> Self
-    {
-        self.m_spec.leaves = Some(decays);
-        self
-    }
-
     pub fn sustainsLeaves(mut self) -> Self
     {
         self.m_spec.sustains_leaves = Some(true);
-        self
-    }
-
-    pub fn collision(mut self, boxes: Vec<mod_protocol::spec::Cuboid>) -> Self
-    {
-        self.m_spec.collision = Some(boxes);
         self
     }
 
