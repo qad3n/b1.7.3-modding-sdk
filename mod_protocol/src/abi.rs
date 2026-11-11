@@ -3247,6 +3247,23 @@ pub struct StateData
     pub properties: std::collections::BTreeMap<String, String>,
 }
 
+impl StateData
+{
+    /// a block with every property at its default
+    pub fn of(block: Identifier) -> StateData { StateData { block, properties: std::collections::BTreeMap::new() } }
+
+    pub fn with(mut self, property: &str, value: impl ToString) -> StateData
+    {
+        self.properties.insert(property.to_owned(), value.to_string());
+        self
+    }
+
+    pub fn get(&self, property: &str) -> Option<&str> { self.properties.get(property).map(String::as_str) }
+
+    /// a true or false property, false when absent
+    pub fn flag(&self, property: &str) -> bool { self.get(property) == Some("true") }
+}
+
 /// entity state beyond EntityInfo that ported mods read or change, new fields go at the end
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
 pub enum EntityField

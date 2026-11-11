@@ -164,6 +164,22 @@ impl World
 
     pub fn isAir(self, pos: BlockPos) -> bool { self.block(pos) == 0 }
 
+    /// needs api 1.37, the block's registry name, a hidden state page answers with its block
+    pub fn blockName(self, pos: BlockPos) -> Option<Identifier> { crate::nameOf(crate::RegistryKind::Block, self.block(pos)) }
+
+    /// needs api 1.37, the block here is the named one, a bare name means this mod's
+    pub fn is(self, pos: BlockPos, name: &str) -> bool { crate::blockIs(self.block(pos), name) }
+
+    /// needs api 1.37, the block here sits in the tag, so other mods' blocks count too
+    pub fn tagged(self, pos: BlockPos, tag: &str) -> bool { crate::blockTagged(self.block(pos), tag) }
+
+    /// needs api 1.37, places a block by name with its default state
+    pub fn place(self, pos: BlockPos, name: &str) -> Result<bool>
+    {
+        let block: Identifier = Identifier::parseIn(name, &crate::modId())?;
+        self.setBlockState(pos, StateData::of(block))
+    }
+
     pub fn entitiesAlong(self, from: [f64; 3], to: [f64; 3], radius: f64, exclude: Option<i32>) -> Vec<EntityInfo>
     {
         expectEntities(call(HostCall::EntitiesAlong { world: self.dimension, from, to, radius, exclude }))

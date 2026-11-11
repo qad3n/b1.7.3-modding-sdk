@@ -5,6 +5,7 @@ mod behavior;
 mod config;
 mod dispatch;
 pub mod events;
+mod names;
 pub mod math;
 mod register;
 mod reply;
@@ -18,6 +19,7 @@ pub mod world;
 pub use b173_api_macros::{block_behavior, effect_behavior, entity_behavior, item_behavior, mod_main, tile_behavior};
 pub use behavior::{BlockBehavior, EffectBehavior, EntityBehavior, ItemBehavior, TileBehavior, Use};
 pub use config::{Config, Setting, configValue};
+pub use names::{blockIs, blockTagged, nameOf, named, tagMembers, tagged};
 pub use mod_protocol::Identifier;
 use mod_protocol::abi::HostCall;
 pub use mod_protocol::abi::
@@ -99,9 +101,11 @@ pub(crate) fn setModId(id: &str) { MOD_ID.with(|slot| *slot.borrow_mut() = id.to
 
 pub(crate) fn bumpEpoch() { EPOCH.with(|epoch| epoch.set(epoch.get() + 1)); }
 
+pub(crate) fn epoch() -> u32 { EPOCH.with(Cell::get) }
+
 pub fn resolve(registry: RegistryKind, id: &Identifier) -> Result<i32>
 {
-    let epoch: u32 = EPOCH.with(Cell::get);
+    let epoch: u32 = epoch();
     if let Some((cachedEpoch, numeric)) = RESOLVED.with(|cache| cache.borrow().get(&(registry, id.clone())).copied())
         && cachedEpoch == epoch
     {
@@ -125,10 +129,6 @@ pub fn maxDamage(item: &ItemRef) -> i32
     expectInt(rt::call(HostCall::MaxDamage { item: numeric })).unwrap_or(0)
 }
 
-pub fn nameOf(registry: RegistryKind, numeric: i32) -> Option<Identifier>
-{
-    expectId(rt::call(HostCall::NameOf { registry, numeric }))
-}
 
 /// an item named by identifier, resolved to its numeric id when it crosses into the game
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]

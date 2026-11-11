@@ -24,6 +24,12 @@ impl BlockCtx
 
     pub fn setState(&self, state: StateData) -> Result<bool> { self.world().setBlockState(self.raw.pos, state) }
 
+    /// needs api 1.37, this block is the named one, a bare name means this mod's
+    pub fn is(&self, name: &str) -> bool { crate::blockIs(self.raw.block, name) }
+
+    /// needs api 1.37, this block sits in the tag
+    pub fn tagged(&self, tag: &str) -> bool { crate::blockTagged(self.raw.block, tag) }
+
     pub fn meta(&self) -> u8 { self.raw.meta as u8 }
 
     pub fn isAuthority(&self) -> bool { self.raw.authority }
