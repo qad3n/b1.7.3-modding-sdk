@@ -1,4 +1,4 @@
-use crate::{BlockPos, Entity, EntityField, Identifier, Result, StateData, World, epoch, modId, rt};
+use crate::{BlockCtx, BlockPos, Entity, EntityField, Identifier, Result, StateData, World, epoch, modId, rt};
 use mod_protocol::abi::{HostCall, HostReply};
 use std::cell::{Cell, Ref, RefCell};
 use std::collections::HashMap;
@@ -133,5 +133,20 @@ impl Entity
         let (block, meta): (i32, i32) = state.numeric();
         self.setField(EntityField::Block, f64::from(block));
         self.setField(EntityField::BlockMeta, f64::from(meta));
+    }
+}
+
+impl BlockCtx
+{
+    /// needs api 1.39, this block's usual drops at its spot, as a harvest callback dropping them again needs
+    pub fn dropItems(&self) -> Result<()>
+    {
+        self.world().dropBlockItems(self.pos(), self.block(), i32::from(self.meta()))
+    }
+
+    /// needs api 1.39, this block's breaking particles and sound at its spot
+    pub fn breakEffect(&self) -> Result<()>
+    {
+        self.world().breakEffect(self.pos(), self.block(), i32::from(self.meta()))
     }
 }
