@@ -976,6 +976,17 @@ pub enum ModelOp
         stack: StackData,
         brightness: f32,
     },
+    /// api 1.35: a line of the client font with its corner where the transform stands, one unit a font pixel, as a
+    /// sign draws its text; scale the transform down first
+    Text
+    {
+        text: String,
+        x: i32,
+        y: i32,
+        color: u32,
+    },
+    /// api 1.35: glDepthMask for what follows, off so text over a face never hides what draws after it
+    DepthMask(bool),
 }
 
 /// the draw program for one frame: pre runs where preRenderCallback does, model replaces ModelBase.render
