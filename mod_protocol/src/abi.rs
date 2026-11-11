@@ -881,6 +881,12 @@ pub enum EntityCall
     {
         entity: EntityInfo
     },
+
+    /// api 1.28: the reply is Bool, false lets the template move the entity
+    Travel
+    {
+        entity: EntityInfo, strafe: f32, forward: f32
+    },
 }
 
 /// what RenderLiving knows when it draws a living entity
@@ -2609,6 +2615,33 @@ pub enum HostCall
         simulate: bool,
     },
 
+    /// api 1.28: Entity.moveFlying, turns strafe and forward input into motion along the entity's yaw at factor
+    Accelerate
+    {
+        world: i32,
+        id: i32,
+        strafe: f32,
+        forward: f32,
+        factor: f32,
+    },
+
+    /// api 1.28: Entity.moveEntity, moves by motion through the world's blocks and stops at what it hits, updating
+    /// on_ground, collision and fall distance
+    Step
+    {
+        world: i32,
+        id: i32,
+        motion: [f64; 3],
+    },
+
+    /// api 1.28: eases a living entity's leg swing toward how far it moved this tick, as the end of
+    /// EntityLiving.moveEntityWithHeading
+    AnimateWalk
+    {
+        world: i32,
+        id: i32,
+    },
+
     /// api 1.27: an attribute named <modid>:<name> that every living entity carries
     RegisterAttribute
     {
@@ -2685,9 +2718,9 @@ pub enum EntityField
     Jumping,
     Yaw,
     Pitch,
-    /// a steered mount's air jumps before it lands, overriding SteeringSpec.air_jumps for this entity
+    /// removed in api 1.28 with SteeringSpec, reads fail and writes do nothing
     AirJumps,
-    /// a steered mount's speed with a rider, overriding SteeringSpec.speed for this entity
+    /// removed in api 1.28 with SteeringSpec, reads fail and writes do nothing
     MountSpeed,
     /// EntityCreature.playerToAttack, -1 for none
     TargetId,
@@ -2722,6 +2755,11 @@ pub enum EntityField
     BlockMeta,
     /// api 1.20: ticks left on a player's item in use, 0 when it holds nothing in use, read only
     ItemInUse,
+    /// api 1.28: Entity.handleLavaMovement, read only
+    InLava,
+    /// api 1.28: what EntityLiving.moveEntityWithHeading multiplies horizontal motion by each tick, 0.91 in the air
+    /// and the block's slipperiness times 0.91 on the ground, 0.546 for stone; read only
+    Slipperiness,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]

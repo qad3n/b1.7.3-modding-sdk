@@ -190,6 +190,8 @@ pub enum EntityMethod
     Pose,
     /// replaces the template's own AI tick, updatePlayerActionState, the template moves and attacks no more
     Ai,
+    /// api 1.28: EntityLiving.moveEntityWithHeading, the mod moves the entity itself or leaves it to the template
+    Travel,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -473,6 +475,7 @@ pub struct EntitySpec
     pub behavior: Option<Behavior<EntityMethod>>,
     pub model: Option<EntityModelSpec>,
     pub sounds: Option<EntitySounds>,
+    /// removed in api 1.28, the loader refuses an entity that sets it; steer with EntityBehavior::onTravel
     pub steering: Option<SteeringSpec>,
     /// Entity.isImmuneToFire: fire and lava never hurt it
     pub fire_immune: bool,
@@ -482,7 +485,7 @@ pub struct EntitySpec
     pub immovable: bool,
 }
 
-/// a mount a riding player drives with movement keys and jump
+/// removed in api 1.28 and kept only so older specs still decode, see EntitySpec.steering
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Debug)]
 #[serde(default, deny_unknown_fields)]
 pub struct SteeringSpec

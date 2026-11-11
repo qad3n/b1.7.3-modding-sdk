@@ -88,6 +88,9 @@ pub trait EntityBehavior
     fn pose(&self, _input: &PoseInput) -> Pose { Pose::default() }
     /// implementing this replaces the template's AI, the entity only does what this does
     fn onAi(&self, _entity: Entity, _info: &EntityInfo) {}
+    /// needs api 1.28, EntityLiving.moveEntityWithHeading with the entity's own or its rider's input; true when this
+    /// moved it, false leaves the move to the template; Entity::accelerate, step and animateWalk build a move
+    fn onTravel(&self, _entity: Entity, _info: &EntityInfo, _strafe: f32, _forward: f32) -> bool { false }
     fn overridden(&self) -> &'static [&'static str] { unmarked(std::any::type_name::<Self>(), "entity_behavior") }
 }
 
@@ -146,7 +149,7 @@ pub(crate) const ITEM_METHODS: [(&str, ItemMethod); 15] = [
     ("useIcon", ItemMethod::UseIcon),
 ];
 
-pub(crate) const ENTITY_METHODS: [(&str, EntityMethod); 8] = [
+pub(crate) const ENTITY_METHODS: [(&str, EntityMethod); 9] = [
     ("onTick", EntityMethod::Tick),
     ("onLivingUpdate", EntityMethod::LivingUpdate),
     ("onInteract", EntityMethod::Interact),
@@ -155,6 +158,7 @@ pub(crate) const ENTITY_METHODS: [(&str, EntityMethod); 8] = [
     ("canSpawn", EntityMethod::CanSpawn),
     ("pose", EntityMethod::Pose),
     ("onAi", EntityMethod::Ai),
+    ("onTravel", EntityMethod::Travel),
 ];
 
 pub(crate) const TILE_METHODS: [(&str, TileMethod); 3] =

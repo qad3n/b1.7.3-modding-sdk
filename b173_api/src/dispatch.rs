@@ -346,6 +346,10 @@ fn entity(handle: u32, call: EntityCall) -> GuestReply
         EntityCall::CanSpawn { entity } => GuestReply::Bool(behavior.canSpawn(entityOf(&entity), &entity)),
         EntityCall::Pose { input } => GuestReply::Pose(behavior.pose(&input)),
         EntityCall::Ai { entity } => unit(|| behavior.onAi(entityOf(&entity), &entity)),
+        EntityCall::Travel { entity, strafe, forward } =>
+        {
+            GuestReply::Bool(behavior.onTravel(entityOf(&entity), &entity, strafe, forward))
+        }
     }
 }
 

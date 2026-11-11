@@ -41,6 +41,24 @@ impl Entity
         }))
     }
 
+    /// needs api 1.28, Entity.moveFlying: adds motion from strafe and forward input along the yaw, scaled by factor
+    pub fn accelerate(self, strafe: f32, forward: f32, factor: f32) -> Result<()>
+    {
+        expectUnit(call(HostCall::Accelerate { world: self.world.dimension, id: self.id, strafe, forward, factor }))
+    }
+
+    /// needs api 1.28, Entity.moveEntity: moves by motion and stops at the blocks it runs into
+    pub fn step(self, motion: [f64; 3]) -> Result<()>
+    {
+        expectUnit(call(HostCall::Step { world: self.world.dimension, id: self.id, motion }))
+    }
+
+    /// needs api 1.28, swings the legs by how far the entity moved this tick
+    pub fn animateWalk(self) -> Result<()>
+    {
+        expectUnit(call(HostCall::AnimateWalk { world: self.world.dimension, id: self.id }))
+    }
+
     pub fn damage(self, amount: i32, source: Option<i32>) -> bool
     {
         expectBool(call(HostCall::DamageEntity { world: self.world.dimension, id: self.id, source, amount }))
