@@ -2,7 +2,10 @@ use crate::rt::call;
 use crate::{Error, ItemStack, Result, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
 use mod_protocol::abi::{FluidStack, HostCall, HostReply, JobMatch, StackData};
-use mod_protocol::spec::{JobEnergySpec, JobFluidSpec, JobInputSpec, JobOutputSpec, MachineFuelSpec, MachineJobSpec};
+use mod_protocol::spec::
+{
+    JobEnergySpec, JobFluidSpec, JobInputRule, JobInputSpec, JobOutputSpec, MachineFuelSpec, MachineJobSpec,
+};
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_map::DefaultHasher;
@@ -16,6 +19,7 @@ pub struct JobBuilder
 {
     m_machine: Result<Identifier>,
     m_spec: MachineJobSpec,
+    m_rules: Vec<JobInputRule>,
     m_error: Option<Error>,
 }
 
@@ -32,6 +36,7 @@ impl JobBuilder
         {
             m_machine: ownIdentifier(machine),
             m_spec: MachineJobSpec { duration, ..MachineJobSpec::default() },
+            m_rules: Vec::new(),
             m_error: None,
         }
     }
@@ -62,6 +67,15 @@ impl JobBuilder
     {
         let tag: Option<Identifier> = self.named(tag.trim_start_matches('#'));
         self.m_spec.inputs.push(input(None, tag, count, true, 0));
+        self
+    }
+
+    /// needs api 1.44, count of any item the job uses up except members of the except tag
+    pub fn inputAny(mut self, count: i32, except: Option<&str>) -> Self
+    {
+        let except: Option<Identifier> = except.and_then(|tag| self.named(tag.trim_start_matches('#')));
+        self.m_rules.push(JobInputRule { input: self.m_spec.inputs.len() as u32, except });
+        self.m_spec.inputs.push(input(None, None, count, true, 0));
         self
     }
 
@@ -171,7 +185,13 @@ impl JobBuilder
             return Err(error);
         }
 
-        expectUnit(call(HostCall::AddMachineJob { machine: self.m_machine?, job: self.m_spec }))
+        let machine: Identifier = self.m_machine?;
+        if self.m_rules.is_empty()
+        {
+            return expectUnit(call(HostCall::AddMachineJob { machine, job: self.m_spec }));
+        }
+
+        expectUnit(call(HostCall::AddMachineJobRules { machine, job: self.m_spec, rules: self.m_rules }))
     }
 }
 

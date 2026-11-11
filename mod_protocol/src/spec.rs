@@ -1350,3 +1350,50 @@ impl ConditionalPoolSpec
         Some(LootPoolSpec { rolls: self.rolls, max_rolls: self.max_rolls, entries: entries? })
     }
 }
+
+fn bucketful() -> i32 { 1000 }
+
+/// api 1.44: an item holding amount millibuckets of a fluid, full_meta -1 for any damage; draining it leaves the empty
+/// item, none when the container is used up, and filling the empty item gives the full one
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct FluidContainerSpec
+{
+    pub full: Identifier,
+    #[serde(default)]
+    pub full_meta: i32,
+    #[serde(default)]
+    pub empty: Option<Identifier>,
+    pub fluid: Identifier,
+    #[serde(default = "bucketful")]
+    pub amount: i32,
+}
+
+/// api 1.44: which stacks a block gives out, any stack, an item with meta -1 for any damage, any item of a tag, any
+/// item except the members of a tag, a full container of a fluid or of any fluid, an empty container
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum ItemFilter
+{
+    Any,
+    Item
+    {
+        item: Identifier,
+        meta: i32,
+    },
+    Tag(Identifier),
+    Except(Identifier),
+    Holding(Option<Identifier>),
+    Empty,
+}
+
+/// api 1.44: the job input at index takes any item that is no member of the except tag, as a recycler takes
+/// everything but its blacklist
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct JobInputRule
+{
+    pub input: u32,
+    #[serde(default)]
+    pub except: Option<Identifier>,
+}

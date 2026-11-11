@@ -3304,6 +3304,61 @@ pub enum HostCall
         biome: Identifier,
         kind: CreatureKind,
     },
+
+    /// api 1.44: an item that holds a fluid, registration only
+    RegisterFluidContainer
+    {
+        spec: crate::spec::FluidContainerSpec,
+    },
+
+    /// api 1.44: the fluid a stack holds, answered with Fluid
+    ContainedFluid
+    {
+        stack: StackData,
+    },
+
+    /// api 1.44: the full container one item of an empty stack becomes with a fluid, answered with Swap
+    FillContainer
+    {
+        stack: StackData,
+        fluid: Identifier,
+    },
+
+    /// api 1.44: what one item of a full container leaves and the fluid it gives, answered with Swap
+    DrainContainer
+    {
+        stack: StackData,
+    },
+
+    /// api 1.44: every fluid container, vanilla buckets first, answered with FluidContainers
+    FluidContainers,
+
+    /// api 1.44: as ExtractItem, taking only stacks the filter accepts, answered with Stack
+    ExtractMatching
+    {
+        world: i32,
+        pos: BlockPos,
+        face: i32,
+        filter: crate::spec::ItemFilter,
+        max: i32,
+        simulate: bool,
+    },
+
+    /// api 1.44: a machine job with rules for some of its inputs, registration only
+    AddMachineJobRules
+    {
+        machine: Identifier,
+        job: crate::spec::MachineJobSpec,
+        rules: Vec<crate::spec::JobInputRule>,
+    },
+}
+
+/// api 1.44: a container filled or drained, the stack one item turns into, none when used up, and the fluid moved
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub struct ContainerSwap
+{
+    pub stack: Option<StackData>,
+    pub fluid: FluidStack,
 }
 
 /// api 1.42: what a loot condition or count rule knows about one roll, the dying entity and its killer still in the
@@ -3640,6 +3695,10 @@ pub enum HostReply
     Features(Vec<FeatureInfo>),
     /// api 1.43
     SpawnEntries(Vec<SpawnEntry>),
+    /// api 1.44
+    Swap(Option<ContainerSwap>),
+    /// api 1.44
+    FluidContainers(Vec<crate::spec::FluidContainerSpec>),
 }
 
 /// api 1.35: a machine category as a recipe viewer shows it

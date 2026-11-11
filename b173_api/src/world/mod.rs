@@ -58,6 +58,20 @@ impl World
             .map(ItemStack::fromRaw)
     }
 
+    /// needs api 1.44, as extractItem, taking only a stack the filter accepts
+    pub fn extractMatching(
+        self,
+        pos: BlockPos,
+        face: i32,
+        filter: crate::ItemFilter,
+        max: i32,
+        simulate: bool,
+    ) -> Option<ItemStack>
+    {
+        let call: HostCall = HostCall::ExtractMatching { world: self.dimension, pos, face, filter, max, simulate };
+        expectStack(crate::rt::call(call)).ok().flatten().map(ItemStack::fromRaw)
+    }
+
     /// needs api 1.33, the capability bits a block offers from a face: items, fluids and energy
     pub fn capabilities(self, pos: BlockPos, face: i32) -> i32
     {

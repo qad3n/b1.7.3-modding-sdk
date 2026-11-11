@@ -95,6 +95,13 @@ impl Fluids
     {
         expectUnit(call(HostCall::RegisterFluid { name: name.to_owned(), spec }))
     }
+
+    /// needs api 1.44, full holds amount millibuckets of fluid and drains to empty, none when it is used up; a fluid's
+    /// own bucket is registered with the fluid
+    pub fn container(&self, full: &str, empty: Option<&str>, fluid: &str, amount: i32) -> Result<()>
+    {
+        crate::containers::register(full, empty, fluid, amount)
+    }
 }
 
 impl Loot
