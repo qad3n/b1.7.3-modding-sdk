@@ -271,7 +271,16 @@ impl From<&str> for ItemRef
 {
     fn from(name: &str) -> ItemRef
     {
-        ItemRef::Named(Identifier::parseIn(name, &modId()).unwrap_or_else(|_| Identifier::minecraft("air")))
+        match Identifier::parseIn(name, &modId())
+        {
+            Ok(id) => ItemRef::Named(id),
+
+            Err(error) =>
+            {
+                warn(&format!("item name '{name}' is not an identifier, using air: {error}"));
+                ItemRef::Named(Identifier::minecraft("air"))
+            }
+        }
     }
 }
 
