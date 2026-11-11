@@ -58,6 +58,12 @@ impl World
             .map(ItemStack::fromRaw)
     }
 
+    /// needs api 1.46, the leaf at pos starts checking whether a log still holds it, as a broken log tells its leaves
+    pub fn checkLeafDecay(self, pos: BlockPos) -> bool
+    {
+        expectBool(call(HostCall::CheckLeafDecay { world: self.dimension, pos })).unwrap_or(false)
+    }
+
     /// needs api 1.44, as extractItem, taking only a stack the filter accepts
     pub fn extractMatching(
         self,

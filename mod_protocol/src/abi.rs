@@ -3364,6 +3364,14 @@ pub enum HostCall
         block: Identifier,
         model: crate::spec::StateModelSpec,
     },
+
+    /// api 1.46: a leaf of any mod starts checking whether a log in minecraft:logs still holds it, as BlockLeaves'
+    /// decay flag, false when the block is no leaf or already checks, authority only, answered with Bool
+    CheckLeafDecay
+    {
+        world: i32,
+        pos: BlockPos,
+    },
 }
 
 /// api 1.44: a container filled or drained, the stack one item turns into, none when used up, and the fluid moved
