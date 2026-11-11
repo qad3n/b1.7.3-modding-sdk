@@ -238,6 +238,13 @@ fn block(handle: u32, call: BlockCall) -> GuestReply
 
         BlockCall::Connections { ctx } => GuestReply::Int(i32::from(behavior.connections(&mut wrap(ctx)))),
 
+        BlockCall::StateTexture { face, state } =>
+        {
+            let sprite: Option<i32> =
+                behavior.textureFor(face, &state).and_then(|texture| crate::world::terrainSlot(&texture));
+            GuestReply::Int(sprite.unwrap_or(-1))
+        }
+
         BlockCall::Brightness { ctx, base } =>
         {
             GuestReply::Float(behavior.brightness(&mut wrap(ctx), base).unwrap_or(-1.0))

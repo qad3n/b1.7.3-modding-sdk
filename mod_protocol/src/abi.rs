@@ -752,6 +752,12 @@ pub enum BlockCall
     {
         ctx: BlockCtx, base: f32
     },
+
+    /// api 1.45: the sprite slot of a face for a named state, answered with Int, a negative one keeps the texture
+    StateTexture
+    {
+        face: i32, state: StateData
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
@@ -3350,6 +3356,13 @@ pub enum HostCall
         machine: Identifier,
         job: crate::spec::MachineJobSpec,
         rules: Vec<crate::spec::JobInputRule>,
+    },
+
+    /// api 1.45: a block model whose cuboids follow named states, registration only
+    SetStateModel
+    {
+        block: Identifier,
+        model: crate::spec::StateModelSpec,
     },
 }
 

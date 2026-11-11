@@ -156,6 +156,8 @@ pub enum BlockMethod
     Connections,
     /// api 1.33
     Brightness,
+    /// api 1.45
+    StateTexture,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -1396,4 +1398,21 @@ pub struct JobInputRule
     pub input: u32,
     #[serde(default)]
     pub except: Option<Identifier>,
+}
+
+/// api 1.45: a model cuboid shown for the states whose properties match every entry of when, every state when empty
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct StateCuboid
+{
+    pub cuboid: Cuboid,
+    pub when: BTreeMap<String, String>,
+}
+
+/// api 1.45: a block model whose cuboids follow named states instead of metadata, its cuboids' metas go unused
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct StateModelSpec
+{
+    pub cuboids: Vec<StateCuboid>,
 }

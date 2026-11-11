@@ -52,7 +52,8 @@ pub use mod_protocol::spec::
     GameRuleSpec, HeightSpec, IngredientSpec, ItemFilter, ItemSpec, ItemToolSpec, JobEnergySpec, JobFluidSpec,
     JobInputRule, JobInputSpec, JobOutputSpec, LootEntrySpec, LootPoolSpec, LootSpec, MachineFuelSpec, MachineJobSpec,
     MachineRecipeSpec, MachineSlotSpec, MachineSpec, ModelBox, ModelPart, ParticleSpec, PropertySpec, SpawnModifySpec,
-    SpawnSpec, StateVariantSpec, SteeringSpec, TagEntry, TagRef, TileEntitySpec, ToolClass, ToolSpec, WeightedLootSpec,
+    SpawnSpec, StateCuboid, StateModelSpec, StateVariantSpec, SteeringSpec, TagEntry, TagRef, TileEntitySpec,
+    ToolClass, ToolSpec, WeightedLootSpec,
 };
 use mod_protocol::wire::WireError;
 pub use names::{blockIs, blockTagged, nameOf, nameWith, named, tagMembers, tagged};

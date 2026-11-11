@@ -42,6 +42,12 @@ impl Blocks
         expectUnit(call(HostCall::BlockItemModel { block: ownIdentifier(name)?, model }))
     }
 
+    /// needs api 1.45, cuboids picked by named state, each shown for the states matching its when entries
+    pub fn stateModel(&self, name: &str, model: mod_protocol::spec::StateModelSpec) -> Result<()>
+    {
+        expectUnit(call(HostCall::SetStateModel { block: ownIdentifier(name)?, model }))
+    }
+
     pub fn modifySpawns(&self, spec: SpawnModifySpec) -> Result<()>
     {
         expectUnit(call(HostCall::ModifySpawns { spec }))
