@@ -250,6 +250,7 @@ impl World
         crate::expectState(call(HostCall::BlockState { world: self.dimension, pos })).ok().flatten()
     }
 
+    /// from api 1.38 another state of the block already there changes only its metadata and keeps its tile entity
     pub fn setBlockState(self, pos: BlockPos, state: StateData) -> Result<bool>
     {
         expectBool(call(HostCall::SetBlockState { world: self.dimension, pos, state, notify: true }))
