@@ -4,6 +4,7 @@ mod macros;
 mod behavior;
 mod config;
 mod dispatch;
+mod machines;
 pub mod events;
 pub mod math;
 mod names;
@@ -42,6 +43,7 @@ pub use mod_protocol::spec::
     SteeringSpec, TagEntry, TagRef, TileEntitySpec, ToolClass, ToolSpec,
 };
 use mod_protocol::wire::WireError;
+pub use machines::{machineRecipe, machineRecipes};
 pub use names::{blockIs, blockTagged, nameOf, named, tagMembers, tagged};
 pub use register::*;
 pub(crate) use reply::
