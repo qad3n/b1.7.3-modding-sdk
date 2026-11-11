@@ -3,6 +3,11 @@ use crate::{Error, ItemStack, Result, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
 use mod_protocol::abi::{FluidStack, HostCall, HostReply, JobMatch, StackData};
 use mod_protocol::spec::{JobEnergySpec, JobFluidSpec, JobInputSpec, JobOutputSpec, MachineFuelSpec, MachineJobSpec};
+use std::cell::{RefCell, RefMut};
+use std::collections::HashMap;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
+use std::rc::Rc;
 
 const ANY_DAMAGE: i32 = -1;
 
@@ -176,33 +181,193 @@ pub(crate) fn addFuel(machine: &str, item: Option<Identifier>, tag: Option<Ident
     expectUnit(call(HostCall::AddMachineFuel { machine: ownIdentifier(machine)?, fuel }))
 }
 
-/// needs api 1.40, the first job of a machine the stacks and fluids can run, each job input taking the first stack in
-/// order an earlier input left free; the match's slots say which stack each input took
-pub fn matchJob(machine: &str, inputs: &[Option<ItemStack>], fluids: &[FluidStack]) -> Option<JobMatch>
+// the host's answers held per epoch, since they carry numeric ids, so machines asking every tick stay cheap
+struct JobEntry
 {
-    let machine: Identifier = ownIdentifier(machine).ok()?;
-    let inputs: Vec<Option<StackData>> =
-        inputs.iter().map(|stack| stack.as_ref().and_then(|stack| stack.raw().ok())).collect();
-    match call(HostCall::MatchMachineJob { machine, inputs, fluids: fluids.to_vec() })
+    m_machine: String,
+    m_inputs: Vec<Option<StackData>>,
+    m_fluids: Vec<FluidStack>,
+    m_job: Option<Rc<JobMatch>>,
+}
+
+struct FuelEntry
+{
+    m_machine: String,
+    m_stack: StackData,
+    m_furnace: bool,
+    m_value: i32,
+}
+
+#[derive(Default)]
+struct Caches
+{
+    m_epoch: Option<u32>,
+    m_jobs: HashMap<u64, JobEntry>,
+    m_fuels: HashMap<u64, FuelEntry>,
+}
+
+// a full cache starts over, counts in the keys make many entries as stacks shrink
+const CACHE_LIMIT: usize = 4096;
+
+thread_local!
+{
+    static CACHES: RefCell<Caches> = RefCell::new(Caches::default());
+}
+
+fn withCaches<R>(read: impl FnOnce(&mut Caches) -> R) -> R
+{
+    CACHES.with(|caches|
     {
-        HostReply::Job(found) => found,
-        _ => None,
+        let mut caches: RefMut<Caches> = caches.borrow_mut();
+        let epoch: u32 = crate::epoch();
+        if caches.m_epoch != Some(epoch)
+        {
+            *caches = Caches { m_epoch: Some(epoch), ..Caches::default() };
+        }
+
+        read(&mut caches)
+    })
+}
+
+fn raws(inputs: &[Option<ItemStack>]) -> Vec<Option<StackData>>
+{
+    inputs.iter().map(|stack| stack.as_ref().and_then(|stack| stack.raw().ok())).collect()
+}
+
+// hashed without allocating, the entry still compares the whole question since keys may collide
+fn jobKey(machine: &str, inputs: &[Option<ItemStack>], fluids: &[FluidStack]) -> u64
+{
+    let mut hasher: DefaultHasher = DefaultHasher::new();
+    machine.hash(&mut hasher);
+
+    for input in inputs
+    {
+        input.as_ref().and_then(|stack| stack.raw().ok()).map(|raw| (raw.id, raw.count, raw.damage)).hash(&mut hasher);
+    }
+
+    for fluid in fluids
+    {
+        (&fluid.fluid, fluid.amount).hash(&mut hasher);
+    }
+
+    hasher.finish()
+}
+
+impl JobEntry
+{
+    fn answers(&self, machine: &str, inputs: &[Option<ItemStack>], fluids: &[FluidStack]) -> bool
+    {
+        let same: bool = self.m_inputs.len() == inputs.len()
+            && self
+                .m_inputs
+                .iter()
+                .zip(inputs)
+                .all(|(held, stack)| *held == stack.as_ref().and_then(|stack| stack.raw().ok()));
+        same && self.m_machine == machine && self.m_fluids == fluids
     }
 }
 
+/// needs api 1.40, the first job of a machine the stacks and fluids can run, each job input taking the first stack in
+/// order an earlier input left free; the match's slots say which stack each input took. Cached until the next remap,
+/// so a machine may ask every tick
+pub fn findJob(machine: &str, inputs: &[Option<ItemStack>], fluids: &[FluidStack]) -> Option<Rc<JobMatch>>
+{
+    let key: u64 = jobKey(machine, inputs, fluids);
+    let cached: Option<Option<Rc<JobMatch>>> = withCaches(|caches|
+    {
+        caches.m_jobs.get(&key).filter(|entry| entry.answers(machine, inputs, fluids)).map(|entry| entry.m_job.clone())
+    });
+    if let Some(job) = cached
+    {
+        return job;
+    }
+
+    let id: Identifier = ownIdentifier(machine).ok()?;
+    let held: Vec<Option<StackData>> = raws(inputs);
+    let job: Option<Rc<JobMatch>> =
+        match call(HostCall::MatchMachineJob { machine: id, inputs: held.clone(), fluids: fluids.to_vec() })
+        {
+            HostReply::Job(found) => found.map(Rc::new),
+            _ => None,
+        };
+    let entry: JobEntry =
+        JobEntry { m_machine: machine.to_owned(), m_inputs: held, m_fluids: fluids.to_vec(), m_job: job.clone() };
+    withCaches(|caches|
+    {
+        if caches.m_jobs.len() >= CACHE_LIMIT
+        {
+            caches.m_jobs.clear();
+        }
+
+        caches.m_jobs.insert(key, entry);
+    });
+    job
+}
+
+/// needs api 1.40, findJob as an owned match
+pub fn matchJob(machine: &str, inputs: &[Option<ItemStack>], fluids: &[FluidStack]) -> Option<JobMatch>
+{
+    findJob(machine, inputs, fluids).map(|job| (*job).clone())
+}
+
+fn fuelKey(machine: &str, stack: &StackData, furnace: bool) -> u64
+{
+    let mut hasher: DefaultHasher = DefaultHasher::new();
+    (machine, stack.id, stack.damage, furnace).hash(&mut hasher);
+    hasher.finish()
+}
+
 /// needs api 1.40, a stack's fuel value for a machine in the unit the machine defines, from its own entries, or
-/// with furnace the furnace burn time when it has none, 0 when it is no fuel there
+/// with furnace the furnace burn time when it has none, 0 when it is no fuel there; cached until the next remap
 pub fn machineFuel(machine: &str, stack: &ItemStack, furnace: bool) -> i32
 {
-    let (Ok(machine), Ok(stack)) = (ownIdentifier(machine), stack.raw())
+    let Ok(raw) = stack.raw()
     else
     {
         return 0;
     };
 
-    match call(HostCall::MachineFuel { machine, stack, furnace })
+    let key: u64 = fuelKey(machine, &raw, furnace);
+    let cached: Option<i32> = withCaches(|caches|
+    {
+        caches
+            .m_fuels
+            .get(&key)
+            .filter(|entry|
+            {
+                entry.m_machine == machine
+                    && entry.m_stack.id == raw.id
+                    && entry.m_stack.damage == raw.damage
+                    && entry.m_furnace == furnace
+            })
+            .map(|entry| entry.m_value)
+    });
+    if let Some(value) = cached
+    {
+        return value;
+    }
+
+    let Ok(id) = ownIdentifier(machine)
+    else
+    {
+        return 0;
+    };
+
+    let value: i32 = match call(HostCall::MachineFuel { machine: id, stack: raw.clone(), furnace })
     {
         HostReply::Int(ticks) => ticks,
         _ => 0,
-    }
+    };
+    let entry: FuelEntry =
+        FuelEntry { m_machine: machine.to_owned(), m_stack: raw, m_furnace: furnace, m_value: value };
+    withCaches(|caches|
+    {
+        if caches.m_fuels.len() >= CACHE_LIMIT
+        {
+            caches.m_fuels.clear();
+        }
+
+        caches.m_fuels.insert(key, entry);
+    });
+    value
 }

@@ -24,7 +24,7 @@ pub use accessories::{Accessories, WornStack};
 pub use b173_api_macros::{block_behavior, effect_behavior, entity_behavior, item_behavior, mod_main, tile_behavior};
 pub use behavior::{BlockBehavior, EffectBehavior, EntityBehavior, ItemBehavior, TileBehavior, Use};
 pub use config::{Config, Setting, configValue};
-pub use jobs::{JobBuilder, machineFuel, matchJob};
+pub use jobs::{JobBuilder, findJob, machineFuel, matchJob};
 pub use machines::{machineRecipe, machineRecipes};
 pub use mod_protocol::Identifier;
 use mod_protocol::abi::HostCall;
@@ -50,7 +50,7 @@ pub use mod_protocol::spec::
     StateVariantSpec, SteeringSpec, TagEntry, TagRef, TileEntitySpec, ToolClass, ToolSpec, WeightedLootSpec,
 };
 use mod_protocol::wire::WireError;
-pub use names::{blockIs, blockTagged, nameOf, named, tagMembers, tagged};
+pub use names::{blockIs, blockTagged, nameOf, nameWith, named, tagMembers, tagged};
 pub use register::*;
 pub(crate) use reply::
 {

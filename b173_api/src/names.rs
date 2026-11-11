@@ -30,6 +30,13 @@ fn withName<R>(registry: RegistryKind, numeric: i32, read: impl FnOnce(Option<&I
     NAMES.with(|cache| read(cache.borrow().get(&(registry, numeric)).and_then(|(_, name)| name.as_ref())))
 }
 
+/// needs api 1.37, reads the registry name behind a numeric id without cloning it, cached like nameOf, so a hot path
+/// can look the name up in its own tables
+pub fn nameWith<R>(registry: RegistryKind, numeric: i32, read: impl FnOnce(Option<&Identifier>) -> R) -> R
+{
+    withName(registry, numeric, read)
+}
+
 /// the registry name behind a numeric id, cached until the id map or the tags change; a hidden state page id
 /// answers with the block it extends
 pub fn nameOf(registry: RegistryKind, numeric: i32) -> Option<Identifier>
