@@ -1,13 +1,14 @@
 use crate::{ItemRef, RegistryKind, epoch, modId, rt};
 use mod_protocol::Identifier;
 use mod_protocol::abi::HostCall;
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 // each entry keeps the epoch it was read in
 type NameCache = HashMap<(RegistryKind, i32), (u32, Option<Identifier>)>;
-type TagCache = HashMap<(RegistryKind, Identifier), (u32, Rc<HashSet<Identifier>>)>;
+// keyed by the tag as callers spell it so a hit needs no parsing
+type TagCache = HashMap<RegistryKind, HashMap<String, (u32, Rc<HashSet<Identifier>>)>>;
 
 thread_local!
 {
@@ -39,34 +40,45 @@ pub fn nameOf(registry: RegistryKind, numeric: i32) -> Option<Identifier>
 /// needs api 1.37, every member of a tag with nested tags resolved, cached like nameOf
 pub fn tagMembers(registry: RegistryKind, tag: &str) -> Rc<HashSet<Identifier>>
 {
-    let Ok(tag) = Identifier::parseIn(tag.trim_start_matches('#'), &modId())
-    else
-    {
-        return Rc::default();
-    };
-
+    let text: &str = tag.trim_start_matches('#');
     let epoch: u32 = epoch();
-    if let Some((cached, members)) = TAGS.with(|cache| cache.borrow().get(&(registry, tag.clone())).cloned())
-        && cached == epoch
+    let cached: Option<Rc<HashSet<Identifier>>> = TAGS.with(|cache|
+    {
+        let cache: Ref<TagCache> = cache.borrow();
+        let (at, members): &(u32, Rc<HashSet<Identifier>>) = cache.get(&registry)?.get(text)?;
+        (*at == epoch).then(|| Rc::clone(members))
+    });
+    if let Some(members) = cached
     {
         return members;
     }
 
-    let members: Rc<HashSet<Identifier>> = Rc::new(crate::tagValues(registry, &tag.to_string()).into_iter().collect());
-    TAGS.with(|cache| cache.borrow_mut().insert((registry, tag), (epoch, Rc::clone(&members))));
+    let members: Rc<HashSet<Identifier>> = match Identifier::parseIn(text, &modId())
+    {
+        Ok(tag) => Rc::new(crate::tagValues(registry, &tag.to_string()).into_iter().collect()),
+        Err(_) => Rc::default(),
+    };
+    TAGS.with(|cache|
+    {
+        cache.borrow_mut().entry(registry).or_default().insert(text.to_owned(), (epoch, Rc::clone(&members)))
+    });
     members
+}
+
+// a bare name means this mod's namespace, compared as text so a cache hit allocates nothing
+fn matches(id: &Identifier, name: &str) -> bool
+{
+    match name.split_once(':')
+    {
+        Some((namespace, path)) => id.namespace() == namespace && id.path() == path,
+        None => id.path() == name && crate::MOD_ID.with(|own| id.namespace() == own.borrow().as_str()),
+    }
 }
 
 /// needs api 1.37, whether the content behind a numeric id is the named one, a bare name means this mod's
 pub fn named(registry: RegistryKind, numeric: i32, name: &str) -> bool
 {
-    let Ok(name) = Identifier::parseIn(name, &modId())
-    else
-    {
-        return false;
-    };
-
-    withName(registry, numeric, |own| own == Some(&name))
+    withName(registry, numeric, |own| own.is_some_and(|own| matches(own, name)))
 }
 
 /// needs api 1.37, whether the content behind a numeric id sits in the tag
