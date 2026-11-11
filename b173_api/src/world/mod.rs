@@ -396,6 +396,16 @@ pub fn itemCatalog() -> Vec<ItemStack>
     }
 }
 
+/// needs api 1.31, every registered living entity a mob spawner can make, vanilla and mod, in numeric id order
+pub fn mobList() -> Vec<Identifier>
+{
+    match call(HostCall::MobList)
+    {
+        HostReply::Ids(ids) => ids,
+        _ => Vec::new(),
+    }
+}
+
 /// the crafting and smelting recipes the game knows, mod recipes included
 pub fn recipeList() -> Vec<RecipeView>
 {

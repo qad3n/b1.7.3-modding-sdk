@@ -249,7 +249,7 @@ pub mod prelude
     pub use crate::world::
     {
         allPlayers, broadcast, contentGeneration, displayName, foliageColor, grassColor, isClient, isLoaded,
-        itemCatalog, localPlayer, modName, recipeList, screenSize, send, setDynamicTexture, setStackComponent,
+        itemCatalog, localPlayer, mobList, modName, recipeList, screenSize, send, setDynamicTexture, setStackComponent,
         setWorldData, setWorldTime, stackComponent, textWidth, translate, worldData,
     };
     pub use crate::{vanilla, *};

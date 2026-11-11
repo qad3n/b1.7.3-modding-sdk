@@ -2703,6 +2703,10 @@ pub enum HostCall
         registry: RegistryKind,
         id: Identifier,
     },
+
+    /// api 1.31: every registered living entity a mob spawner can make, vanilla and mod, in numeric id order,
+    /// answered with Ids
+    MobList,
 }
 
 /// how a modifier combines with an attribute: adds first, then base multipliers summed, then total multipliers one by one
