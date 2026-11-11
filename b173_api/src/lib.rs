@@ -56,7 +56,7 @@ pub use mod_protocol::spec::
     ToolClass, ToolSpec, WeightedLootSpec,
 };
 use mod_protocol::wire::WireError;
-pub use names::{blockIs, blockTagged, nameOf, nameWith, named, tagMembers, tagged};
+pub use names::{BlockRef, blockIs, blockTagged, nameOf, nameWith, named, tagMembers, tagged};
 pub use register::*;
 pub(crate) use reply::
 {
@@ -103,6 +103,9 @@ impl From<WireError> for Error
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+// item info by item and damage, each with the epoch it was read in
+type InfoCache = HashMap<(i32, i32), (u32, Option<ItemInfo>)>;
+
 thread_local!
 {
     static MOD_ID: RefCell<String> = const { RefCell::new(String::new()) };
@@ -110,6 +113,7 @@ thread_local!
     static EPOCH: Cell<u32> = const { Cell::new(0) };
     // nested so a hit borrows the identifier instead of cloning it into a key
     static RESOLVED: RefCell<HashMap<RegistryKind, HashMap<Identifier, (u32, i32)>>> = RefCell::new(HashMap::new());
+    static INFOS: RefCell<InfoCache> = RefCell::new(HashMap::new());
 }
 
 pub fn modId() -> String { MOD_ID.with(|id| id.borrow().clone()) }
@@ -257,10 +261,20 @@ impl ItemStack
     pub fn toRaw(&self) -> Result<StackData> { self.raw() }
 
     /// needs api 1.33, the item's stack size, durability, subtypes and block shape
+    /// from api 1.47 cached per content epoch by item and damage
     pub fn info(&self) -> Option<ItemInfo>
     {
         let stack: StackData = self.raw().ok()?;
-        expectItemInfo(rt::call(HostCall::ItemInfo { stack }))
+        let key: (i32, i32) = (stack.id, stack.damage);
+        let epoch: u32 = epoch();
+        if let Some((_, info)) = INFOS.with(|infos| infos.borrow().get(&key).filter(|(at, _)| *at == epoch).copied())
+        {
+            return info;
+        }
+
+        let info: Option<ItemInfo> = expectItemInfo(rt::call(HostCall::ItemInfo { stack }));
+        INFOS.with(|infos| infos.borrow_mut().insert(key, (epoch, info)));
+        info
     }
 }
 

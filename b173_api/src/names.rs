@@ -113,3 +113,56 @@ impl ItemRef
         }
     }
 }
+
+/// needs api 1.47, a block by name or by the numeric handle a callback gave, for the world calls that take a block
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum BlockRef
+{
+    Named(Identifier),
+    Numeric(i32),
+}
+
+impl BlockRef
+{
+    /// the numeric handle under this session's id map, cached per content epoch
+    pub fn id(&self) -> crate::Result<i32>
+    {
+        match self
+        {
+            BlockRef::Named(id) => crate::resolve(RegistryKind::Block, id),
+            BlockRef::Numeric(numeric) => Ok(*numeric),
+        }
+    }
+}
+
+impl From<i32> for BlockRef
+{
+    fn from(numeric: i32) -> BlockRef { BlockRef::Numeric(numeric) }
+}
+
+impl From<&str> for BlockRef
+{
+    fn from(name: &str) -> BlockRef
+    {
+        match Identifier::parseIn(name, &modId())
+        {
+            Ok(id) => BlockRef::Named(id),
+
+            Err(error) =>
+            {
+                crate::warn(&format!("block name '{name}' is not an identifier, using air: {error}"));
+                BlockRef::Named(Identifier::minecraft("air"))
+            }
+        }
+    }
+}
+
+impl From<Identifier> for BlockRef
+{
+    fn from(id: Identifier) -> BlockRef { BlockRef::Named(id) }
+}
+
+impl From<&crate::StateHandle> for BlockRef
+{
+    fn from(state: &crate::StateHandle) -> BlockRef { BlockRef::Numeric(state.numeric().0) }
+}

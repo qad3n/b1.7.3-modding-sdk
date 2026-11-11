@@ -62,8 +62,14 @@ impl Player
     }
 
     /// needs api 1.14, how fast it digs a block with what it holds, as EntityPlayer.getCurrentPlayerStrVsBlock
-    pub fn digSpeed(self, block: i32) -> f32
+    pub fn digSpeed(self, block: impl Into<crate::BlockRef>) -> f32
     {
+        let Ok(block) = block.into().id()
+        else
+        {
+            return 1.0;
+        };
+
         expectFloat(call(HostCall::DigSpeed { player: self.id, block })).unwrap_or(1.0)
     }
 

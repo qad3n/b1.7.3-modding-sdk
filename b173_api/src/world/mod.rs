@@ -257,20 +257,24 @@ impl World
         expectInt(call(HostCall::GetMeta { world: self.dimension, pos })).unwrap_or(0)
     }
 
-    pub fn setBlock(self, pos: BlockPos, block: i32, meta: i32) -> Result<bool>
+    /// from api 1.47 the block may be a name
+    pub fn setBlock(self, pos: BlockPos, block: impl Into<crate::BlockRef>, meta: i32) -> Result<bool>
     {
+        let block: i32 = block.into().id()?;
         expectBool(call(HostCall::SetBlock { world: self.dimension, pos, block, meta, notify: true }))
     }
 
-    pub fn setBlockQuiet(self, pos: BlockPos, block: i32, meta: i32) -> Result<bool>
+    pub fn setBlockQuiet(self, pos: BlockPos, block: impl Into<crate::BlockRef>, meta: i32) -> Result<bool>
     {
+        let block: i32 = block.into().id()?;
         expectBool(call(HostCall::SetBlock { world: self.dimension, pos, block, meta, notify: false }))
     }
 
     /// needs api 1.11, a block change that keeps the tile entity with its inventory and open screens, as a furnace
     /// swaps its idle and lit blocks
-    pub fn swapBlock(self, pos: BlockPos, block: i32, meta: i32) -> Result<bool>
+    pub fn swapBlock(self, pos: BlockPos, block: impl Into<crate::BlockRef>, meta: i32) -> Result<bool>
     {
+        let block: i32 = block.into().id()?;
         expectBool(call(HostCall::SwapBlock { world: self.dimension, pos, block, meta }))
     }
 
@@ -308,13 +312,15 @@ impl World
     }
 
     /// the block's usual drops at a spot, as a harvest callback dropping them twice needs
-    pub fn dropBlockItems(self, pos: BlockPos, block: i32, meta: i32) -> Result<()>
+    pub fn dropBlockItems(self, pos: BlockPos, block: impl Into<crate::BlockRef>, meta: i32) -> Result<()>
     {
+        let block: i32 = block.into().id()?;
         expectUnit(call(HostCall::DropBlockItems { world: self.dimension, pos, block, meta }))
     }
 
-    pub fn breakEffect(self, pos: BlockPos, block: i32, meta: i32) -> Result<()>
+    pub fn breakEffect(self, pos: BlockPos, block: impl Into<crate::BlockRef>, meta: i32) -> Result<()>
     {
+        let block: i32 = block.into().id()?;
         expectUnit(call(HostCall::BlockEffect { world: self.dimension, pos, block, meta }))
     }
 
@@ -323,13 +329,18 @@ impl World
         expectUnit(call(HostCall::SetMeta { world: self.dimension, pos, meta }))
     }
 
-    pub fn notifyNeighbors(self, pos: BlockPos, block: i32) -> Result<()>
+    pub fn notifyNeighbors(self, pos: BlockPos, block: impl Into<crate::BlockRef>) -> Result<()>
     {
+        let block: i32 = block.into().id()?;
         expectUnit(call(HostCall::NotifyNeighbors { world: self.dimension, pos, block }))
     }
 
-    pub fn scheduleTick(self, pos: BlockPos, block: i32, delay: i32) -> Result<()>
+    /// needs api 1.47, tells the neighbors the block now at pos changed, as a placed or broken block does
+    pub fn notifyAround(self, pos: BlockPos) -> Result<()> { self.notifyNeighbors(pos, self.block(pos)) }
+
+    pub fn scheduleTick(self, pos: BlockPos, block: impl Into<crate::BlockRef>, delay: i32) -> Result<()>
     {
+        let block: i32 = block.into().id()?;
         expectUnit(call(HostCall::ScheduleTick { world: self.dimension, pos, block, delay }))
     }
 
