@@ -48,7 +48,7 @@ The result is `mymod/target/mymod-0.1.0.b173mod`. Drop it in the game's `mods/` 
 
 - `mod.toml` names the mod: `id`, `version`, `api`, `side` (`both`, `client` or `server`), and other mods under `[depends]` or `[optional]`.
 - `data/<modid>/` holds content as TOML: `blocks/`, `items/`, `recipes/`, `worldgen/`, `tags/`, `states/`, `modify/blocks/`, `modify/spawns/`. Blocks and items copy a vanilla template and change what they need.
-- `assets/<modid>/` holds textures (`textures/<path>.png`, named `<modid>:<path>`), sounds and `lang/en_US.lang`.
+- `assets/<modid>/` is the mod's texture pack layer in the modern resource pack layout: textures (`textures/<path>.png`, named `<modid>:<path>`, frame strips animated by `<path>.png.mcmeta`), sounds (`sounds/<path>.ogg`, played as `<modid>.<path.with.dots>`, optional `sounds.json`) and `lang/en_US.lang` or `lang/en_us.json`. Players' texture packs sit above every mod and can replace any of these files.
 - `ctx.config().options([...])` declares typed settings (`Setting::bool`, `int`, `float`, `text`, `choice`). They live in `config/<modid>.toml` and players edit them in game from the mod menu; `Config.getBool(key)` and friends read them, `onChange` hears menu edits.
 - `src/lib.rs` is optional code. `#[mod_main]` runs once at load and registers blocks, items, events, commands, keybinds, screens and more. Block, item, entity and tile entity logic are trait impls marked `#[block_behavior]`, `#[item_behavior]`, `#[entity_behavior]` or `#[tile_behavior]`.
 
