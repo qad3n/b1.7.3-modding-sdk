@@ -3296,6 +3296,14 @@ pub enum HostCall
         id: Identifier,
         pool: crate::spec::ConditionalPoolSpec,
     },
+
+    /// api 1.43: what may spawn of a kind in a vanilla or mod biome, the list the game spawns from with every mod's
+    /// spawn entries and spawn edits applied, answered with SpawnEntries
+    BiomeSpawns
+    {
+        biome: Identifier,
+        kind: CreatureKind,
+    },
 }
 
 /// api 1.42: what a loot condition or count rule knows about one roll, the dying entity and its killer still in the
@@ -3630,6 +3638,8 @@ pub enum HostReply
     Accessories(Vec<Worn>),
     /// api 1.41
     Features(Vec<FeatureInfo>),
+    /// api 1.43
+    SpawnEntries(Vec<SpawnEntry>),
 }
 
 /// api 1.35: a machine category as a recipe viewer shows it

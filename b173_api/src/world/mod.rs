@@ -147,6 +147,22 @@ impl World
         expectId(call(HostCall::BiomeAt { world: self.dimension, x, z }))
     }
 
+    /// needs api 1.43, what may spawn of a kind in a biome, vanilla or a mod's, with every mod's entries and edits
+    pub fn biomeSpawns(biome: &str, kind: crate::CreatureKind) -> Vec<crate::SpawnEntry>
+    {
+        let Ok(biome) = Identifier::parse(biome)
+        else
+        {
+            return Vec::new();
+        };
+
+        match call(HostCall::BiomeSpawns { biome, kind })
+        {
+            mod_protocol::abi::HostReply::SpawnEntries(entries) => entries,
+            _ => Vec::new(),
+        }
+    }
+
     /// needs api 1.33, every entity whose bounding box meets a box in world coordinates
     pub fn entitiesIn(self, min: [f64; 3], max: [f64; 3]) -> Vec<EntityInfo>
     {
@@ -169,7 +185,10 @@ impl World
     pub fn clear(self, pos: BlockPos) -> Result<bool> { self.setBlock(pos, 0, 0) }
 
     /// needs api 1.37, the block's registry name, a hidden state page answers with its block
-    pub fn blockName(self, pos: BlockPos) -> Option<Identifier> { crate::nameOf(crate::RegistryKind::Block, self.block(pos)) }
+    pub fn blockName(self, pos: BlockPos) -> Option<Identifier>
+    {
+        crate::nameOf(crate::RegistryKind::Block, self.block(pos))
+    }
 
     /// needs api 1.37, the block here is the named one, a bare name means this mod's
     pub fn is(self, pos: BlockPos, name: &str) -> bool { crate::blockIs(self.block(pos), name) }
