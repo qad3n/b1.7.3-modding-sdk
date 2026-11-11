@@ -1,5 +1,5 @@
 use crate::{BlockCtx, Entity, EntityInfo, ItemStack, Player, World};
-use mod_protocol::abi::{BlockPos, FaceOverlay, Pose, PoseInput, UseAction};
+use mod_protocol::abi::{BlockPos, EnergyDemand, FaceOverlay, FluidStack, Pose, PoseInput, UseAction};
 use mod_protocol::spec::{BlockMethod, EffectMethod, EntityMethod, ItemMethod, TileMethod};
 
 /// write the methods you need inside an impl marked #[block_behavior], only those cross from the game into wasm
@@ -35,6 +35,11 @@ pub trait BlockBehavior
     fn overlay(&self, _ctx: &mut BlockCtx, _face: i32) -> Option<FaceOverlay> { None }
     /// needs api 1.14, quarter turns of each face's sprite by face index, as a block drawn on its side
     fn faceRotations(&self, _ctx: &mut BlockCtx) -> Option<[u8; 6]> { None }
+    /// needs api 1.33, the faces a connecting block joins where it stands, a bit per face index; model cuboids whose
+    /// connect names a face show only with its bit, and the loader keeps the answer for the rest of the tick
+    fn connections(&self, _ctx: &mut BlockCtx) -> u8 { 0 }
+    /// needs api 1.33, how bright the block draws given the light where it stands, as a machine lit up by work
+    fn brightness(&self, _ctx: &mut BlockCtx, _base: f32) -> Option<f32> { None }
     fn overridden(&self) -> &'static [&'static str] { unmarked(std::any::type_name::<Self>(), "block_behavior") }
 }
 
@@ -72,6 +77,8 @@ pub trait ItemBehavior
     fn onUseFinish(&self, _world: World, _player: Player, _stack: ItemStack) -> Use { Use::Pass }
     /// needs api 1.23, the item sheet slot shown while held in use for used ticks, None keeps the usual icon
     fn useIcon(&self, _stack: ItemStack, _used: i32) -> Option<i32> { None }
+    /// needs api 1.33, the name one stack shows in place of the item's own, as a map or template numbers itself
+    fn name(&self, _stack: ItemStack) -> Option<String> { None }
     fn overridden(&self) -> &'static [&'static str] { unmarked(std::any::type_name::<Self>(), "item_behavior") }
 }
 
@@ -100,6 +107,20 @@ pub trait TileBehavior
     fn onRemoved(&self, _ctx: &mut BlockCtx) {}
     /// needs api 1.20, the ops that draw the tile's registered model this frame, in block space from its lower corner
     fn pose(&self, _ctx: &mut BlockCtx, _partial: f32, _ticks: i32) -> Pose { Pose::default() }
+    /// needs api 1.33, a stack offered from a face by a pipe, a machine or World::insertItem, the count left over;
+    /// simulate changes nothing, and without this the tile's slots take it as a chest would
+    fn insertItem(&self, _ctx: &mut BlockCtx, _face: i32, stack: ItemStack, _simulate: bool) -> i32 { stack.count }
+    /// needs api 1.33, up to max items given out of a face; without this the first filled slot gives them
+    fn extractItem(&self, _ctx: &mut BlockCtx, _face: i32, _max: i32, _simulate: bool) -> Option<ItemStack> { None }
+    /// needs api 1.33, the energy kind the tile takes from a face and the packet sizes it takes now, None takes none;
+    /// write it together with receiveEnergy
+    fn energyDemand(&self, _ctx: &mut BlockCtx, _face: i32) -> Option<EnergyDemand> { None }
+    /// needs api 1.33, energy pushed in from a face in the kind energyDemand named, the amount taken
+    fn receiveEnergy(&self, _ctx: &mut BlockCtx, _face: i32, _amount: i64, _simulate: bool) -> i64 { 0 }
+    /// needs api 1.33, fluid poured in from a face, the amount taken; write it together with drainFluid
+    fn fillFluid(&self, _ctx: &mut BlockCtx, _face: i32, _stack: &FluidStack, _simulate: bool) -> i32 { 0 }
+    /// needs api 1.33, up to max of the fluid given out of a face
+    fn drainFluid(&self, _ctx: &mut BlockCtx, _face: i32, _max: i32, _simulate: bool) -> Option<FluidStack> { None }
     fn overridden(&self) -> &'static [&'static str] { unmarked(std::any::type_name::<Self>(), "tile_behavior") }
 }
 
@@ -113,7 +134,7 @@ pub trait EffectBehavior
     fn overridden(&self) -> &'static [&'static str] { unmarked(std::any::type_name::<Self>(), "effect_behavior") }
 }
 
-pub(crate) const BLOCK_METHODS: [(&str, BlockMethod); 25] = [
+pub(crate) const BLOCK_METHODS: [(&str, BlockMethod); 27] = [
     ("onActivated", BlockMethod::Activated),
     ("onClicked", BlockMethod::Clicked),
     ("onAdded", BlockMethod::Added),
@@ -139,9 +160,11 @@ pub(crate) const BLOCK_METHODS: [(&str, BlockMethod); 25] = [
     ("strength", BlockMethod::Strength),
     ("overlay", BlockMethod::Overlay),
     ("faceRotations", BlockMethod::FaceRotation),
+    ("connections", BlockMethod::Connections),
+    ("brightness", BlockMethod::Brightness),
 ];
 
-pub(crate) const ITEM_METHODS: [(&str, ItemMethod); 15] = [
+pub(crate) const ITEM_METHODS: [(&str, ItemMethod); 16] = [
     ("onRightClick", ItemMethod::RightClick),
     ("onUseOnBlock", ItemMethod::UseOnBlock),
     ("onHitEntity", ItemMethod::HitEntity),
@@ -157,6 +180,7 @@ pub(crate) const ITEM_METHODS: [(&str, ItemMethod); 15] = [
     ("onStoppedUsing", ItemMethod::StoppedUsing),
     ("onUseFinish", ItemMethod::UseFinish),
     ("useIcon", ItemMethod::UseIcon),
+    ("name", ItemMethod::Name),
 ];
 
 pub(crate) const ENTITY_METHODS: [(&str, EntityMethod); 9] = [
@@ -171,8 +195,17 @@ pub(crate) const ENTITY_METHODS: [(&str, EntityMethod); 9] = [
     ("onTravel", EntityMethod::Travel),
 ];
 
-pub(crate) const TILE_METHODS: [(&str, TileMethod); 3] =
-    [("onTick", TileMethod::Tick), ("onRemoved", TileMethod::Removed), ("pose", TileMethod::Pose)];
+pub(crate) const TILE_METHODS: [(&str, TileMethod); 9] = [
+    ("onTick", TileMethod::Tick),
+    ("onRemoved", TileMethod::Removed),
+    ("pose", TileMethod::Pose),
+    ("insertItem", TileMethod::InsertItem),
+    ("extractItem", TileMethod::ExtractItem),
+    ("energyDemand", TileMethod::Energy),
+    ("receiveEnergy", TileMethod::Energy),
+    ("fillFluid", TileMethod::Fluid),
+    ("drainFluid", TileMethod::Fluid),
+];
 
 pub(crate) const EFFECT_METHODS: [(&str, EffectMethod); 3] =
     [("onAdded", EffectMethod::Added), ("onTick", EffectMethod::Tick), ("onRemoved", EffectMethod::Removed)];

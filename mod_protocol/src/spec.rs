@@ -152,6 +152,10 @@ pub enum BlockMethod
     Overlay,
     /// api 1.14
     FaceRotation,
+    /// api 1.33
+    Connections,
+    /// api 1.33
+    Brightness,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -175,6 +179,8 @@ pub enum ItemMethod
     UseFinish,
     /// api 1.23
     UseIcon,
+    /// api 1.33
+    Name,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -202,6 +208,14 @@ pub enum TileMethod
     Removed,
     /// api 1.20
     Pose,
+    /// api 1.33
+    InsertItem,
+    /// api 1.33
+    ExtractItem,
+    /// api 1.33: both energy calls
+    Energy,
+    /// api 1.33: both fluid calls
+    Fluid,
 }
 
 /// api 1.29
@@ -809,6 +823,16 @@ pub struct FluidSpec
     pub nether_decay: Option<i32>,
     #[serde(default)]
     pub infinite: Option<bool>,
+}
+
+/// api 1.33: an energy kind and what one unit is worth in the loader's shared base unit, so machines of different
+/// mods power each other; kinds with no worth only move between blocks of the same kind
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct EnergySpec
+{
+    pub worth: i64,
+    pub label: String,
 }
 
 /// a status effect: a hud colour and optional icon texture, attribute modifiers added once per level, and every

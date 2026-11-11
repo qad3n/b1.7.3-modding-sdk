@@ -140,6 +140,35 @@ impl Entity
             .map(ItemStack::fromRaw)
     }
 
+    /// needs api 1.33, how many slots the entity's own inventory has, as a chest minecart's
+    pub fn inventorySize(self) -> i32
+    {
+        expectInt(call(HostCall::EntityInventorySize { world: self.world.dimension, id: self.id })).unwrap_or(0)
+    }
+
+    /// needs api 1.33, one slot of the entity's own inventory
+    pub fn slot(self, slot: i32) -> Option<ItemStack>
+    {
+        expectStack(call(HostCall::EntitySlot { world: self.world.dimension, id: self.id, slot }))
+            .ok()
+            .flatten()
+            .map(ItemStack::fromRaw)
+    }
+
+    /// needs api 1.33, changes one slot of the entity's own inventory
+    pub fn setSlot(self, slot: i32, stack: Option<&ItemStack>) -> Result<()>
+    {
+        let stack: Option<mod_protocol::abi::StackData> = stack.map(ItemStack::raw).transpose()?;
+        expectUnit(call(HostCall::SetEntitySlot { world: self.world.dimension, id: self.id, slot, stack }))
+    }
+
+    /// needs api 1.33, changes the stack a dropped item carries, an empty count removes the entity
+    pub fn setItemStack(self, stack: &ItemStack) -> Result<()>
+    {
+        let stack: mod_protocol::abi::StackData = stack.raw()?;
+        expectUnit(call(HostCall::SetItemStack { world: self.world.dimension, id: self.id, stack }))
+    }
+
     /// bytes the server mirrors to every client that sees the entity, saved with it, one slot per mod so mods never clash
     pub fn synced<T: DeserializeOwned + Default>(self) -> T
     {

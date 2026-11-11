@@ -22,27 +22,29 @@ pub use mod_protocol::Identifier;
 use mod_protocol::abi::HostCall;
 pub use mod_protocol::abi::
 {
-    BiomeSpec, BipedPart, BlockInfo, BlockPos, ChunkInfo, ConfigScope, DimensionSpec, EntityField, EntityInfo,
-    EventKind, FaceOverlay, GameRuleValue, Located, ModelOp, ModifierOperation, MusicSpec, Permission, PlayerLayer,
-    Pose, PoseInput, Priority, RayHit, RecipeShape, RecipeView, RegistryKind, SpawnEntry, StackData, StackRef,
-    StateData, StructurePiece, StructureSpec, StructureStart, Target, UseAction,
+    BiomeSpec, BipedPart, BlockInfo, BlockPos, ChunkInfo, ConfigScope, DimensionSpec, EnergyDemand, EntityField,
+    EntityInfo, EventKind, FaceOverlay, FluidBlock, FluidStack, GameRuleValue, ItemInfo, ItemModelSpec, Located,
+    LootDrop, LootSource, LootView, ModelOp, ModifierOperation, MusicSpec, Permission, PlayerLayer, Pose, PoseInput,
+    Priority, RayHit, RecipeShape, RecipeView, RegistryKind, SpawnEntry, StackData, StackRef, StateData,
+    StructurePiece, StructureSpec, StructureStart, Target, UseAction, capability,
 };
 pub use mod_protocol::handshake::ChannelDirection as Direction;
 use mod_protocol::identifier::IdentifierError;
 pub use mod_protocol::spec::
 {
     AchievementSpec, ArmorSlot, ArmorSpec, AttributeSpec, BedFaces, BlockModelSpec, BlockModifySpec, BlockSpec,
-    BlockStatesSpec, CreatureKind, Cuboid, DropSpec, EffectModifierSpec, EffectSpec, EntityModelSpec, EntitySounds,
-    EntitySpec, FaceTextures, Flammability, FluidSpec, FluidStyle, FoodSpec, GameRuleCategory, GameRuleSpec, ItemSpec,
-    ItemToolSpec, LootEntrySpec, LootSpec, ModelBox, ModelPart, ParticleSpec, PropertySpec, SpawnModifySpec, SpawnSpec,
-    StateVariantSpec, SteeringSpec, TagEntry, TagRef, TileEntitySpec, ToolClass, ToolSpec,
+    BlockStatesSpec, CreatureKind, Cuboid, DropSpec, EffectModifierSpec, EffectSpec, EnergySpec, EntityModelSpec,
+    EntitySounds, EntitySpec, FaceTextures, Flammability, FluidSpec, FluidStyle, FoodSpec, GameRuleCategory,
+    GameRuleSpec, ItemSpec, ItemToolSpec, LootEntrySpec, LootSpec, ModelBox, ModelPart, ParticleSpec, PropertySpec,
+    SpawnModifySpec, SpawnSpec, StateVariantSpec, SteeringSpec, TagEntry, TagRef, TileEntitySpec, ToolClass, ToolSpec,
 };
 use mod_protocol::wire::WireError;
 pub use register::*;
 pub(crate) use reply::
 {
-    expectBool, expectBytes, expectDouble, expectEntities, expectEntity, expectFloat, expectId, expectInt,
-    expectLocated, expectLong, expectRule, expectStack, expectStarts, expectState, expectText, expectUnit, fetchData,
+    expectBool, expectBytes, expectDemand, expectDouble, expectEntities, expectEntity, expectFloat, expectFluid,
+    expectFluidBlock, expectId, expectInt, expectItemInfo, expectLocated, expectLong, expectRule, expectStack,
+    expectStarts, expectState, expectText, expectUnit, fetchData,
 };
 pub use serde;
 use std::cell::{Cell, RefCell};
@@ -235,6 +237,13 @@ impl ItemStack
     }
 
     pub fn toRaw(&self) -> Result<StackData> { self.raw() }
+
+    /// needs api 1.33, the item's stack size, durability, subtypes and block shape
+    pub fn info(&self) -> Option<ItemInfo>
+    {
+        let stack: StackData = self.raw().ok()?;
+        expectItemInfo(rt::call(HostCall::ItemInfo { stack }))
+    }
 }
 
 pub fn log(message: &str) { rt::log(mod_protocol::abi::LogLevel::Info, message); }
@@ -248,9 +257,10 @@ pub mod prelude
     pub use crate::services::{Lookup, Service};
     pub use crate::world::
     {
-        allPlayers, broadcast, contentGeneration, displayName, foliageColor, gameRule, grassColor, isClient, isLoaded,
-        itemCatalog, localPlayer, mobList, modName, recipeList, screenSize, send, setDynamicTexture, setGameRule,
-        setStackComponent, setWorldData, setWorldTime, stackComponent, textWidth, translate, worldData,
+        allPlayers, broadcast, containerItem, contentGeneration, craftResult, displayName, foliageColor, fuelTicks,
+        gameRule, grassColor, isClient, isLoaded, itemCatalog, localPlayer, lootList, mobList, modName, paintSprite,
+        recipeList, rollLoot, screenSize, send, setDynamicTexture, setGameRule, setSharedData, setStackComponent,
+        setWorldData, setWorldTime, sharedData, stackComponent, textWidth, translate, unified, worldData,
     };
     pub use crate::{vanilla, *};
     pub use serde::{Deserialize, Serialize};

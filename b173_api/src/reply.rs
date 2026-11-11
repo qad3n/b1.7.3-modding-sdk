@@ -1,6 +1,6 @@
 use crate::{Error, Located, Result, StackData, StateData, StructureStart};
 use mod_protocol::Identifier;
-use mod_protocol::abi::{EntityInfo, GameRuleValue, HostReply};
+use mod_protocol::abi::{EnergyDemand, EntityInfo, FluidBlock, FluidStack, GameRuleValue, HostReply, ItemInfo};
 use serde::de::DeserializeOwned;
 
 // host replies the SDK expects, anything else becomes an Error carrying the host's reason
@@ -177,5 +177,41 @@ pub(crate) fn fetchData<T: DeserializeOwned + Default>(reply: HostReply) -> T
             crate::warn(&format!("stored data no longer decodes, using the default: {error}"));
             T::default()
         }
+    }
+}
+
+pub(crate) fn expectDemand(reply: HostReply) -> Option<EnergyDemand>
+{
+    match reply
+    {
+        HostReply::Demand(demand) => demand,
+        _ => None,
+    }
+}
+
+pub(crate) fn expectFluid(reply: HostReply) -> Option<FluidStack>
+{
+    match reply
+    {
+        HostReply::Fluid(stack) => stack,
+        _ => None,
+    }
+}
+
+pub(crate) fn expectFluidBlock(reply: HostReply) -> Option<FluidBlock>
+{
+    match reply
+    {
+        HostReply::FluidBlock(block) => block,
+        _ => None,
+    }
+}
+
+pub(crate) fn expectItemInfo(reply: HostReply) -> Option<ItemInfo>
+{
+    match reply
+    {
+        HostReply::ItemInfo(info) => info,
+        _ => None,
     }
 }

@@ -2,7 +2,7 @@ use crate::behavior::{self, BlockBehavior, ItemBehavior};
 use crate::rt::call;
 use crate::{ItemRef, Result, dispatch, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
-use mod_protocol::abi::{HostCall, RegistryKind};
+use mod_protocol::abi::{HostCall, ItemModelSpec, RegistryKind};
 use mod_protocol::spec::
 {
     Behavior, BlockMethod, BlockModifySpec, BlockSpec, BlockStatesSpec, ItemMethod, ItemSpec, SpawnModifySpec,
@@ -36,6 +36,12 @@ impl Blocks
     pub fn modify(&self, spec: BlockModifySpec) -> Result<()> { expectUnit(call(HostCall::ModifyBlock { spec })) }
 
     /// adds an entity to biome spawn lists, or with weight 0 removes it, for vanilla and other mods' mobs too
+    /// needs api 1.33, draws the block's item in 3d from model cuboids and its tile's model instead of a flat sprite
+    pub fn itemModel(&self, name: &str, model: ItemModelSpec) -> Result<()>
+    {
+        expectUnit(call(HostCall::BlockItemModel { block: ownIdentifier(name)?, model }))
+    }
+
     pub fn modifySpawns(&self, spec: SpawnModifySpec) -> Result<()>
     {
         expectUnit(call(HostCall::ModifySpawns { spec }))

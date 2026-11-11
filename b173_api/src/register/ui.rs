@@ -57,6 +57,12 @@ impl Screens
         expectUnit(call(HostCall::RegisterScreen { name: name.to_owned(), spec: spec.m_spec, handler: handle }))
     }
 
+    /// needs api 1.33, a crafting table result slot on a registered container screen, over its nine slots from first
+    pub fn craftResult(&self, name: &str, first: i32, x: i32, y: i32) -> Result<()>
+    {
+        expectUnit(call(HostCall::ScreenCraftSlot { screen: name.to_owned(), first, x, y }))
+    }
+
     /// layers over every player model, from the player and its synced bytes
     pub fn playerLayer(
         &self,

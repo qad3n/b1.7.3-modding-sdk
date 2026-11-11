@@ -2,18 +2,19 @@ use crate::rt::{call, fire};
 use crate::terrain::structure::StructureBox;
 use crate::
 {
-    Error, ItemStack, Result, expectBool, expectEntities, expectEntity, expectId, expectInt, expectLocated, expectLong,
-    expectStack, expectStarts, expectText, expectUnit, fetchData,
+    Error, ItemStack, Result, expectBool, expectDemand, expectEntities, expectEntity, expectFluid, expectFluidBlock,
+    expectId, expectInt, expectLocated, expectLong, expectStack, expectStarts, expectText, expectUnit, fetchData,
 };
 use mod_protocol::Identifier;
 use mod_protocol::abi::
 {
-    BlockInfo, BlockPos, EntityInfo, HostCall, HostReply, Located, RayHit, RecipeView, StackData, StackRef, StateData,
-    StructureStart,
+    BlockInfo, BlockPos, EnergyDemand, EntityInfo, FluidBlock, FluidStack, HostCall, HostReply, Located, LootView,
+    RayHit, RecipeView, StackData, StackRef, StateData, StructureStart,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
+mod blast;
 mod block;
 mod entity;
 mod player;
@@ -54,6 +55,101 @@ impl World
             .ok()
             .flatten()
             .map(ItemStack::fromRaw)
+    }
+
+    /// needs api 1.33, the capability bits a block offers from a face: items, fluids and energy
+    pub fn capabilities(self, pos: BlockPos, face: i32) -> i32
+    {
+        expectInt(call(HostCall::Capabilities { world: self.dimension, pos, face })).unwrap_or(0)
+    }
+
+    /// needs api 1.33, the packet sizes a block takes of an energy kind from a face now, None when it takes none
+    pub fn energyDemand(self, pos: BlockPos, face: i32, kind: &Identifier) -> Option<EnergyDemand>
+    {
+        expectDemand(call(HostCall::EnergyDemand { world: self.dimension, pos, face, kind: kind.clone() }))
+    }
+
+    /// needs api 1.33, pushes energy into a block from a face, the amount it took
+    pub fn sendEnergy(self, pos: BlockPos, face: i32, kind: &Identifier, amount: i64, simulate: bool) -> i64
+    {
+        let request: HostCall =
+            HostCall::SendEnergy { world: self.dimension, pos, face, kind: kind.clone(), amount, simulate };
+        expectLong(call(request)).unwrap_or(0)
+    }
+
+    /// needs api 1.33, pours fluid into a block from a face, the amount it took
+    pub fn fillFluid(self, pos: BlockPos, face: i32, stack: &FluidStack, simulate: bool) -> i32
+    {
+        let request: HostCall =
+            HostCall::FillFluid { world: self.dimension, pos, face, stack: stack.clone(), simulate };
+        expectInt(call(request)).unwrap_or(0)
+    }
+
+    /// needs api 1.33, takes up to max fluid out of a block from a face
+    pub fn drainFluid(self, pos: BlockPos, face: i32, max: i32, simulate: bool) -> Option<FluidStack>
+    {
+        expectFluid(call(HostCall::DrainFluid { world: self.dimension, pos, face, max, simulate }))
+    }
+
+    /// needs api 1.33, the registered fluid a block holds, vanilla water and lava included
+    pub fn fluidAt(self, pos: BlockPos) -> Option<FluidBlock>
+    {
+        expectFluidBlock(call(HostCall::FluidAt { world: self.dimension, pos }))
+    }
+
+    /// needs api 1.33, the stacks a block would drop if a machine mined it, leaving the block in place
+    pub fn blockDrops(self, pos: BlockPos) -> Vec<ItemStack>
+    {
+        match call(HostCall::BlockDrops { world: self.dimension, pos })
+        {
+            HostReply::Stacks(stacks) => stacks.into_iter().map(ItemStack::fromRaw).collect(),
+            _ => Vec::new(),
+        }
+    }
+
+    /// needs api 1.33, the single stack a ModLoader era machine takes from a block: one roll of its dropped id and
+    /// quantity, None when it drops nothing
+    pub fn blockDropStack(self, pos: BlockPos) -> Option<ItemStack>
+    {
+        match call(HostCall::BlockDropStack { world: self.dimension, pos })
+        {
+            HostReply::Stack(stack) => stack.map(ItemStack::fromRaw),
+            _ => None,
+        }
+    }
+
+    /// needs api 1.33, places the block a stack holds at pos with no player, as clicked on the face of the block
+    /// behind it; true when it went down, the caller takes the item from its stack
+    pub fn placeBlock(self, pos: BlockPos, face: i32, stack: &ItemStack) -> Result<bool>
+    {
+        let stack: StackData = stack.raw()?;
+        expectBool(call(HostCall::PlaceBlock { world: self.dimension, pos, face, stack }))
+    }
+
+    /// needs api 1.33, drops a stack with a motion and a pickup delay in ticks, the dropped item's entity
+    pub fn dropItem(self, pos: [f64; 3], stack: &ItemStack, motion: [f64; 3], delay: i32) -> Result<Entity>
+    {
+        let stack: StackData = stack.raw()?;
+        let id: i32 = expectInt(call(HostCall::DropItem { world: self.dimension, pos, stack, motion, delay }))?;
+        Ok(Entity { world: self, id })
+    }
+
+    /// needs api 1.33, how many slots the inventory at a block has, 0 for none; tileSlot reads them by index
+    pub fn inventorySize(self, pos: BlockPos) -> i32
+    {
+        expectInt(call(HostCall::InventorySize { world: self.dimension, pos })).unwrap_or(0)
+    }
+
+    /// needs api 1.33, the biome a column holds, as minecraft:desert or a mod biome's name
+    pub fn biomeAt(self, x: i32, z: i32) -> Option<Identifier>
+    {
+        expectId(call(HostCall::BiomeAt { world: self.dimension, x, z }))
+    }
+
+    /// needs api 1.33, every entity whose bounding box meets a box in world coordinates
+    pub fn entitiesIn(self, min: [f64; 3], max: [f64; 3]) -> Vec<EntityInfo>
+    {
+        expectEntities(call(HostCall::EntitiesIn { world: self.dimension, min, max }))
     }
 
     pub fn block(self, pos: BlockPos) -> i32
@@ -389,6 +485,64 @@ pub fn setWorldData<T: Serialize>(key: &str, value: &T)
 }
 
 /// every stack a creative item list shows, subtypes included, in numeric id order, each a full stack
+/// needs api 1.33, a value a mod keeps outside any world, shared by every save of this game or server folder
+pub fn sharedData<T: DeserializeOwned + Default>(key: &str) -> T
+{
+    fetchData(call(HostCall::SharedData { key: key.to_owned() }))
+}
+
+/// needs api 1.33, replaces a shared value, saved at once
+pub fn setSharedData<T: Serialize>(key: &str, value: &T) -> Result<()>
+{
+    expectUnit(call(HostCall::SetSharedData { key: key.to_owned(), data: encode(value) }))
+}
+
+/// needs api 1.33, redraws a sprite from square argb pixels made in code, as a TextureFX does each tick; client only
+pub fn paintSprite(texture: &str, size: u32, pixels: Vec<u32>) -> Result<()>
+{
+    let texture: Identifier = Identifier::parse(texture).map_err(|error| Error(format!("bad sprite name: {error}")))?;
+    expectUnit(call(HostCall::PaintSprite { texture, size, pixels }))
+}
+
+/// needs api 1.33, what the crafting table makes of a 3 by 3 grid given in row order
+pub fn craftResult(grid: &[Option<ItemStack>; 9]) -> Option<ItemStack>
+{
+    let grid: Vec<Option<StackData>> =
+        grid.iter().map(|slot| slot.as_ref().and_then(|stack| stack.raw().ok())).collect();
+    expectStack(call(HostCall::CraftResult { grid })).ok().flatten().map(ItemStack::fromRaw)
+}
+
+/// needs api 1.33, the member a stack turns into when several mods add the same material under a shared c: tag
+pub fn unified(stack: &ItemStack) -> ItemStack
+{
+    let Ok(raw) = stack.raw()
+    else
+    {
+        return stack.clone();
+    };
+
+    expectStack(call(HostCall::Unified { stack: raw })).ok().flatten().map_or_else(|| stack.clone(), ItemStack::fromRaw)
+}
+
+/// needs api 1.33, the stack a crafting or burning use of an item leaves behind, as an empty bucket
+pub fn containerItem(stack: &ItemStack) -> Option<ItemStack>
+{
+    let stack: StackData = stack.raw().ok()?;
+    expectStack(call(HostCall::ContainerItem { stack })).ok().flatten().map(ItemStack::fromRaw)
+}
+
+/// needs api 1.33, how many ticks a stack burns in a furnace, mod fuels included, 0 for none
+pub fn fuelTicks(stack: &ItemStack) -> i32
+{
+    let Ok(stack) = stack.raw()
+    else
+    {
+        return 0;
+    };
+
+    expectInt(call(HostCall::FuelTicks { stack })).unwrap_or(0)
+}
+
 pub fn itemCatalog() -> Vec<ItemStack>
 {
     match call(HostCall::ItemCatalog)
@@ -414,6 +568,26 @@ pub fn recipeList() -> Vec<RecipeView>
     match call(HostCall::RecipeList)
     {
         HostReply::Recipes(recipes) => recipes,
+        _ => Vec::new(),
+    }
+}
+
+/// needs api 1.33, every drop table a recipe viewer shows: beta's mob, block and dungeon drops and every mod's loot
+pub fn lootList() -> Vec<LootView>
+{
+    match call(HostCall::LootList)
+    {
+        HostReply::Loot(tables) => tables,
+        _ => Vec::new(),
+    }
+}
+
+/// needs api 1.33, the stacks a chest loot table rolls with a random seeded from seed, so worldgen stays repeatable
+pub fn rollLoot(table: &Identifier, seed: i64) -> Vec<ItemStack>
+{
+    match call(HostCall::RollLoot { table: table.clone(), seed })
+    {
+        HostReply::Stacks(stacks) => stacks.into_iter().map(ItemStack::fromRaw).collect(),
         _ => Vec::new(),
     }
 }

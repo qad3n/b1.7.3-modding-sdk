@@ -5,7 +5,7 @@ use mod_protocol::Identifier;
 use mod_protocol::abi::{HostCall, HostReply, RegistryKind};
 use mod_protocol::spec::
 {
-    AchievementSpec, AttributeSpec, Behavior, EffectMethod, EffectSpec, FluidSpec, GameRuleSpec, LootSpec,
+    AchievementSpec, AttributeSpec, Behavior, EffectMethod, EffectSpec, EnergySpec, FluidSpec, GameRuleSpec, LootSpec,
     ParticleSpec, TagEntry,
 };
 use std::rc::Rc;
@@ -25,6 +25,18 @@ pub struct Achievements;
 pub struct Attributes;
 
 pub struct GameRules;
+
+pub struct Energies;
+
+impl Energies
+{
+    /// needs api 1.33, an energy kind named <modid>:<name> and its worth in the loader's shared base unit, so machines
+    /// of other mods convert to and from it
+    pub fn register(&self, name: &str, spec: EnergySpec) -> Result<()>
+    {
+        expectUnit(call(HostCall::RegisterEnergy { name: ownIdentifier(name)?.to_string(), spec }))
+    }
+}
 
 impl GameRules
 {
@@ -91,6 +103,12 @@ impl Loot
     pub fn block(&self, block: &str, spec: LootSpec) -> Result<()> { setLoot(RegistryKind::Block, block, spec) }
 
     pub fn entity(&self, entity: &str, spec: LootSpec) -> Result<()> { setLoot(RegistryKind::Entity, entity, spec) }
+
+    /// needs api 1.33, a chest loot table structures roll with rollLoot and recipe viewers list
+    pub fn chest(&self, table: &str, spec: LootSpec) -> Result<()>
+    {
+        expectUnit(call(HostCall::SetChestLoot { table: ownIdentifier(table)?, spec }))
+    }
 }
 
 fn setLoot(registry: RegistryKind, target: &str, spec: LootSpec) -> Result<()>

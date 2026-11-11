@@ -224,6 +224,13 @@ fn block(handle: u32, call: BlockCall) -> GuestReply
             Some(turns) => GuestReply::Bytes(turns.to_vec()),
             None => GuestReply::Unit,
         },
+
+        BlockCall::Connections { ctx } => GuestReply::Int(i32::from(behavior.connections(&mut wrap(ctx)))),
+
+        BlockCall::Brightness { ctx, base } =>
+        {
+            GuestReply::Float(behavior.brightness(&mut wrap(ctx), base).unwrap_or(-1.0))
+        }
     }
 }
 
@@ -314,6 +321,12 @@ fn item(handle: u32, call: ItemCall) -> GuestReply
             GuestReply::Int(behavior.useIcon(ItemStack::fromRaw(stack), used).unwrap_or(-1))
         }
 
+        ItemCall::Name { stack } => match behavior.name(ItemStack::fromRaw(stack))
+        {
+            Some(name) => GuestReply::Lines(vec![name]),
+            None => GuestReply::Unit,
+        },
+
         ItemCall::UseFinish { world, player, stack } =>
         {
             useReply(behavior.onUseFinish(World { dimension: world }, Player { id: player }, ItemStack::fromRaw(stack)))
@@ -398,6 +411,37 @@ fn tile(handle: u32, call: TileCall) -> GuestReply
         TileCall::Pose { ctx, partial, ticks } =>
         {
             GuestReply::Pose(behavior.pose(&mut BlockCtx { raw: ctx }, partial, ticks))
+        }
+
+        TileCall::InsertItem { ctx, face, stack, simulate } =>
+        {
+            GuestReply::Int(behavior.insertItem(&mut BlockCtx { raw: ctx }, face, ItemStack::fromRaw(stack), simulate))
+        }
+
+        TileCall::ExtractItem { ctx, face, max, simulate } =>
+        {
+            let taken: Option<ItemStack> = behavior.extractItem(&mut BlockCtx { raw: ctx }, face, max, simulate);
+            GuestReply::Stack(taken.and_then(|stack| stack.raw().ok()))
+        }
+
+        TileCall::EnergyDemand { ctx, face } =>
+        {
+            GuestReply::Demand(behavior.energyDemand(&mut BlockCtx { raw: ctx }, face))
+        }
+
+        TileCall::ReceiveEnergy { ctx, face, amount, simulate, .. } =>
+        {
+            GuestReply::Long(behavior.receiveEnergy(&mut BlockCtx { raw: ctx }, face, amount, simulate))
+        }
+
+        TileCall::FillFluid { ctx, face, stack, simulate } =>
+        {
+            GuestReply::Int(behavior.fillFluid(&mut BlockCtx { raw: ctx }, face, &stack, simulate))
+        }
+
+        TileCall::DrainFluid { ctx, face, max, simulate } =>
+        {
+            GuestReply::Fluid(behavior.drainFluid(&mut BlockCtx { raw: ctx }, face, max, simulate))
         }
     }
 }

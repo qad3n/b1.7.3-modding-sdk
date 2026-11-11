@@ -40,6 +40,12 @@ impl TileEntities
         expectUnit(call(HostCall::RegisterTileEntity { name: ownIdentifier(name)?.to_string(), spec }))
     }
 
+    /// needs api 1.33, how many items each slot of the type holds, 64 when never set
+    pub fn stackLimit(&self, name: &str, limit: i32) -> Result<()>
+    {
+        expectUnit(call(HostCall::TileStackLimit { tile: ownIdentifier(name)?, limit }))
+    }
+
     /// needs api 1.20, the model every tile of the type draws with, posed each frame by its behavior's pose
     pub fn model(&self, name: &str, model: crate::EntityModelSpec) -> Result<()>
     {

@@ -738,6 +738,20 @@ pub enum BlockCall
     {
         ctx: BlockCtx
     },
+
+    /// api 1.33: which faces a connecting block joins where it stands, a bit per face index, answered with Int; the
+    /// loader keeps the answer for the rest of the tick for its model, collision and selection
+    Connections
+    {
+        ctx: BlockCtx
+    },
+
+    /// api 1.33: how bright the block draws where it stands given the light there, as Block.getBlockBrightness,
+    /// answered with Float, a negative one keeps the light
+    Brightness
+    {
+        ctx: BlockCtx, base: f32
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
@@ -823,6 +837,13 @@ pub enum ItemCall
     UseIcon
     {
         stack: StackData, used: i32
+    },
+
+    /// api 1.33: the name one stack shows, as Item.getItemNameIS with its own localization, answered with Lines of
+    /// one name or Unit to keep the item's name
+    Name
+    {
+        stack: StackData
     },
 }
 
@@ -948,6 +969,13 @@ pub enum ModelOp
         part: u16,
         stack: StackData,
     },
+    /// api 1.33: a stack drawn where the transform stands as a resting dropped item looks, a block as a small cube
+    /// and an item as a sprite turned to the camera, more copies for a bigger stack, lit by a 0 to 1 brightness
+    Item
+    {
+        stack: StackData,
+        brightness: f32,
+    },
 }
 
 /// the draw program for one frame: pre runs where preRenderCallback does, model replaces ModelBase.render
@@ -1000,6 +1028,45 @@ pub enum TileCall
     Pose
     {
         ctx: BlockCtx, partial: f32, ticks: i32
+    },
+
+    /// api 1.33: a stack offered to the tile from a face by a pipe, machine or World::insertItem, answered with Int,
+    /// the count it leaves over; simulate changes nothing
+    InsertItem
+    {
+        ctx: BlockCtx, face: i32, stack: StackData, simulate: bool
+    },
+
+    /// api 1.33: up to max items the tile gives out of a face, answered with Stack
+    ExtractItem
+    {
+        ctx: BlockCtx, face: i32, max: i32, simulate: bool
+    },
+
+    /// api 1.33: the energy kind the tile takes from a face and the smallest and largest packet it takes now, answered
+    /// with Demand
+    EnergyDemand
+    {
+        ctx: BlockCtx, face: i32
+    },
+
+    /// api 1.33: energy pushed into the tile from a face in the kind its demand named, the loader converts other kinds
+    /// first; answered with Long, the amount it took
+    ReceiveEnergy
+    {
+        ctx: BlockCtx, face: i32, kind: Identifier, amount: i64, simulate: bool
+    },
+
+    /// api 1.33: fluid poured into the tile from a face, answered with Int, the amount it took
+    FillFluid
+    {
+        ctx: BlockCtx, face: i32, stack: FluidStack, simulate: bool
+    },
+
+    /// api 1.33: up to max of the fluid the tile gives out of a face, answered with Fluid
+    DrainFluid
+    {
+        ctx: BlockCtx, face: i32, max: i32, simulate: bool
     },
 }
 
@@ -1239,6 +1306,12 @@ pub enum GuestReply
     },
     /// api 1.13: the sprite a block draws over one face, None draws nothing there
     Overlay(Option<FaceOverlay>),
+    /// api 1.33
+    Long(i64),
+    /// api 1.33
+    Demand(Option<EnergyDemand>),
+    /// api 1.33
+    Fluid(Option<FluidStack>),
 }
 
 /// api 1.13: a sprite laid over a block face, as BlockTFCastleMagic's runes
@@ -2728,6 +2801,291 @@ pub enum HostCall
         rule: Identifier,
         value: GameRuleValue,
     },
+
+    /// api 1.33: which kinds of transfer a block takes from a face, the bits of capability, answered with Int; an
+    /// inventory tile counts for items, a mod tile for each transfer its behavior answers
+    Capabilities
+    {
+        world: i32,
+        pos: BlockPos,
+        face: i32,
+    },
+
+    /// api 1.33: the packet sizes a block takes from a face now, converted into the asker's energy kind through the
+    /// energy registry, answered with Demand; None when it takes none or its kind does not convert
+    EnergyDemand
+    {
+        world: i32,
+        pos: BlockPos,
+        face: i32,
+        kind: Identifier,
+    },
+
+    /// api 1.33: pushes energy of a kind into a block from a face, converted into the kind the block takes; answered
+    /// with Long, the amount of the sender's kind it took
+    SendEnergy
+    {
+        world: i32,
+        pos: BlockPos,
+        face: i32,
+        kind: Identifier,
+        amount: i64,
+        simulate: bool,
+    },
+
+    /// api 1.33: pours fluid into a block from a face, answered with Int, the amount it took
+    FillFluid
+    {
+        world: i32,
+        pos: BlockPos,
+        face: i32,
+        stack: FluidStack,
+        simulate: bool,
+    },
+
+    /// api 1.33: takes up to max fluid out of a block from a face, answered with Fluid
+    DrainFluid
+    {
+        world: i32,
+        pos: BlockPos,
+        face: i32,
+        max: i32,
+        simulate: bool,
+    },
+
+    /// api 1.33: the registered fluid a block holds where it stands, vanilla water and lava included, answered with
+    /// FluidBlock
+    FluidAt
+    {
+        world: i32,
+        pos: BlockPos,
+    },
+
+    /// api 1.33: the stacks a block would drop if a machine mined it, as Block.dropBlockAsItem rolls them, without
+    /// removing it or spawning anything, answered with Stacks
+    BlockDrops
+    {
+        world: i32,
+        pos: BlockPos,
+    },
+
+    /// api 1.33: places the block a stack holds at pos as ItemBlock.onItemUse does with no player, as if clicked on
+    /// the face of the block behind it, answered with Bool; the caller takes the item from its stack
+    PlaceBlock
+    {
+        world: i32,
+        pos: BlockPos,
+        face: i32,
+        stack: StackData,
+    },
+
+    /// api 1.33: the result CraftingManager.findMatchingRecipe gives for a 3 by 3 grid in row order, answered with
+    /// Stack
+    CraftResult
+    {
+        grid: Vec<Option<StackData>>,
+    },
+
+    /// api 1.33: Item.getContainerItem, the stack a crafting or burning use of the item leaves behind, answered with
+    /// Stack
+    ContainerItem
+    {
+        stack: StackData,
+    },
+
+    /// api 1.33: how many ticks a stack burns in a furnace, mod fuels included, answered with Int
+    FuelTicks
+    {
+        stack: StackData,
+    },
+
+    /// api 1.33: changes the stack a dropped item entity holds, an empty count removes it
+    SetItemStack
+    {
+        world: i32,
+        id: i32,
+        stack: StackData,
+    },
+
+    /// api 1.33: every entity whose bounding box meets a box in world coordinates, answered with Entities
+    EntitiesIn
+    {
+        world: i32,
+        min: [f64; 3],
+        max: [f64; 3],
+    },
+
+    /// api 1.33: an energy kind named <modid>:<name>, register phase; kinds with a known worth convert into each other
+    RegisterEnergy
+    {
+        name: String,
+        spec: crate::spec::EnergySpec,
+    },
+
+    /// api 1.33: the member of a merged material a stack turns into, the stack itself when it is in no merged group;
+    /// answered with Stack. The loader merges the same material added by several mods through shared c: tags
+    Unified
+    {
+        stack: StackData,
+    },
+
+    /// api 1.33: how many slots the inventory tile at a block has, the slots TileSlot reads; answered with Int, 0 for
+    /// a block with none
+    InventorySize
+    {
+        world: i32,
+        pos: BlockPos,
+    },
+
+    /// api 1.33: bytes a mod keeps under a key outside any world, shared by every save of this game or server folder,
+    /// answered with Bytes; keys are lowercase letters, digits and underscores
+    SharedData
+    {
+        key: String,
+    },
+
+    /// api 1.33: replaces a shared data key, empty bytes remove it
+    SetSharedData
+    {
+        key: String,
+        data: Vec<u8>,
+    },
+
+    /// api 1.33: the biome a column of a world holds, answered with Id
+    BiomeAt
+    {
+        world: i32,
+        x: i32,
+        z: i32,
+    },
+
+    /// api 1.33: what an item is, answered with ItemInfo
+    ItemInfo
+    {
+        stack: StackData,
+    },
+
+    /// api 1.33: drops a stack with a motion and pickup delay, as machines throw their output, answered with Int,
+    /// the dropped item's entity id
+    DropItem
+    {
+        world: i32,
+        pos: [f64; 3],
+        stack: StackData,
+        motion: [f64; 3],
+        delay: i32,
+    },
+
+    /// api 1.33: a crafting table result slot on a container screen, showing what the nine screen slots from first
+    /// make and taking one craft from them as the workbench does; register phase, the screen's own mod
+    ScreenCraftSlot
+    {
+        screen: String,
+        first: i32,
+        x: i32,
+        y: i32,
+    },
+
+    /// api 1.33: how many slots an entity's own inventory has, a minecart's included; answered with Int, 0 for none
+    EntityInventorySize
+    {
+        world: i32,
+        id: i32,
+    },
+
+    /// api 1.33: one slot of an entity's inventory, answered with Stack
+    EntitySlot
+    {
+        world: i32,
+        id: i32,
+        slot: i32,
+    },
+
+    /// api 1.33: changes one slot of an entity's inventory, on the side owning the world
+    SetEntitySlot
+    {
+        world: i32,
+        id: i32,
+        slot: i32,
+        stack: Option<StackData>,
+    },
+
+    /// api 1.33: redraws a terrain or item sprite from square argb pixels a mod made in code, as TextureFX effects
+    /// do each tick; client only, a server ignores it
+    PaintSprite
+    {
+        texture: Identifier,
+        size: u32,
+        pixels: Vec<u32>,
+    },
+
+    /// api 1.33: draws a block's item in 3d from cuboids and its tile's model instead of a flat sprite; register
+    /// phase, only the block's own mod
+    BlockItemModel
+    {
+        block: Identifier,
+        model: ItemModelSpec,
+    },
+
+    /// api 1.33: caps how many items each slot of a tile entity type holds, as IInventory.getInventoryStackLimit;
+    /// register phase, only the type's own mod
+    TileStackLimit
+    {
+        tile: Identifier,
+        limit: i32,
+    },
+    /// api 1.33: Block.getExplosionResistance of a block id with no exploder, what an explosion ray loses on it;
+    /// answered with Float
+    ExplosionResistance
+    {
+        block: i32,
+    },
+
+    /// api 1.33: an explosion takes one block out as Explosion.doExplosionB does: its drops each kept with a chance,
+    /// the block gone, then its onBlockDestroyedByExplosion, so explosives set each other off
+    BlastBlock
+    {
+        world: i32,
+        pos: BlockPos,
+        chance: f32,
+    },
+
+    /// api 1.33: World.getBlockDensity, the share of rays from a point that reach an entity's box unblocked; answered
+    /// with Float
+    BlockDensity
+    {
+        world: i32,
+        from: [f64; 3],
+        id: i32,
+    },
+
+    /// api 1.33: the one stack old mods take from a mined block, idDropped then quantityDropped rolled once with the
+    /// world's random and damageDropped, as ModLoader era machines read a block; answered with Stack
+    BlockDropStack
+    {
+        world: i32,
+        pos: BlockPos,
+    },
+
+    /// api 1.33: every drop table a recipe viewer shows, beta's mob, block and dungeon drops as the loader describes
+    /// them and every mod's block, entity and chest loot, answered with Loot
+    LootList,
+
+    /// api 1.33: entries for a chest loot table named <modid>:<name> that structures roll with RollLoot, merged in
+    /// load order, replace drops what came before; beta's own chest tables are fixed
+    SetChestLoot
+    {
+        table: Identifier,
+        spec: LootSpec,
+    },
+
+    /// api 1.33: rolls a chest loot table once with a random seeded from seed, every entry on its own, answered with
+    /// Stacks
+    RollLoot
+    {
+        table: Identifier,
+        seed: i64,
+    },
 }
 
 /// api 1.32: the value of a game rule, in data files written as {bool = true} or {int = 3}
@@ -2737,6 +3095,64 @@ pub enum GameRuleValue
 {
     Bool(bool),
     Int(i32),
+}
+
+/// api 1.33: the energy kind a block takes and the packet sizes it takes now, both ends included
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
+pub struct EnergyDemand
+{
+    pub kind: Identifier,
+    pub min: i64,
+    pub max: i64,
+}
+
+/// api 1.33: an amount of a registered fluid in thousandths of a bucket, minecraft:water and minecraft:lava included
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
+pub struct FluidStack
+{
+    pub fluid: Identifier,
+    pub amount: i32,
+}
+
+/// api 1.33: a fluid block where it stands, level 0 is a source and 8 or more falls from above
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
+pub struct FluidBlock
+{
+    pub fluid: Identifier,
+    pub level: i32,
+    pub source: bool,
+}
+
+/// api 1.33: an item's numbers: its stack size, durability, whether damage picks a subtype and whether it is a
+/// block drawn in 3d as a dropped item
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub struct ItemInfo
+{
+    pub max_stack: i32,
+    pub max_damage: i32,
+    pub subtypes: bool,
+    pub block: bool,
+    pub cube: bool,
+}
+
+/// api 1.33: how a block's item draws in slots, in hand and dropped: model cuboids, and a tile model posed once,
+/// both in block space from the lower corner as the block stands in the world
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
+pub struct ItemModelSpec
+{
+    pub cuboids: Vec<crate::spec::Cuboid>,
+    pub tile: Option<Identifier>,
+    pub pose: Pose,
+}
+
+/// api 1.33: the bits HostCall::Capabilities answers with
+pub mod capability
+{
+    pub const ITEMS: i32 = 1;
+    pub const FLUIDS: i32 = 2;
+    pub const ENERGY: i32 = 4;
+    /// a mod tile that answers item transfers itself rather than through its slots
+    pub const HANDLER: i32 = 8;
 }
 
 /// how a modifier combines with an attribute: adds first, then base multipliers summed, then total multipliers one by one
@@ -2840,6 +3256,10 @@ pub enum EntityField
     /// api 1.28: what EntityLiving.moveEntityWithHeading multiplies horizontal motion by each tick, 0.91 in the air
     /// and the block's slipperiness times 0.91 on the ground, 0.546 for stone; read only
     Slipperiness,
+    /// api 1.33: EntityItem.delayBeforeCanPickup, ticks before a player can take a dropped stack
+    PickupDelay,
+    /// api 1.33: EntityMinecart.minecartType, 0 to ride, 1 with a chest, 2 with a furnace; read only
+    MinecartType,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
@@ -2871,6 +3291,61 @@ pub enum HostReply
     Located(Option<Located>),
     /// api 1.27
     Double(f64),
+    /// api 1.33
+    Demand(Option<EnergyDemand>),
+    /// api 1.33
+    Fluid(Option<FluidStack>),
+    /// api 1.33
+    FluidBlock(Option<FluidBlock>),
+    /// api 1.33
+    ItemInfo(Option<ItemInfo>),
+    /// api 1.33
+    Loot(Vec<LootView>),
+}
+
+/// api 1.33: one drop table as a recipe viewer shows it
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub struct LootView
+{
+    pub source: LootSource,
+    /// times the table is rolled for one source, as the 8 picks of a beta dungeon chest
+    pub rolls: i32,
+    /// chances and counts measured by rolling the block's drop code, not read from a table
+    pub sampled: bool,
+    pub drops: Vec<LootDrop>,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub enum LootSource
+{
+    /// a block broken with this metadata
+    Block
+    {
+        block: i32, meta: i32
+    },
+
+    Entity
+    {
+        entity: Identifier
+    },
+
+    Chest
+    {
+        table: Identifier
+    },
+}
+
+/// one drop of a table, stack.count is the least it drops and a damage of -1 any damage
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub struct LootDrop
+{
+    pub stack: StackData,
+    pub max: i32,
+    pub chance: f32,
+    /// only for an entity a player killed
+    pub player: bool,
+    /// any other condition in words, as a creeper's disc needing a skeleton's arrow
+    pub note: Option<String>,
 }
 
 /// api 1.2: a recipe as a viewer shows it, an ingredient with damage -1 takes any damage
