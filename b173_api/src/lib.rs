@@ -3,6 +3,7 @@ mod config;
 mod dispatch;
 pub mod events;
 mod register;
+mod reply;
 pub mod rt;
 pub mod screen;
 pub mod services;
@@ -21,7 +22,7 @@ pub use mod_protocol::abi::
     Priority, RayHit, RecipeShape, RecipeView, RegistryKind, SpawnEntry, StackData, StackRef, StateData,
     StructurePiece, StructureSpec, StructureStart, Target, UseAction,
 };
-use mod_protocol::abi::{EntityInfo as RawEntity, HostCall, HostReply};
+use mod_protocol::abi::{HostCall, HostReply};
 pub use mod_protocol::handshake::ChannelDirection as Direction;
 use mod_protocol::identifier::IdentifierError;
 pub use mod_protocol::spec::
@@ -34,6 +35,11 @@ pub use mod_protocol::spec::
 };
 use mod_protocol::wire::WireError;
 pub use register::*;
+pub(crate) use reply::
+{
+    expectBool, expectBytes, expectEntities, expectEntity, expectInt, expectLocated, expectStack, expectStarts,
+    expectState, expectUnit,
+};
 pub use serde;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
@@ -71,106 +77,6 @@ impl From<WireError> for Error
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
-
-fn unexpected(reply: HostReply) -> Error
-{
-    match reply
-    {
-        HostReply::Error(reason) => Error(reason),
-        other => Error(format!("unexpected host reply {other:?}")),
-    }
-}
-
-pub(crate) fn expectUnit(reply: HostReply) -> Result<()>
-{
-    match reply
-    {
-        HostReply::Unit => Ok(()),
-        other => Err(unexpected(other)),
-    }
-}
-
-pub(crate) fn expectBool(reply: HostReply) -> Result<bool>
-{
-    match reply
-    {
-        HostReply::Bool(value) => Ok(value),
-        other => Err(unexpected(other)),
-    }
-}
-
-pub(crate) fn expectInt(reply: HostReply) -> Result<i32>
-{
-    match reply
-    {
-        HostReply::Int(value) => Ok(value),
-        other => Err(unexpected(other)),
-    }
-}
-
-pub(crate) fn expectBytes(reply: HostReply) -> Result<Vec<u8>>
-{
-    match reply
-    {
-        HostReply::Bytes(bytes) => Ok(bytes),
-        HostReply::Unit => Ok(Vec::new()),
-        other => Err(unexpected(other)),
-    }
-}
-
-pub(crate) fn expectState(reply: HostReply) -> Result<Option<StateData>>
-{
-    match reply
-    {
-        HostReply::State(state) => Ok(state),
-        other => Err(unexpected(other)),
-    }
-}
-
-pub(crate) fn expectStack(reply: HostReply) -> Result<Option<StackData>>
-{
-    match reply
-    {
-        HostReply::Stack(stack) => Ok(stack),
-        other => Err(unexpected(other)),
-    }
-}
-
-pub(crate) fn expectStarts(reply: HostReply) -> Result<Vec<StructureStart>>
-{
-    match reply
-    {
-        HostReply::Starts(starts) => Ok(starts),
-        other => Err(unexpected(other)),
-    }
-}
-
-pub(crate) fn expectLocated(reply: HostReply) -> Result<Option<Located>>
-{
-    match reply
-    {
-        HostReply::Located(found) => Ok(found),
-        other => Err(unexpected(other)),
-    }
-}
-
-pub(crate) fn expectEntity(reply: HostReply) -> Option<RawEntity>
-{
-    match reply
-    {
-        HostReply::Entity(entity) => entity,
-        _ => None,
-    }
-}
-
-pub(crate) fn expectEntities(reply: HostReply) -> Vec<RawEntity>
-{
-    match reply
-    {
-        HostReply::Entities(entities) => entities,
-        _ => Vec::new(),
-    }
-}
 
 thread_local!
 {
