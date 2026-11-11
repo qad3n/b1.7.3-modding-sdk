@@ -5,6 +5,7 @@ mod behavior;
 mod config;
 mod dispatch;
 pub mod events;
+pub mod math;
 mod register;
 mod reply;
 pub mod rt;
