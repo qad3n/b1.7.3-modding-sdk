@@ -265,15 +265,15 @@ fn item(handle: u32, call: ItemCall) -> GuestReply
             pos,
             face,
         )),
-        ItemCall::HitEntity { stack, target, attacker } => GuestReply::Bool(behavior.onHitEntity(
-            ItemStack::fromRaw(stack),
-            Entity { world: World::OVERWORLD, id: target },
-            attacker,
-        )),
-        ItemCall::InteractEntity { stack, target, .. } => unit(||
+        ItemCall::HitEntity { stack, target, attacker } =>
         {
-            behavior.onInteractEntity(ItemStack::fromRaw(stack), Entity { world: World::OVERWORLD, id: target })
-        }),
+            GuestReply::Bool(behavior.onHitEntity(ItemStack::fromRaw(stack), located(target), attacker))
+        }
+
+        ItemCall::InteractEntity { stack, target, .. } =>
+        {
+            unit(|| behavior.onInteractEntity(ItemStack::fromRaw(stack), located(target)))
+        }
 
         ItemCall::BlockDestroyed { stack, block, pos, player } =>
         {
@@ -347,6 +347,12 @@ fn entity(handle: u32, call: EntityCall) -> GuestReply
         EntityCall::Pose { input } => GuestReply::Pose(behavior.pose(&input)),
         EntityCall::Ai { entity } => unit(|| behavior.onAi(entityOf(&entity), &entity)),
     }
+}
+
+// item calls carry no dimension, the host finds the entity in whichever world holds it
+fn located(id: i32) -> Entity
+{
+    World::OVERWORLD.entity(id).map_or(Entity { world: World::OVERWORLD, id }, |info| entityOf(&info))
 }
 
 fn entityOf(info: &mod_protocol::abi::EntityInfo) -> Entity
