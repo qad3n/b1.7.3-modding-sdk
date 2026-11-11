@@ -1,0 +1,125 @@
+use crate::behavior::{self, ItemBehavior};
+use crate::rt::call;
+use crate::{ItemRef, Result, dispatch, expectUnit, ownId};
+use mod_protocol::Identifier;
+use mod_protocol::abi::HostCall;
+use mod_protocol::spec::{Behavior, ItemMethod, ItemSpec, RecordSpec, ToolClass};
+use std::rc::Rc;
+
+pub struct Items;
+
+impl Items
+{
+    pub fn register(&self, name: &str, spec: ItemSpecBuilder) -> Result<ItemRef>
+    {
+        let id: Identifier = ownId(name)?;
+        expectUnit(call(HostCall::RegisterItem { name: id.to_string(), spec: spec.m_spec }))?;
+        Ok(ItemRef::Named(id))
+    }
+
+    /// content from data/ files and other mods registers before code runs, so lookups by name work here
+    pub fn get(&self, name: &str) -> Result<ItemRef>
+    {
+        let id: Identifier = ownId(name)?;
+        Ok(ItemRef::Named(id))
+    }
+}
+
+pub struct ItemSpecBuilder
+{
+    pub m_spec: ItemSpec,
+}
+
+impl ItemSpecBuilder
+{
+    pub fn new() -> ItemSpecBuilder { ItemSpecBuilder { m_spec: ItemSpec::default() } }
+
+    pub fn template(template: &str) -> ItemSpecBuilder
+    {
+        ItemSpecBuilder { m_spec: ItemSpec { template: Identifier::parse(template).ok(), ..ItemSpec::default() } }
+    }
+
+    pub fn texture(mut self, texture: &str) -> Self
+    {
+        self.m_spec.texture = Some(texture.to_owned());
+        self
+    }
+
+    pub fn name(mut self, name: &str) -> Self
+    {
+        self.m_spec.name = Some(name.to_owned());
+        self
+    }
+
+    pub fn maxStack(mut self, size: i32) -> Self
+    {
+        self.m_spec.max_stack = Some(size);
+        self
+    }
+
+    pub fn maxDamage(mut self, damage: i32) -> Self
+    {
+        self.m_spec.max_damage = Some(damage);
+        self
+    }
+
+    pub fn food(mut self, heal: i32) -> Self
+    {
+        self.m_spec.food = Some(mod_protocol::spec::FoodSpec { heal, wolf_food: false });
+        self
+    }
+
+    pub fn tool(mut self, class: ToolClass, level: i32, speed: f32, damage: i32, durability: i32) -> Self
+    {
+        self.m_spec.tool = Some(mod_protocol::spec::ItemToolSpec { class, level, speed, damage, durability });
+        self.m_spec.full3d = Some(true);
+        self
+    }
+
+    pub fn armor(mut self, armor: mod_protocol::spec::ArmorSpec) -> Self
+    {
+        self.m_spec.armor = Some(armor);
+        self
+    }
+
+    pub fn fuel(mut self, ticks: i32) -> Self
+    {
+        self.m_spec.fuel = Some(ticks);
+        self
+    }
+
+    pub fn color(mut self, color: u32) -> Self
+    {
+        self.m_spec.color = Some(color);
+        self
+    }
+
+    pub fn record(mut self, sound: &str, title: &str) -> Self
+    {
+        self.m_spec.record = Some(RecordSpec { sound: sound.to_owned(), title: title.to_owned() });
+        self
+    }
+
+    pub fn tag(mut self, tag: &str) -> Self
+    {
+        if let Ok(tag) = Identifier::parse(tag)
+        {
+            self.m_spec.tags.push(tag);
+        }
+
+        self
+    }
+
+    pub fn behavior(mut self, behavior: impl ItemBehavior + 'static) -> Self
+    {
+        let methods: Vec<ItemMethod> = behavior::methods(behavior.overridden(), &behavior::ITEM_METHODS);
+        let handle: u32 = dispatch::addItem(Rc::new(behavior));
+        self.m_spec.behavior = Some(Behavior { handle, methods });
+        self
+    }
+}
+
+impl Default for ItemSpecBuilder
+{
+    fn default() -> Self { ItemSpecBuilder::new() }
+}

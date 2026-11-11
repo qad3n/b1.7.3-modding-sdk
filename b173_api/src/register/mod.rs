@@ -1,0 +1,99 @@
+use crate::{Config, Result, ownId};
+use mod_protocol::Identifier;
+use serde::Serialize;
+use serde::de::DeserializeOwned;
+
+mod blocks;
+mod content;
+mod entities;
+mod items;
+mod net;
+mod recipes;
+mod services;
+mod ui;
+mod world;
+
+pub use blocks::{BlockSpecBuilder, Blocks};
+pub use content::{Achievements, Effects, Fluids, Loot, Particles, Tags, tagValues};
+pub use entities::{Entities, TileEntities};
+pub use items::{ItemSpecBuilder, Items};
+pub use net::{Channels, Commands, Events, Keybinds};
+pub use recipes::{Recipes, ShapedBuilder};
+pub use services::Services;
+pub use ui::{ScreenBuilder, Screens};
+pub use world::{Dimension, Dimensions, SpawnQuery, Structure, Structures, Worldgen, spawnEntry};
+
+/// the context handed to #[mod_main], registration only works while the loader is in its register phase
+pub struct RegisterCtx
+{
+    pub(crate) m_modId: String,
+}
+
+impl RegisterCtx
+{
+    pub fn modId(&self) -> &str { &self.m_modId }
+
+    pub fn blocks(&mut self) -> Blocks { Blocks }
+
+    pub fn items(&mut self) -> Items { Items }
+
+    pub fn entities(&mut self) -> Entities { Entities }
+
+    pub fn tileEntities(&mut self) -> TileEntities { TileEntities }
+
+    pub fn recipes(&mut self) -> Recipes { Recipes }
+
+    pub fn events(&mut self) -> Events { Events }
+
+    pub fn commands(&mut self) -> Commands { Commands }
+
+    pub fn keybinds(&mut self) -> Keybinds { Keybinds }
+
+    pub fn channels(&mut self) -> Channels { Channels }
+
+    pub fn screens(&mut self) -> Screens { Screens }
+
+    pub fn config(&mut self) -> Config { Config }
+
+    pub fn services(&mut self) -> Services { Services }
+
+    pub fn tags(&mut self) -> Tags { Tags }
+
+    /// needs api 1.19
+    pub fn loot(&mut self) -> Loot { Loot }
+
+    /// needs api 1.21
+    pub fn fluids(&mut self) -> Fluids { Fluids }
+
+    /// needs api 1.22
+    pub fn effects(&mut self) -> Effects { Effects }
+
+    /// needs api 1.24
+    pub fn particles(&mut self) -> Particles { Particles }
+
+    /// needs api 1.25
+    pub fn achievements(&mut self) -> Achievements { Achievements }
+
+    pub fn worldgen(&mut self) -> Worldgen { Worldgen }
+
+    pub fn dimensions(&mut self) -> Dimensions { Dimensions }
+
+    pub fn structures(&mut self) -> Structures { Structures }
+
+    pub fn lang(&mut self) -> Lang { Lang }
+}
+
+pub struct Lang;
+
+impl Lang
+{
+    pub fn translate(&self, key: &str) -> String { crate::world::translate(key) }
+}
+
+pub fn ownIdentifier(name: &str) -> Result<Identifier> { ownId(name) }
+
+pub fn bytes<T: Serialize>(value: &T) -> Vec<u8> { crate::world::encode(value) }
+
+pub fn fromBytes<T: DeserializeOwned>(bytes: &[u8]) -> Result<T> { crate::world::decode(bytes) }
+
+pub fn toBytes<T: Serialize>(value: &T) -> Vec<u8> { crate::world::encode(value) }
