@@ -958,6 +958,30 @@ pub struct Pose
     pub model: Vec<ModelOp>,
 }
 
+/// api 1.29: added and removed run where the effect is added and removed, tick on both sides and on a client only for
+/// its own player
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub enum EffectCall
+{
+    /// the effect started or a stronger or longer one replaced it, level 0 is the first level
+    Added
+    {
+        entity: EntityInfo, effect: Identifier, level: i32
+    },
+
+    /// every tick after the effect counted down, ticks left before it ends
+    Tick
+    {
+        entity: EntityInfo, effect: Identifier, level: i32, ticks: i32
+    },
+
+    /// the effect ran out or was removed
+    Removed
+    {
+        entity: EntityInfo, effect: Identifier
+    },
+}
+
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 pub enum TileCall
 {
@@ -1166,6 +1190,13 @@ pub enum GuestCall
         seed: i64,
         chunk_x: i32,
         chunk_z: i32,
+    },
+
+    /// api 1.29
+    Effect
+    {
+        handle: Handle,
+        call: EffectCall,
     },
 }
 
@@ -2640,6 +2671,14 @@ pub enum HostCall
     {
         world: i32,
         id: i32,
+    },
+
+    /// api 1.29: a status effect whose behavior the mod runs for the methods listed
+    RegisterEffectBehavior
+    {
+        name: String,
+        spec: crate::spec::EffectSpec,
+        behavior: crate::spec::Behavior<crate::spec::EffectMethod>,
     },
 
     /// api 1.27: an attribute named <modid>:<name> that every living entity carries

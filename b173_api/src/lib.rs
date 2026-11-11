@@ -15,8 +15,8 @@ pub mod terrain;
 pub mod vanilla;
 pub mod world;
 
-pub use b173_api_macros::{block_behavior, entity_behavior, item_behavior, mod_main, tile_behavior};
-pub use behavior::{BlockBehavior, EntityBehavior, ItemBehavior, TileBehavior, Use};
+pub use b173_api_macros::{block_behavior, effect_behavior, entity_behavior, item_behavior, mod_main, tile_behavior};
+pub use behavior::{BlockBehavior, EffectBehavior, EntityBehavior, ItemBehavior, TileBehavior, Use};
 pub use config::{Config, Setting, configValue};
 pub use mod_protocol::Identifier;
 use mod_protocol::abi::HostCall;

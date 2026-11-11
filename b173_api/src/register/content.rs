@@ -1,8 +1,13 @@
+use crate::behavior::{self, EffectBehavior};
 use crate::rt::call;
-use crate::{Result, expectUnit, ownIdentifier};
+use crate::{Result, dispatch, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
 use mod_protocol::abi::{HostCall, HostReply, RegistryKind};
-use mod_protocol::spec::{AchievementSpec, AttributeSpec, EffectSpec, FluidSpec, LootSpec, ParticleSpec, TagEntry};
+use mod_protocol::spec::
+{
+    AchievementSpec, AttributeSpec, Behavior, EffectMethod, EffectSpec, FluidSpec, LootSpec, ParticleSpec, TagEntry,
+};
+use std::rc::Rc;
 
 pub struct Tags;
 
@@ -49,6 +54,14 @@ impl Effects
     pub fn register(&self, name: &str, spec: EffectSpec) -> Result<()>
     {
         expectUnit(call(HostCall::RegisterEffect { name: name.to_owned(), spec }))
+    }
+
+    /// needs api 1.29, the effect also runs the behavior's onAdded, onTick and onRemoved
+    pub fn registerWith(&self, name: &str, spec: EffectSpec, behavior: Rc<dyn EffectBehavior>) -> Result<()>
+    {
+        let methods: Vec<EffectMethod> = behavior::methods(behavior.overridden(), &behavior::EFFECT_METHODS);
+        let behavior: Behavior<EffectMethod> = Behavior { handle: dispatch::addEffect(behavior), methods };
+        expectUnit(call(HostCall::RegisterEffectBehavior { name: name.to_owned(), spec, behavior }))
     }
 }
 

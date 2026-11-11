@@ -52,3 +52,6 @@ pub fn entity_behavior(_args: TokenStream, input: TokenStream) -> TokenStream { 
 
 #[proc_macro_attribute]
 pub fn tile_behavior(_args: TokenStream, input: TokenStream) -> TokenStream { behavior(input) }
+
+#[proc_macro_attribute]
+pub fn effect_behavior(_args: TokenStream, input: TokenStream) -> TokenStream { behavior(input) }

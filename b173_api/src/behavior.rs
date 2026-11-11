@@ -1,6 +1,6 @@
 use crate::{BlockCtx, Entity, EntityInfo, ItemStack, Player, World};
 use mod_protocol::abi::{BlockPos, FaceOverlay, Pose, PoseInput, UseAction};
-use mod_protocol::spec::{BlockMethod, EntityMethod, ItemMethod, TileMethod};
+use mod_protocol::spec::{BlockMethod, EffectMethod, EntityMethod, ItemMethod, TileMethod};
 
 /// write the methods you need inside an impl marked #[block_behavior], only those cross from the game into wasm
 pub trait BlockBehavior
@@ -103,6 +103,16 @@ pub trait TileBehavior
     fn overridden(&self) -> &'static [&'static str] { unmarked(std::any::type_name::<Self>(), "tile_behavior") }
 }
 
+/// needs api 1.29, write the methods you need inside an impl marked #[effect_behavior]; onTick also runs on a client
+/// for its own player, check World::isAuthority before changing the world
+pub trait EffectBehavior
+{
+    fn onAdded(&self, _entity: Entity, _level: i32) {}
+    fn onTick(&self, _entity: Entity, _level: i32, _ticks: i32) {}
+    fn onRemoved(&self, _entity: Entity) {}
+    fn overridden(&self) -> &'static [&'static str] { unmarked(std::any::type_name::<Self>(), "effect_behavior") }
+}
+
 pub(crate) const BLOCK_METHODS: [(&str, BlockMethod); 25] = [
     ("onActivated", BlockMethod::Activated),
     ("onClicked", BlockMethod::Clicked),
@@ -163,6 +173,9 @@ pub(crate) const ENTITY_METHODS: [(&str, EntityMethod); 9] = [
 
 pub(crate) const TILE_METHODS: [(&str, TileMethod); 3] =
     [("onTick", TileMethod::Tick), ("onRemoved", TileMethod::Removed), ("pose", TileMethod::Pose)];
+
+pub(crate) const EFFECT_METHODS: [(&str, EffectMethod); 3] =
+    [("onAdded", EffectMethod::Added), ("onTick", EffectMethod::Tick), ("onRemoved", EffectMethod::Removed)];
 
 // the attribute macro replaces overridden, so this default only runs for an impl that forgot it
 fn unmarked(name: &str, attribute: &str) -> &'static [&'static str]

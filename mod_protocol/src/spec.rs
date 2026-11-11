@@ -204,6 +204,16 @@ pub enum TileMethod
     Pose,
 }
 
+/// api 1.29
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum EffectMethod
+{
+    Added,
+    Tick,
+    Removed,
+}
+
 /// behavior binds a spec to a guest object, set by the sdk and absent for data content
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug, Default)]
 pub struct Behavior<M>
@@ -802,7 +812,8 @@ pub struct FluidSpec
 }
 
 /// a status effect: a hud colour and optional icon texture, attribute modifiers added once per level, and every
-/// interval ticks a heal for a positive amount or harm for a negative one, also once per level
+/// interval ticks a heal for a positive amount or harm for a negative one, also once per level; api 1.29 lets a mod
+/// run its own code when the effect starts, ticks and ends
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
 #[serde(default, deny_unknown_fields)]
 pub struct EffectSpec

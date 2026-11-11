@@ -1,4 +1,4 @@
-use crate::behavior::{BlockBehavior, EntityBehavior, ItemBehavior, TileBehavior, Use};
+use crate::behavior::{BlockBehavior, EffectBehavior, EntityBehavior, ItemBehavior, TileBehavior, Use};
 use crate::events::Event;
 use crate::screen::{Draw, Screen};
 use crate::services::{Lookup, Service};
@@ -6,7 +6,7 @@ use crate::terrain::ChunkBlocks;
 use crate::{BlockCtx, Entity, ItemStack, Player, RegisterCtx, World};
 use mod_protocol::abi::
 {
-    BlockCall, ChunkInfo, EntityCall, GuestCall, GuestReply, ItemCall, Lifecycle, Sender, TileCall,
+    BlockCall, ChunkInfo, EffectCall, EntityCall, GuestCall, GuestReply, ItemCall, Lifecycle, Sender, TileCall,
 };
 use std::cell::{RefCell, RefMut};
 use std::rc::Rc;
@@ -59,6 +59,7 @@ struct Tables
     m_items: Vec<Rc<dyn ItemBehavior>>,
     m_entities: Vec<Rc<dyn EntityBehavior>>,
     m_tiles: Vec<Rc<dyn TileBehavior>>,
+    m_effects: Vec<Rc<dyn EffectBehavior>>,
     m_events: Vec<EventHandler>,
     m_commands: Vec<CommandHandler>,
     m_keys: Vec<Rc<dyn Fn(bool)>>,
@@ -105,6 +106,7 @@ adder!(addBlock, m_blocks, Rc<dyn BlockBehavior>);
 adder!(addItem, m_items, Rc<dyn ItemBehavior>);
 adder!(addEntity, m_entities, Rc<dyn EntityBehavior>);
 adder!(addTile, m_tiles, Rc<dyn TileBehavior>);
+adder!(addEffect, m_effects, Rc<dyn EffectBehavior>);
 adder!(addEvent, m_events, EventHandler);
 adder!(addCommand, m_commands, CommandHandler);
 adder!(addKey, m_keys, Rc<dyn Fn(bool)>);
@@ -364,6 +366,22 @@ fn entityOf(info: &mod_protocol::abi::EntityInfo) -> Entity
     Entity { world: World { dimension: info.world }, id: info.id }
 }
 
+fn effect(handle: u32, call: EffectCall) -> GuestReply
+{
+    let Some(behavior) = get(|tables| tables.m_effects.get(handle as usize))
+    else
+    {
+        return GuestReply::Error(format!("no effect behavior {handle}"));
+    };
+
+    match call
+    {
+        EffectCall::Added { entity, level, .. } => unit(|| behavior.onAdded(entityOf(&entity), level)),
+        EffectCall::Tick { entity, level, ticks, .. } => unit(|| behavior.onTick(entityOf(&entity), level, ticks)),
+        EffectCall::Removed { entity, .. } => unit(|| behavior.onRemoved(entityOf(&entity))),
+    }
+}
+
 fn tile(handle: u32, call: TileCall) -> GuestReply
 {
     let Some(behavior) = get(|tables| tables.m_tiles.get(handle as usize))
@@ -609,5 +627,7 @@ pub(crate) fn handle(call: GuestCall) -> GuestReply
                 None => GuestReply::Error(format!("no structure finder {handler}")),
             }
         }
+
+        GuestCall::Effect { handle, call } => effect(handle, call),
     }
 }
