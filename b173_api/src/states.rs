@@ -1,4 +1,4 @@
-use crate::{BlockPos, Identifier, Result, StateData, World, epoch, modId, rt};
+use crate::{BlockPos, Entity, EntityField, Identifier, Result, StateData, World, epoch, modId, rt};
 use mod_protocol::abi::{HostCall, HostReply};
 use std::cell::{Cell, Ref, RefCell};
 use std::collections::HashMap;
@@ -104,5 +104,34 @@ impl World
     {
         let state: Rc<StateData> = self.stateAt(pos).ok_or("no block state to change")?;
         self.setBlockState(pos, StateData::clone(&state).with(property, value))
+    }
+}
+
+impl World
+{
+    /// needs api 1.39, swaps the block at a spot for a state and keeps its tile entity, as a furnace swaps its idle and
+    /// lit blocks
+    pub fn swapState(self, pos: BlockPos, state: &StateHandle) -> Result<bool>
+    {
+        let (block, meta): (i32, i32) = state.numeric();
+        self.swapBlock(pos, block, meta)
+    }
+
+    /// needs api 1.39, bits of a block flying off as its digging particle, blockcrack_<id>_<meta> by state
+    pub fn crack(self, state: &StateHandle, at: [f64; 3], motion: [f64; 3])
+    {
+        let (block, meta): (i32, i32) = state.numeric();
+        self.particle(&format!("blockcrack_{block}_{meta}"), at, motion);
+    }
+}
+
+impl Entity
+{
+    /// needs api 1.39, the block a moving_block or falling entity draws, by state instead of its stored numbers
+    pub fn setCarried(self, state: &StateHandle)
+    {
+        let (block, meta): (i32, i32) = state.numeric();
+        self.setField(EntityField::Block, f64::from(block));
+        self.setField(EntityField::BlockMeta, f64::from(meta));
     }
 }
