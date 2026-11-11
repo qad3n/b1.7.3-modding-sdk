@@ -14,7 +14,7 @@ mod ui;
 mod world;
 
 pub use blocks::{BlockSpecBuilder, Blocks};
-pub use content::{Achievements, Attributes, Effects, Fluids, Loot, Particles, Tags, tagValues};
+pub use content::{Achievements, Attributes, Effects, Fluids, Loot, Particles, Tags, tagValues, tagsOf};
 pub use entities::{Entities, TileEntities};
 pub use items::{ItemSpecBuilder, Items};
 pub use net::{Channels, Commands, Events, Keybinds};

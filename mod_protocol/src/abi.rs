@@ -2696,6 +2696,13 @@ pub enum HostCall
         id: i32,
         attribute: Identifier,
     },
+
+    /// api 1.30: every tag of a registry that holds the id, answered with Ids
+    TagsOf
+    {
+        registry: RegistryKind,
+        id: Identifier,
+    },
 }
 
 /// how a modifier combines with an attribute: adds first, then base multipliers summed, then total multipliers one by one

@@ -101,6 +101,9 @@ impl Tags
     }
 
     pub fn values(&self, registry: RegistryKind, tag: &str) -> Vec<Identifier> { tagValues(registry, tag) }
+
+    /// needs api 1.30
+    pub fn of(&self, registry: RegistryKind, id: &Identifier) -> Vec<Identifier> { tagsOf(registry, id) }
 }
 
 pub fn tagValues(registry: RegistryKind, tag: &str) -> Vec<Identifier>
@@ -112,6 +115,16 @@ pub fn tagValues(registry: RegistryKind, tag: &str) -> Vec<Identifier>
     };
 
     match call(HostCall::TagValues { registry, tag })
+    {
+        HostReply::Ids(ids) => ids,
+        _ => Vec::new(),
+    }
+}
+
+/// needs api 1.30, the tags that hold the id, resolved through nested tags
+pub fn tagsOf(registry: RegistryKind, id: &Identifier) -> Vec<Identifier>
+{
+    match call(HostCall::TagsOf { registry, id: id.clone() })
     {
         HostReply::Ids(ids) => ids,
         _ => Vec::new(),
