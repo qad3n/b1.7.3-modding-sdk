@@ -138,5 +138,11 @@ pub(crate) fn run(root: &Path) -> Result<Vec<String>>
         }
     }
 
+    if let Ok(text) = std::fs::read_to_string(root.join(mod_assets::RECIPE_FILE))
+        && let Err(reason) = mod_assets::Recipe::parse(&text)
+    {
+        problems.push(reason);
+    }
+
     Ok(problems)
 }

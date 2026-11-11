@@ -58,7 +58,7 @@ fn compile(root: &Path) -> Result<Option<Vec<u8>>>
     Ok(Some(std::fs::read(&wasm).with_context(|| format!("{} is missing", wasm.display()))?))
 }
 
-// one zip with mod.toml, mod.wasm when the mod has code, and its data and assets folders
+// one zip with mod.toml, mod.wasm when the mod has code, assets.toml when it has one, and its data and assets folders
 pub(crate) fn build(root: &Path) -> Result<PathBuf>
 {
     let problems: Vec<String> = check::run(root)?;
@@ -83,6 +83,13 @@ pub(crate) fn build(root: &Path) -> Result<PathBuf>
     {
         writer.start_file("mod.wasm", options)?;
         writer.write_all(&wasm)?;
+    }
+
+    // the recipe ships so each player converts their own download, the downloaded files never do
+    if let Ok(recipe) = std::fs::read(root.join(mod_assets::RECIPE_FILE))
+    {
+        writer.start_file(mod_assets::RECIPE_FILE, options)?;
+        writer.write_all(&recipe)?;
     }
 
     for folder in PACKED

@@ -11,6 +11,7 @@ This is a hobby project and a proof of concept. All credit for Minecraft goes to
 ```
 mod_protocol/     wire format, data specs and wasm ABI shared by the game's loader and the SDK
 mod_tool/         cargo b173: new, check, build, run
+mod_assets/       assets.toml recipes that convert a player's own mod download into the mod's assets
 b173_api/         the SDK mods are written against
 b173_api_macros/  #[mod_main] and the behavior attribute macros
 examples/

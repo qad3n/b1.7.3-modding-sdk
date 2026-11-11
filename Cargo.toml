@@ -6,6 +6,7 @@ members = [
     "examples/energy_api",
     "examples/machines",
     "examples/testmod",
+    "mod_assets",
     "mod_protocol",
     "mod_tool",
 ]
