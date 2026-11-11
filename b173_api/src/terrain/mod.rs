@@ -172,6 +172,9 @@ pub mod math
 
     pub fn cos(value: f32) -> f32 { table()[((value * TABLE_SCALE + 16384.0) as i32 & 0xFFFF) as usize] }
 
+    // sqrt_double rounds to a float so every vanilla length and distance carries that rounding
+    pub fn sqrt(value: f64) -> f32 { value.sqrt() as f32 }
+
     pub fn floor(value: f64) -> i32
     {
         let truncated: i32 = value as i32;

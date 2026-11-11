@@ -1,4 +1,4 @@
-pub use crate::terrain::math::{cos, floor, sin};
+pub use crate::terrain::math::{cos, floor, sin, sqrt};
 use mod_protocol::abi::BlockPos;
 
 pub type Vec3 = [f64; 3];
@@ -18,13 +18,15 @@ pub fn dot(a: Vec3, b: Vec3) -> f64 { a[0] * b[0] + a[1] * b[1] + a[2] * b[2] }
 
 pub fn lengthSquared(a: Vec3) -> f64 { dot(a, a) }
 
-pub fn length(a: Vec3) -> f64 { lengthSquared(a).sqrt() }
+// Vec3D.lengthVector, through the float sqrt_double
+pub fn length(a: Vec3) -> f64 { f64::from(sqrt(lengthSquared(a))) }
 
 pub fn distanceSquared(a: Vec3, b: Vec3) -> f64 { lengthSquared(sub(a, b)) }
 
+// Vec3D.distanceTo and Entity.getDistance, through the float sqrt_double
 pub fn distance(a: Vec3, b: Vec3) -> f64 { length(sub(a, b)) }
 
-// zero stays zero, as Vec3D.normalize leaves a vector shorter than 1.0E-4
+// Vec3D.normalize divides each axis by the float length and zeroes a vector shorter than 1.0E-4
 pub fn normalize(a: Vec3) -> Vec3
 {
     const SHORTEST: f64 = 1.0e-4;
@@ -35,7 +37,7 @@ pub fn normalize(a: Vec3) -> Vec3
         return [0.0; 3];
     }
 
-    scale(a, 1.0 / length)
+    a.map(|axis| axis / length)
 }
 
 pub fn lerp(from: Vec3, to: Vec3, t: f64) -> Vec3 { add(from, scale(sub(to, from), t)) }
@@ -118,4 +120,39 @@ impl Face
     pub fn opposite(self) -> Face { self.row().m_opposite }
 
     fn row(self) -> &'static FaceRow { &FACES[self as usize] }
+}
+
+#[cfg(test)]
+mod tests
+{
+    use super::*;
+
+    // input, Vec3D.lengthVector bits and Vec3D.normalize bits from Oracle Java 6u26 running the b1.7.3 bodies
+    const VANILLA: [(Vec3, u64, [u64; 3]); 6] = [
+        ([0.3, -1.7, 2.9], 0x400AFFCF80000000, [0x3FB6C194F73A0BBC, 0xBFE01E742F1E72FB, 0x3FEB7F3EAABB78D9]),
+        ([12.25, 0.1, -7.5], 0x402CBA5520000000, [0x3FEB4A63737DE25E, 0x3F7C84102515D269, 0xBFE0B56175BAC949]),
+        ([-0.6, 0.8, 0.05], 0x3FF0051DE0000000, [0xBFE32D114FA3FD40, 0x3FE9916C6A2FFC56, 0x3FA9916C6A2FFC56]),
+        ([1.0e-5, 2.0e-5, 0.0], 0x3EF7726640000000, [0x0, 0x0, 0x0]),
+        ([3.0, 4.0, 12.0], 0x402A000000000000, [0x3FCD89D89D89D89E, 0x3FD3B13B13B13B14, 0x3FED89D89D89D89E]),
+        ([-120.37, 64.5, 33.125], 0x406190B4C0000000, [0xBFEB69327DCB9A23, 0x3FDD604CA7BC9DB3, 0x3FCE2C56AC49ABE6]),
+    ];
+
+    #[test]
+    fn length_matches_vec3d_length_vector()
+    {
+        for (vector, bits, _) in VANILLA
+        {
+            assert_eq!(length(vector).to_bits(), bits, "length of {vector:?}");
+            assert_eq!(distance(vector, [0.0; 3]).to_bits(), bits, "distance of {vector:?}");
+        }
+    }
+
+    #[test]
+    fn normalize_matches_vec3d_normalize()
+    {
+        for (vector, _, bits) in VANILLA
+        {
+            assert_eq!(normalize(vector).map(f64::to_bits), bits, "normalize of {vector:?}");
+        }
+    }
 }
