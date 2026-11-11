@@ -2324,6 +2324,26 @@ pub enum HostCall
         player: i32,
         stat: String,
     },
+    // api 1.26: puts a stack into the inventory a block exposes from a face (0 bottom, 1 top, 2 to 5 sides), joining
+    // equal stacks first; a furnace takes ore on top and fuel on the sides; answered with Int, the count left over
+    InsertItem
+    {
+        world: i32,
+        pos: BlockPos,
+        face: i32,
+        stack: StackData,
+        simulate: bool,
+    },
+    // api 1.26: takes up to max items from the first filled slot a face reaches, a furnace gives its output below;
+    // answered with Stack
+    ExtractItem
+    {
+        world: i32,
+        pos: BlockPos,
+        face: i32,
+        max: i32,
+        simulate: bool,
+    },
 }
 
 // how a modifier combines with an attribute: adds first, then base multipliers summed, then total multipliers one by one

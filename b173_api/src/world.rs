@@ -33,6 +33,27 @@ impl World
     pub const OVERWORLD: World = World { dimension: 0 };
     pub const NETHER: World = World { dimension: -1 };
 
+    // needs api 1.26, the count that did not fit; simulate only reports
+    pub fn insertItem(self, pos: BlockPos, face: i32, stack: ItemStack, simulate: bool) -> Result<i32>
+    {
+        let stack: mod_protocol::abi::StackData = stack.raw()?;
+        match call(HostCall::InsertItem { world: self.dimension, pos, face, stack, simulate })
+        {
+            HostReply::Int(left) => Ok(left),
+            HostReply::Error(error) => Err(Error(error)),
+            other => Err(Error(format!("unexpected reply {other:?}"))),
+        }
+    }
+
+    // needs api 1.26, simulate leaves the items where they are
+    pub fn extractItem(self, pos: BlockPos, face: i32, max: i32, simulate: bool) -> Option<ItemStack>
+    {
+        expectStack(call(HostCall::ExtractItem { world: self.dimension, pos, face, max, simulate }))
+            .ok()
+            .flatten()
+            .map(ItemStack::fromRaw)
+    }
+
     pub fn block(self, pos: BlockPos) -> i32
     {
         expectInt(call(HostCall::GetBlock { world: self.dimension, pos })).unwrap_or(0)
