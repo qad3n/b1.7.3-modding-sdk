@@ -26,6 +26,9 @@ pub fn distanceSquared(a: Vec3, b: Vec3) -> f64 { lengthSquared(sub(a, b)) }
 // Vec3D.distanceTo and Entity.getDistance, through the float sqrt_double
 pub fn distance(a: Vec3, b: Vec3) -> f64 { length(sub(a, b)) }
 
+// ground length in plain f64 with no float sqrt rounding unlike length
+pub fn flatLength(dx: f64, dz: f64) -> f64 { (dx * dx + dz * dz).sqrt() }
+
 // Vec3D.normalize divides each axis by the float length and zeroes a vector shorter than 1.0E-4
 pub fn normalize(a: Vec3) -> Vec3
 {
