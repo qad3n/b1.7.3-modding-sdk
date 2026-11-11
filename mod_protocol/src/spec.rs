@@ -1135,3 +1135,126 @@ pub struct AccessorySlotSpec
     #[serde(default)]
     pub icon: Option<String>,
 }
+
+fn ores() -> FeatureStep { FeatureStep::UndergroundOres }
+
+fn baseStone() -> Identifier { Identifier::minecraft("base_stone_overworld") }
+
+fn dirt() -> Identifier { Identifier::minecraft("dirt") }
+
+fn treeHeight() -> i32 { 4 }
+
+fn treeSpread() -> i32 { 3 }
+
+/// api 1.41: the modern generation steps, features of an earlier step run first in every populated chunk and within a
+/// step in the order of their stable keys, so load order never changes a chunk
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum FeatureStep
+{
+    RawGeneration,
+    Lakes,
+    LocalModifications,
+    UndergroundStructures,
+    SurfaceStructures,
+    Strongholds,
+    UndergroundOres,
+    UndergroundDecoration,
+    FluidSprings,
+    VegetalDecoration,
+    TopLayerModification,
+}
+
+/// api 1.41: a named worldgen feature the loader places, every populated chunk of its dimension whose biome is in the
+/// biomes tag, or with placed only where a sapling, a structure or a decorator places it by name
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct FeatureSpec
+{
+    #[serde(rename = "type")]
+    pub kind: FeatureKind,
+    #[serde(default = "ores")]
+    pub step: FeatureStep,
+    #[serde(default = "overworld")]
+    pub dimension: Identifier,
+    #[serde(default)]
+    pub biomes: Option<Identifier>,
+    #[serde(default)]
+    pub placed: bool,
+}
+
+/// api 1.41: what a feature places, custom ones call the mod's own handler with a seeded random
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum FeatureKind
+{
+    Ore(OreFeatureSpec),
+    Tree(TreeFeatureSpec),
+    Custom,
+}
+
+/// api 1.41: veins of a block state shaped as beta's ores, replacing only blocks of the replaces tag
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct OreFeatureSpec
+{
+    pub block: Identifier,
+    #[serde(default)]
+    pub properties: BTreeMap<String, String>,
+    #[serde(default = "defaultVein")]
+    pub vein_size: i32,
+    #[serde(default = "one")]
+    pub per_chunk: i32,
+    pub height: HeightSpec,
+    #[serde(default = "baseStone")]
+    pub replaces: Identifier,
+}
+
+/// api 1.41: how a feature draws its height, uniform in min..max or the sum of one draw below each bound plus offset
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum HeightSpec
+{
+    Uniform
+    {
+        min: i32, max: i32
+    },
+    Sum
+    {
+        draws: Vec<i32>,
+        #[serde(default)]
+        offset: i32,
+    },
+}
+
+/// api 1.41: a tree shaped as beta's small oak, height from min_height plus a draw below spread, on soil of the soil
+/// tag, per_chunk tries in one of chance chunks
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct TreeFeatureSpec
+{
+    pub log: Identifier,
+    #[serde(default)]
+    pub log_properties: BTreeMap<String, String>,
+    pub leaves: Identifier,
+    #[serde(default)]
+    pub leaves_properties: BTreeMap<String, String>,
+    #[serde(default = "treeHeight")]
+    pub min_height: i32,
+    #[serde(default = "treeSpread")]
+    pub spread: i32,
+    #[serde(default = "dirt")]
+    pub soil: Identifier,
+    #[serde(default = "one")]
+    pub per_chunk: i32,
+    #[serde(default = "one")]
+    pub chance: i32,
+}
+
+/// api 1.41: features a data file or loader.toml turns off by full name
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct FeatureModifySpec
+{
+    pub disable: Vec<Identifier>,
+}

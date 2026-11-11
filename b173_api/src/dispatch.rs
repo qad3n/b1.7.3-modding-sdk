@@ -79,6 +79,7 @@ struct Tables
     m_configListeners: Vec<ConfigListener>,
     m_tooltips: Vec<TooltipHandler>,
     m_worldRenders: Vec<WorldRenderHandler>,
+    m_features: Vec<crate::features::FeatureHandler>,
 }
 
 thread_local!
@@ -123,6 +124,12 @@ adder!(addFinder, m_finders, FinderHandler);
 adder!(addConfigListener, m_configListeners, ConfigListener);
 adder!(addTooltip, m_tooltips, TooltipHandler);
 adder!(addWorldRender, m_worldRenders, WorldRenderHandler);
+adder!(addFeature, m_features, crate::features::FeatureHandler);
+
+pub(crate) fn feature(handle: u32) -> Option<crate::features::FeatureHandler>
+{
+    get(|tables| tables.m_features.get(handle as usize))
+}
 
 pub(crate) fn addOverlay(overlay: impl crate::screen::Overlay + 'static) -> u32
 {
@@ -673,5 +680,23 @@ pub(crate) fn handle(call: GuestCall) -> GuestReply
         }
 
         GuestCall::Effect { handle, call } => effect(handle, call),
+
+        GuestCall::Feature { handler, call } => match feature(handler)
+        {
+            Some(feature) =>
+            {
+                let random: crate::terrain::Random = crate::terrain::Random::withSeed(call.seed);
+                let ctx: crate::features::FeatureCtx = crate::features::FeatureCtx
+                {
+                    world: crate::world::World { dimension: call.world },
+                    origin: call.origin,
+                    random: &random,
+                    chunk: call.chunk,
+                };
+                GuestReply::Bool(feature(&ctx))
+            }
+
+            None => GuestReply::Error(format!("no feature {handler}")),
+        },
     }
 }

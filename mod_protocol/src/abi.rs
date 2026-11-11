@@ -1276,6 +1276,13 @@ pub enum GuestCall
         handle: Handle,
         call: EffectCall,
     },
+
+    /// api 1.41: places a custom feature, the reply is Bool, whether it placed anything
+    Feature
+    {
+        handler: Handle,
+        call: FeatureCall,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
@@ -3230,6 +3237,48 @@ pub enum HostCall
         player: i32,
         slot: Identifier,
     },
+
+    /// api 1.41: a named worldgen feature, a custom one with the handler that places it, registration only
+    RegisterFeature
+    {
+        name: String,
+        spec: crate::spec::FeatureSpec,
+        handler: Option<Handle>,
+    },
+
+    /// api 1.41: places a feature of any mod once at a position with a random seeded from seed, nothing when the
+    /// feature is turned off, authority only, answered with Bool
+    PlaceFeature
+    {
+        feature: Identifier,
+        world: i32,
+        pos: BlockPos,
+        seed: i64,
+    },
+
+    /// api 1.41: every registered feature in run order, answered with Features
+    Features,
+}
+
+/// api 1.41: a registered feature as viewers and the console list it
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub struct FeatureInfo
+{
+    pub id: Identifier,
+    pub owner: String,
+    pub spec: crate::spec::FeatureSpec,
+    pub enabled: bool,
+}
+
+/// api 1.41: one placement of a custom feature, origin the chunk's corner when chunk is set or the spot it is placed
+/// at, the random seeded from seed
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub struct FeatureCall
+{
+    pub world: i32,
+    pub origin: BlockPos,
+    pub seed: i64,
+    pub chunk: bool,
 }
 
 /// api 1.40: whose loot a pool joins
@@ -3527,6 +3576,8 @@ pub enum HostReply
     Job(Option<JobMatch>),
     /// api 1.40
     Accessories(Vec<Worn>),
+    /// api 1.41
+    Features(Vec<FeatureInfo>),
 }
 
 /// api 1.35: a machine category as a recipe viewer shows it

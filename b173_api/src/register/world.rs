@@ -33,6 +33,24 @@ impl Worldgen
     {
         expectUnit(call(HostCall::RegisterWorldgen { name: name.to_owned(), spec }))
     }
+
+    /// needs api 1.41, a named ore or tree feature the loader places, listed and turned off by name
+    pub fn add(&self, name: &str, feature: crate::FeatureBuilder) -> Result<()>
+    {
+        crate::features::register(name, feature, None)
+    }
+
+    /// needs api 1.41, a named feature the handler places, per chunk with the chunk's corner as origin or wherever
+    /// World::placeFeature puts it, returning whether it placed anything
+    pub fn custom(
+        &self,
+        name: &str,
+        feature: crate::FeatureBuilder,
+        handler: impl Fn(&crate::FeatureCtx) -> bool + 'static,
+    ) -> Result<()>
+    {
+        crate::features::register(name, feature, Some(Rc::new(handler)))
+    }
 }
 
 pub struct Dimensions;
