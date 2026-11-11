@@ -1,6 +1,6 @@
 use crate::behavior::{self, BlockBehavior, ItemBehavior};
 use crate::rt::call;
-use crate::{ItemRef, Result, dispatch, expectUnit, ownId};
+use crate::{ItemRef, Result, dispatch, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
 use mod_protocol::abi::{HostCall, RegistryKind};
 use mod_protocol::spec::
@@ -16,20 +16,20 @@ impl Blocks
 {
     pub fn register(&self, name: &str, spec: BlockSpecBuilder) -> Result<ItemRef>
     {
-        let id: Identifier = ownId(name)?;
+        let id: Identifier = ownIdentifier(name)?;
         expectUnit(call(HostCall::RegisterBlock { name: id.to_string(), spec: spec.m_spec }))?;
         Ok(ItemRef::Named(id))
     }
 
     pub fn replace(&self, id: &str, spec: BlockSpecBuilder) -> Result<()>
     {
-        expectUnit(call(HostCall::ReplaceBlock { id: ownId(id)?, spec: spec.m_spec }))
+        expectUnit(call(HostCall::ReplaceBlock { id: ownIdentifier(id)?, spec: spec.m_spec }))
     }
 
     /// named states for one of this mod's blocks, saved by name so properties may change between versions
     pub fn states(&self, name: &str, spec: BlockStatesSpec) -> Result<()>
     {
-        expectUnit(call(HostCall::RegisterBlockStates { block: ownId(name)?, spec }))
+        expectUnit(call(HostCall::RegisterBlockStates { block: ownIdentifier(name)?, spec }))
     }
 
     /// changes chosen properties of any block, other mods changing the same field are reported as conflicts
@@ -41,7 +41,7 @@ impl Blocks
         expectUnit(call(HostCall::ModifySpawns { spec }))
     }
 
-    pub fn id(&self, name: &str) -> Result<i32> { crate::resolve(RegistryKind::Block, &ownId(name)?) }
+    pub fn id(&self, name: &str) -> Result<i32> { crate::resolve(RegistryKind::Block, &ownIdentifier(name)?) }
 }
 
 pub struct BlockSpecBuilder
@@ -99,7 +99,7 @@ impl BlockSpecBuilder
 
     pub fn tileEntity(mut self, tile: &str) -> Self
     {
-        self.m_spec.tile_entity = super::named(ownId(tile), "tile entity");
+        self.m_spec.tile_entity = super::named(ownIdentifier(tile), "tile entity");
         self
     }
 

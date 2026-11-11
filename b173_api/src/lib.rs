@@ -95,8 +95,6 @@ pub(crate) fn setModId(id: &str) { MOD_ID.with(|slot| *slot.borrow_mut() = id.to
 
 pub(crate) fn bumpEpoch() { EPOCH.with(|epoch| epoch.set(epoch.get() + 1)); }
 
-pub(crate) fn ownId(name: &str) -> Result<Identifier> { Ok(Identifier::parseIn(name, &modId())?) }
-
 pub fn resolve(registry: RegistryKind, id: &Identifier) -> Result<i32>
 {
     let epoch: u32 = EPOCH.with(Cell::get);

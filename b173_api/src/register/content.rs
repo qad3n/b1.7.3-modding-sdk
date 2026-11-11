@@ -1,5 +1,5 @@
 use crate::rt::call;
-use crate::{Result, expectUnit, ownId};
+use crate::{Result, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
 use mod_protocol::abi::{HostCall, HostReply, RegistryKind};
 use mod_protocol::spec::{AchievementSpec, EffectSpec, FluidSpec, LootSpec, ParticleSpec, TagEntry};
@@ -59,14 +59,14 @@ impl Loot
 
 fn setLoot(registry: RegistryKind, target: &str, spec: LootSpec) -> Result<()>
 {
-    expectUnit(call(HostCall::SetLoot { registry, target: ownId(target)?, spec }))
+    expectUnit(call(HostCall::SetLoot { registry, target: ownIdentifier(target)?, spec }))
 }
 
 impl Tags
 {
     pub fn add(&self, registry: RegistryKind, tag: &str, values: &[&str]) -> Result<()>
     {
-        let values: Vec<Identifier> = values.iter().map(|value| ownId(value)).collect::<Result<_>>()?;
+        let values: Vec<Identifier> = values.iter().map(|value| ownIdentifier(value)).collect::<Result<_>>()?;
         expectUnit(call(HostCall::AddTag { registry, tag: Identifier::parse(tag)?, values }))
     }
 

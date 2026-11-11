@@ -36,7 +36,7 @@ impl Service for Network
     {
         match method
         {
-            methods::TOTAL => Ok(bytes(&Amount(worldData::<i64>(TOTAL_KEY)))),
+            methods::TOTAL => Ok(toBytes(&Amount(worldData::<i64>(TOTAL_KEY)))),
             other => Err(Error(format!("energy:network has no method {other}"))),
         }
     }
@@ -53,9 +53,9 @@ impl Lookup for BatteryLookup
 
         match method
         {
-            methods::STORED => Ok(bytes(&Amount(world.tileData::<Battery>(pos).stored))),
-            methods::INSERT => Ok(bytes(&adjust(world, pos, fromBytes::<Amount>(args)?.0)?)),
-            methods::EXTRACT => Ok(bytes(&adjust(world, pos, -fromBytes::<Amount>(args)?.0)?)),
+            methods::STORED => Ok(toBytes(&Amount(world.tileData::<Battery>(pos).stored))),
+            methods::INSERT => Ok(toBytes(&adjust(world, pos, fromBytes::<Amount>(args)?.0)?)),
+            methods::EXTRACT => Ok(toBytes(&adjust(world, pos, -fromBytes::<Amount>(args)?.0)?)),
             other => Err(Error(format!("energy:storage has no method {other}"))),
         }
     }

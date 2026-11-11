@@ -1,4 +1,4 @@
-use crate::{Config, Result, ownId};
+use crate::{Config, Result};
 use mod_protocol::Identifier;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -96,9 +96,10 @@ fn named<E: std::fmt::Display>(parsed: std::result::Result<Identifier, E>, what:
     parsed.map_err(|error| crate::warn(&format!("{what}: {error}"))).ok()
 }
 
-pub fn ownIdentifier(name: &str) -> Result<Identifier> { ownId(name) }
+pub fn ownIdentifier(name: &str) -> Result<Identifier> { Ok(Identifier::parseIn(name, &crate::modId())?) }
 
-pub fn bytes<T: Serialize>(value: &T) -> Vec<u8> { crate::world::encode(value) }
+#[deprecated(note = "use toBytes")]
+pub fn bytes<T: Serialize>(value: &T) -> Vec<u8> { toBytes(value) }
 
 pub fn fromBytes<T: DeserializeOwned>(bytes: &[u8]) -> Result<T> { crate::world::decode(bytes) }
 

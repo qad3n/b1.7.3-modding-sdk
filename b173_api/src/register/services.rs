@@ -1,6 +1,6 @@
 use crate::rt::call;
 use crate::services::{Lookup, Service};
-use crate::{Result, dispatch, expectUnit, ownId};
+use crate::{Result, dispatch, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
 use mod_protocol::abi::HostCall;
 use std::rc::Rc;
@@ -19,7 +19,7 @@ impl Services
     {
         let handle: u32 = dispatch::addLookup(Rc::new(lookup));
         let api: Identifier = Identifier::parse(api)?;
-        expectUnit(call(HostCall::RegisterLookup { api, block: ownId(block)?, handler: handle }))
+        expectUnit(call(HostCall::RegisterLookup { api, block: ownIdentifier(block)?, handler: handle }))
     }
 
     pub fn onInterMod(&self, handler: impl Fn(&str, &str, &[u8]) + 'static) { dispatch::setInterMod(Rc::new(handler)); }

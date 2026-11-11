@@ -1,6 +1,6 @@
 use crate::behavior::{self, EntityBehavior, TileBehavior};
 use crate::rt::call;
-use crate::{Result, dispatch, expectUnit, ownId};
+use crate::{Result, dispatch, expectUnit, ownIdentifier};
 use mod_protocol::abi::HostCall;
 use mod_protocol::spec::{Behavior, EntityMethod, EntitySpec, TileEntitySpec, TileMethod};
 use std::rc::Rc;
@@ -19,7 +19,7 @@ impl Entities
             spec.behavior = Some(Behavior { handle: dispatch::addEntity(behavior), methods });
         }
 
-        expectUnit(call(HostCall::RegisterEntity { name: ownId(name)?.to_string(), spec }))
+        expectUnit(call(HostCall::RegisterEntity { name: ownIdentifier(name)?.to_string(), spec }))
     }
 }
 
@@ -37,12 +37,12 @@ impl TileEntities
             spec.behavior = Some(Behavior { handle: dispatch::addTile(behavior), methods });
         }
 
-        expectUnit(call(HostCall::RegisterTileEntity { name: ownId(name)?.to_string(), spec }))
+        expectUnit(call(HostCall::RegisterTileEntity { name: ownIdentifier(name)?.to_string(), spec }))
     }
 
     /// needs api 1.20, the model every tile of the type draws with, posed each frame by its behavior's pose
     pub fn model(&self, name: &str, model: crate::EntityModelSpec) -> Result<()>
     {
-        expectUnit(call(HostCall::TileModel { tile: ownId(name)?, model }))
+        expectUnit(call(HostCall::TileModel { tile: ownIdentifier(name)?, model }))
     }
 }

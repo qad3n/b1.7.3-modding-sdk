@@ -1,6 +1,6 @@
 use crate::rt::call;
 use crate::terrain::ChunkBlocks;
-use crate::{Result, dispatch, expectUnit, ownId};
+use crate::{Result, dispatch, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
 use mod_protocol::abi::
 {
@@ -18,7 +18,7 @@ impl Worldgen
         let spec: WorldgenSpec = WorldgenSpec
         {
             kind: WorldgenKind::Ore,
-            block: ownId(block)?,
+            block: ownIdentifier(block)?,
             dimension: Identifier::minecraft("overworld"),
             vein_size: veinSize,
             per_chunk: perChunk,
@@ -43,7 +43,7 @@ impl Dimensions
     pub fn register(&self, name: &str, spec: DimensionSpec) -> Result<Dimension>
     {
         expectUnit(call(HostCall::RegisterDimension { name: name.to_owned(), spec }))?;
-        Ok(Dimension { m_id: ownId(name)? })
+        Ok(Dimension { m_id: ownIdentifier(name)? })
     }
 
     pub fn biome(&self, name: &str, spec: BiomeSpec) -> Result<()>
@@ -54,7 +54,7 @@ impl Dimensions
     /// the generator runs once per populated chunk of the dimension, vanilla dimensions take generators too
     pub fn generator(&self, dimension: &str, handler: impl Fn(ChunkInfo) + 'static) -> Result<()>
     {
-        addGenerator(ownId(dimension)?, handler)
+        addGenerator(ownIdentifier(dimension)?, handler)
     }
 
     /// needs api 1.7, the mod names the biome of every column, vanilla spawning snow and grass colors follow it
@@ -65,13 +65,13 @@ impl Dimensions
         handler: impl Fn(&ChunkInfo) -> crate::ChunkBiomes + 'static,
     ) -> Result<()>
     {
-        addBiomeSource(ownId(dimension)?, biomes, handler)
+        addBiomeSource(ownIdentifier(dimension)?, biomes, handler)
     }
 
     /// the terrain generator fills every new chunk of a mod dimension, the generator above then populates it
     pub fn terrain(&self, dimension: &str, handler: impl Fn(&ChunkInfo, &mut ChunkBlocks) + 'static) -> Result<()>
     {
-        addTerrain(ownId(dimension)?, handler)
+        addTerrain(ownIdentifier(dimension)?, handler)
     }
 }
 
@@ -166,9 +166,9 @@ impl Structures
 
 fn addStructure(name: &str, label: &str, dimension: &str, finder: Option<u32>) -> Result<Structure>
 {
-    let spec: StructureSpec = StructureSpec { name: label.to_owned(), dimension: ownId(dimension)? };
+    let spec: StructureSpec = StructureSpec { name: label.to_owned(), dimension: ownIdentifier(dimension)? };
     expectUnit(call(HostCall::RegisterStructure { name: name.to_owned(), spec, finder }))?;
-    Ok(Structure { m_id: ownId(name)? })
+    Ok(Structure { m_id: ownIdentifier(name)? })
 }
 
 /// one structure kind this mod registered
@@ -195,7 +195,7 @@ pub struct SpawnQuery
 /// a weighted spawn list entry, vanilla names such as minecraft:zombie or identifiers, bare names in this mod
 pub fn spawnEntry(entity: &str, weight: i32) -> Result<SpawnEntry>
 {
-    Ok(SpawnEntry { entity: ownId(entity)?, weight })
+    Ok(SpawnEntry { entity: ownIdentifier(entity)?, weight })
 }
 
 fn addGenerator(dimension: Identifier, handler: impl Fn(ChunkInfo) + 'static) -> Result<()>
@@ -216,7 +216,7 @@ fn addBiomeSource(
     handler: impl Fn(&ChunkInfo) -> crate::ChunkBiomes + 'static,
 ) -> Result<()>
 {
-    let biomes: Vec<Identifier> = biomes.iter().map(|name| ownId(name)).collect::<Result<_>>()?;
+    let biomes: Vec<Identifier> = biomes.iter().map(|name| ownIdentifier(name)).collect::<Result<_>>()?;
     let handle: u32 = dispatch::addBiomeSource(Rc::new(handler));
     expectUnit(call(HostCall::RegisterBiomeSource { dimension, biomes, handler: handle }))
 }

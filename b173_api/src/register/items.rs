@@ -1,6 +1,6 @@
 use crate::behavior::{self, ItemBehavior};
 use crate::rt::call;
-use crate::{ItemRef, Result, dispatch, expectUnit, ownId};
+use crate::{ItemRef, Result, dispatch, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
 use mod_protocol::abi::HostCall;
 use mod_protocol::spec::{Behavior, ItemMethod, ItemSpec, RecordSpec, ToolClass};
@@ -12,7 +12,7 @@ impl Items
 {
     pub fn register(&self, name: &str, spec: ItemSpecBuilder) -> Result<ItemRef>
     {
-        let id: Identifier = ownId(name)?;
+        let id: Identifier = ownIdentifier(name)?;
         expectUnit(call(HostCall::RegisterItem { name: id.to_string(), spec: spec.m_spec }))?;
         Ok(ItemRef::Named(id))
     }
@@ -20,7 +20,7 @@ impl Items
     /// content from data/ files and other mods registers before code runs, so lookups by name work here
     pub fn get(&self, name: &str) -> Result<ItemRef>
     {
-        let id: Identifier = ownId(name)?;
+        let id: Identifier = ownIdentifier(name)?;
         Ok(ItemRef::Named(id))
     }
 }

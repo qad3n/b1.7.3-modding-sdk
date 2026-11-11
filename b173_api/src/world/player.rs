@@ -122,7 +122,7 @@ impl Player
 
     pub fn openScreen(self, screen: &str, pos: Option<BlockPos>, data: Vec<u8>) -> Result<()>
     {
-        let screen: Identifier = crate::ownId(screen)?;
+        let screen: Identifier = crate::ownIdentifier(screen)?;
         expectUnit(call(HostCall::OpenScreen { player: self.id, screen, pos, data }))
     }
 
@@ -162,7 +162,7 @@ impl Player
 
     pub fn canSend(self, channel: &str) -> bool
     {
-        crate::ownId(channel)
+        crate::ownIdentifier(channel)
             .is_ok_and(|channel| expectBool(call(HostCall::CanSend { player: self.id, channel })).unwrap_or(false))
     }
 
@@ -182,6 +182,6 @@ pub fn broadcast(message: &str) { fire(HostCall::Chat { player: None, message: m
 
 pub fn send<T: Serialize>(channel: &str, target: Target, message: &T) -> Result<()>
 {
-    let channel: Identifier = crate::ownId(channel)?;
+    let channel: Identifier = crate::ownIdentifier(channel)?;
     expectUnit(call(HostCall::Send { channel, target, data: encode(message) }))
 }

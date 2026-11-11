@@ -1,5 +1,5 @@
 use crate::rt::call;
-use crate::{Error, ItemRef, ItemStack, Result, expectUnit, ownId};
+use crate::{Error, ItemRef, ItemStack, Result, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
 use mod_protocol::abi::HostCall;
 use mod_protocol::spec::{FuelSpec, RecipeSpec, ShapedSpec, ShapelessSpec, SmeltingSpec, StackSpec};
@@ -107,5 +107,5 @@ impl Recipes
         }))
     }
 
-    pub fn remove(&self, id: &str) -> Result<()> { expectUnit(call(HostCall::RemoveRecipe { id: ownId(id)? })) }
+    pub fn remove(&self, id: &str) -> Result<()> { expectUnit(call(HostCall::RemoveRecipe { id: ownIdentifier(id)? })) }
 }

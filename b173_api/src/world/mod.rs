@@ -377,7 +377,7 @@ pub fn worldData<T: DeserializeOwned + Default>(key: &str) -> T
 /// that name it draw these pixels from then on, a bare name is taken in this mod's namespace
 pub fn setDynamicTexture(name: &str, width: u32, height: u32, pixels: Vec<u32>) -> crate::Result<()>
 {
-    let name: Identifier = crate::ownId(name)?;
+    let name: Identifier = crate::ownIdentifier(name)?;
     expectUnit(call(HostCall::SetDynamicTexture { name, width, height, pixels }))
 }
 

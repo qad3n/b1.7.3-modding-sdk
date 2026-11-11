@@ -1,7 +1,7 @@
 use crate::dispatch::{self, Command};
 use crate::events::{Event, EventType};
 use crate::rt::call;
-use crate::{Player, Result, expectUnit, ownId};
+use crate::{Player, Result, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
 use mod_protocol::abi::{EventKind, HostCall, Permission, Priority};
 use mod_protocol::handshake::ChannelDirection;
@@ -41,7 +41,7 @@ impl Events
     pub fn onCustom(&self, event: &str, priority: Priority, handler: impl Fn(&mut Event) + 'static) -> Result<()>
     {
         let handle: u32 = dispatch::addEvent(Rc::new(handler));
-        let custom: Identifier = ownId(event)?;
+        let custom: Identifier = ownIdentifier(event)?;
 
         expectUnit(call(HostCall::Subscribe
         {
@@ -55,7 +55,7 @@ impl Events
 
     pub fn define(&self, event: &str) -> Result<()>
     {
-        expectUnit(call(HostCall::DefineEvent { id: ownId(event)? }))
+        expectUnit(call(HostCall::DefineEvent { id: ownIdentifier(event)? }))
     }
 }
 
