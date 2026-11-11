@@ -34,11 +34,10 @@ pub extern "C" fn b173_free(pointer: u32, length: u32)
     unsafe { drop(Vec::from_raw_parts(pointer as *mut u8, 0, length as usize)) };
 }
 
+// a boxed slice has capacity equal to length, which b173_free relies on when it rebuilds the buffer
 fn leak(bytes: Vec<u8>) -> u64
 {
-    let mut bytes: Vec<u8> = bytes;
-    bytes.shrink_to_fit();
-
+    let bytes: Box<[u8]> = bytes.into_boxed_slice();
     let packed: u64 = abi::packBuffer(bytes.as_ptr() as u32, bytes.len() as u32);
 
     std::mem::forget(bytes);
