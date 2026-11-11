@@ -1283,6 +1283,20 @@ pub enum GuestCall
         handler: Handle,
         call: FeatureCall,
     },
+
+    /// api 1.42: whether a loot condition passes, the reply is Bool
+    LootCondition
+    {
+        handler: Handle,
+        context: LootContext,
+    },
+
+    /// api 1.42: the count a loot rule gives, the reply is Int
+    LootCount
+    {
+        handler: Handle,
+        context: LootContext,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
@@ -3258,6 +3272,44 @@ pub enum HostCall
 
     /// api 1.41: every registered feature in run order, answered with Features
     Features,
+
+    /// api 1.42: a named loot condition the handler answers, label is how viewers name it, registration only
+    RegisterLootCondition
+    {
+        name: String,
+        label: String,
+        handler: Handle,
+    },
+
+    /// api 1.42: a named rule the handler answers with a drop's count, registration only
+    RegisterLootCount
+    {
+        name: String,
+        label: String,
+        handler: Handle,
+    },
+
+    /// api 1.42: a pool with conditional entries added to a block's, entity's or chest table's loot
+    AddConditionalPool
+    {
+        target: LootTarget,
+        id: Identifier,
+        pool: crate::spec::ConditionalPoolSpec,
+    },
+}
+
+/// api 1.42: what a loot condition or count rule knows about one roll, the dying entity and its killer still in the
+/// world, the broken block at pos, tool the killer's held stack, seed for the rule's own random
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub struct LootContext
+{
+    pub world: i32,
+    pub pos: Option<BlockPos>,
+    pub state: Option<StateData>,
+    pub entity: Option<i32>,
+    pub killer: Option<i32>,
+    pub tool: Option<StackData>,
+    pub seed: i64,
 }
 
 /// api 1.41: a registered feature as viewers and the console list it

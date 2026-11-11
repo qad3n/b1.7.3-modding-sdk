@@ -34,23 +34,23 @@ pub use mod_protocol::abi::
 {
     BiomeSpec, BipedPart, BlockInfo, BlockPos, ChunkInfo, ConfigScope, DimensionSpec, EnergyDemand, EntityField,
     EntityInfo, EventKind, FaceOverlay, FeatureInfo, FluidBlock, FluidStack, GameRuleValue, ItemInfo, ItemModelSpec,
-    JobMatch, JobOutput, Located, LootDrop, LootSource, LootTarget, LootView, MachineRecipeView, MachineSlot,
-    MachineView, ModelOp, ModifierOperation, MusicSpec, Permission, PlayerLayer, Pose, PoseInput, Priority, RayHit,
-    RecipeShape, RecipeView, RegistryKind, SpawnEntry, StackData, StackRef, StateData, StructurePiece, StructureSpec,
-    StructureStart, Target, UseAction, Worn, capability,
+    JobMatch, JobOutput, Located, LootContext, LootDrop, LootSource, LootTarget, LootView, MachineRecipeView,
+    MachineSlot, MachineView, ModelOp, ModifierOperation, MusicSpec, Permission, PlayerLayer, Pose, PoseInput,
+    Priority, RayHit, RecipeShape, RecipeView, RegistryKind, SpawnEntry, StackData, StackRef, StateData,
+    StructurePiece, StructureSpec, StructureStart, Target, UseAction, Worn, capability,
 };
 pub use mod_protocol::handshake::ChannelDirection as Direction;
 use mod_protocol::identifier::IdentifierError;
 pub use mod_protocol::spec::
 {
     AccessorySlotSpec, AchievementSpec, ArmorSlot, ArmorSpec, AttributeSpec, BedFaces, BlockModelSpec, BlockModifySpec,
-    BlockSpec, BlockStatesSpec, CreatureKind, Cuboid, DropSpec, EffectModifierSpec, EffectSpec, EnergySpec,
-    EntityModelSpec, EntitySounds, EntitySpec, FaceTextures, FeatureKind, FeatureSpec, FeatureStep, Flammability,
-    FluidSpec, FluidStyle, FoodSpec, GameRuleCategory, GameRuleSpec, HeightSpec, IngredientSpec, ItemSpec,
-    ItemToolSpec, JobEnergySpec, JobFluidSpec, JobInputSpec, JobOutputSpec, LootEntrySpec, LootPoolSpec, LootSpec,
-    MachineFuelSpec, MachineJobSpec, MachineRecipeSpec, MachineSlotSpec, MachineSpec, ModelBox, ModelPart,
-    ParticleSpec, PropertySpec, SpawnModifySpec, SpawnSpec, StateVariantSpec, SteeringSpec, TagEntry, TagRef,
-    TileEntitySpec, ToolClass, ToolSpec, WeightedLootSpec,
+    BlockSpec, BlockStatesSpec, ConditionalLootSpec, ConditionalPoolSpec, CreatureKind, Cuboid, DropSpec,
+    EffectModifierSpec, EffectSpec, EnergySpec, EntityModelSpec, EntitySounds, EntitySpec, FaceTextures, FeatureKind,
+    FeatureSpec, FeatureStep, Flammability, FluidSpec, FluidStyle, FoodSpec, GameRuleCategory, GameRuleSpec,
+    HeightSpec, IngredientSpec, ItemSpec, ItemToolSpec, JobEnergySpec, JobFluidSpec, JobInputSpec, JobOutputSpec,
+    LootEntrySpec, LootPoolSpec, LootSpec, MachineFuelSpec, MachineJobSpec, MachineRecipeSpec, MachineSlotSpec,
+    MachineSpec, ModelBox, ModelPart, ParticleSpec, PropertySpec, SpawnModifySpec, SpawnSpec, StateVariantSpec,
+    SteeringSpec, TagEntry, TagRef, TileEntitySpec, ToolClass, ToolSpec, WeightedLootSpec,
 };
 use mod_protocol::wire::WireError;
 pub use names::{blockIs, blockTagged, nameOf, nameWith, named, tagMembers, tagged};

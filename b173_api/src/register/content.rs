@@ -5,8 +5,8 @@ use mod_protocol::Identifier;
 use mod_protocol::abi::{HostCall, HostReply, LootTarget, RegistryKind};
 use mod_protocol::spec::
 {
-    AchievementSpec, AttributeSpec, Behavior, EffectMethod, EffectSpec, EnergySpec, FluidSpec, GameRuleSpec,
-    LootPoolSpec, LootSpec, ParticleSpec, TagEntry, WeightedLootSpec,
+    AchievementSpec, AttributeSpec, Behavior, ConditionalLootSpec, ConditionalPoolSpec, EffectMethod, EffectSpec,
+    EnergySpec, FluidSpec, GameRuleSpec, LootSpec, ParticleSpec, TagEntry,
 };
 use std::rc::Rc;
 
@@ -110,17 +110,69 @@ impl Loot
         expectUnit(call(HostCall::SetChestLoot { table: ownIdentifier(table)?, spec }))
     }
 
-    /// needs api 1.40, a weighted pool for a block, entity or chest table of any mod, each roll picking one entry
-    pub fn pool(&self, target: LootTarget, id: &str, pool: LootPoolSpec) -> Result<()>
+    /// needs api 1.40, a weighted pool for a block, entity or chest table of any mod, each roll picking one entry;
+    /// a pool naming loot conditions or count rules needs api 1.42
+    pub fn pool(&self, target: LootTarget, id: &str, pool: impl Into<ConditionalPoolSpec>) -> Result<()>
     {
-        expectUnit(call(HostCall::AddLootPool { target, id: ownIdentifier(id)?, pool }))
+        let id: Identifier = ownIdentifier(id)?;
+        let pool: ConditionalPoolSpec = pool.into();
+
+        match pool.plain()
+        {
+            Some(plain) => expectUnit(call(HostCall::AddLootPool { target, id, pool: plain })),
+            None => expectUnit(call(HostCall::AddConditionalPool { target, id, pool })),
+        }
+    }
+
+    /// needs api 1.42, a loot condition any mod's pools name, label is how recipe viewers show it
+    pub fn condition(&self, name: &str, label: &str, handler: impl Fn(&LootQuery) -> bool + 'static) -> Result<()>
+    {
+        let handler: u32 = dispatch::addLootCondition(Rc::new(handler));
+        expectUnit(call(HostCall::RegisterLootCondition { name: name.to_owned(), label: label.to_owned(), handler }))
+    }
+
+    /// needs api 1.42, a rule giving the count of a drop, for pools of any mod
+    pub fn count(&self, name: &str, label: &str, handler: impl Fn(&LootQuery) -> i32 + 'static) -> Result<()>
+    {
+        let handler: u32 = dispatch::addLootCount(Rc::new(handler));
+        expectUnit(call(HostCall::RegisterLootCount { name: name.to_owned(), label: label.to_owned(), handler }))
+    }
+}
+
+/// needs api 1.42, one loot roll as conditions and count rules see it
+pub struct LootQuery
+{
+    pub world: crate::World,
+    pub pos: Option<crate::BlockPos>,
+    pub state: Option<crate::StateData>,
+    pub entity: Option<crate::Entity>,
+    pub killer: Option<crate::Entity>,
+    pub tool: Option<crate::ItemStack>,
+    pub random: crate::terrain::Random,
+}
+
+impl LootQuery
+{
+    pub(crate) fn new(context: mod_protocol::abi::LootContext) -> Self
+    {
+        let world: crate::World = crate::World { dimension: context.world };
+        Self
+        {
+            world,
+            pos: context.pos,
+            state: context.state,
+            entity: context.entity.map(|id| crate::Entity { world, id }),
+            killer: context.killer.map(|id| crate::Entity { world, id }),
+            tool: context.tool.map(crate::ItemStack::fromRaw),
+            random: crate::terrain::Random::withSeed(context.seed),
+        }
     }
 }
 
 /// needs api 1.40, a weighted loot pool built up entry by entry
 pub struct PoolBuilder
 {
-    pub m_spec: LootPoolSpec,
+    pub m_spec: ConditionalPoolSpec,
 }
 
 impl PoolBuilder
@@ -128,39 +180,38 @@ impl PoolBuilder
     /// rolled from rolls to most times
     pub fn new(rolls: i32, most: i32) -> Self
     {
-        Self { m_spec: LootPoolSpec { rolls, max_rolls: Some(most), entries: Vec::new() } }
+        Self { m_spec: ConditionalPoolSpec { rolls, max_rolls: Some(most), entries: Vec::new() } }
     }
 
     /// an item picked with weight, from count to most of it
     pub fn entry(mut self, item: &str, weight: i32, count: i32, most: i32) -> Result<Self>
     {
         let item: Identifier = ownIdentifier(item)?;
-        self.m_spec.entries.push(WeightedLootSpec
+        self.m_spec.entries.push(Self::pick(Some(item), weight, count, Some(most)));
+        Ok(self)
+    }
+
+    fn pick(item: Option<Identifier>, weight: i32, count: i32, most: Option<i32>) -> ConditionalLootSpec
+    {
+        ConditionalLootSpec
         {
-            item: Some(item),
+            item,
             meta: 0,
             count,
-            max: Some(most),
+            max: most,
             weight,
             player: false,
             block_meta: None,
-        });
-        Ok(self)
+            when: Vec::new(),
+            unless: Vec::new(),
+            count_by: None,
+        }
     }
 
     /// a pick that drops nothing
     pub fn nothing(mut self, weight: i32) -> Self
     {
-        self.m_spec.entries.push(WeightedLootSpec
-        {
-            item: None,
-            meta: 0,
-            count: 1,
-            max: None,
-            weight,
-            player: false,
-            block_meta: None,
-        });
+        self.m_spec.entries.push(Self::pick(None, weight, 1, None));
         self
     }
 
@@ -192,6 +243,39 @@ impl PoolBuilder
             last.meta = damage;
         }
         self
+    }
+
+    /// needs api 1.42, the entry added last only takes part when the named condition passes
+    pub fn when(mut self, condition: &str) -> Result<Self>
+    {
+        let condition: Identifier = ownIdentifier(condition)?;
+        if let Some(last) = self.m_spec.entries.last_mut()
+        {
+            last.when.push(condition);
+        }
+        Ok(self)
+    }
+
+    /// needs api 1.42, the entry added last sits out when the named condition passes
+    pub fn unless(mut self, condition: &str) -> Result<Self>
+    {
+        let condition: Identifier = ownIdentifier(condition)?;
+        if let Some(last) = self.m_spec.entries.last_mut()
+        {
+            last.unless.push(condition);
+        }
+        Ok(self)
+    }
+
+    /// needs api 1.42, the entry added last drops as many as the named count rule gives
+    pub fn countBy(mut self, rule: &str) -> Result<Self>
+    {
+        let rule: Identifier = ownIdentifier(rule)?;
+        if let Some(last) = self.m_spec.entries.last_mut()
+        {
+            last.count_by = Some(rule);
+        }
+        Ok(self)
     }
 }
 

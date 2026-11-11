@@ -1258,3 +1258,95 @@ pub struct FeatureModifySpec
 {
     pub disable: Vec<Identifier>,
 }
+
+/// api 1.42: a weighted pool whose entries may name loot conditions and a count rule any mod registered
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct ConditionalPoolSpec
+{
+    #[serde(default = "one")]
+    pub rolls: i32,
+    #[serde(default)]
+    pub max_rolls: Option<i32>,
+    pub entries: Vec<ConditionalLootSpec>,
+}
+
+/// api 1.42: a pool entry that takes part in a roll only when every when condition passes and no unless condition
+/// does, its count from the count_by rule when named; conditions and rules go by their registered names
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct ConditionalLootSpec
+{
+    #[serde(default)]
+    pub item: Option<Identifier>,
+    #[serde(default)]
+    pub meta: i32,
+    #[serde(default = "one")]
+    pub count: i32,
+    #[serde(default)]
+    pub max: Option<i32>,
+    #[serde(default = "one")]
+    pub weight: i32,
+    #[serde(default)]
+    pub player: bool,
+    #[serde(default)]
+    pub block_meta: Option<i32>,
+    #[serde(default)]
+    pub when: Vec<Identifier>,
+    #[serde(default)]
+    pub unless: Vec<Identifier>,
+    #[serde(default)]
+    pub count_by: Option<Identifier>,
+}
+
+impl From<LootPoolSpec> for ConditionalPoolSpec
+{
+    fn from(pool: LootPoolSpec) -> Self
+    {
+        let entries: Vec<ConditionalLootSpec> = pool
+            .entries
+            .into_iter()
+            .map(|entry| ConditionalLootSpec
+            {
+                item: entry.item,
+                meta: entry.meta,
+                count: entry.count,
+                max: entry.max,
+                weight: entry.weight,
+                player: entry.player,
+                block_meta: entry.block_meta,
+                when: Vec::new(),
+                unless: Vec::new(),
+                count_by: None,
+            })
+            .collect();
+        Self { rolls: pool.rolls, max_rolls: pool.max_rolls, entries }
+    }
+}
+
+impl ConditionalPoolSpec
+{
+    /// the api 1.40 pool when no entry names a condition or count rule, so older loaders take it
+    pub fn plain(&self) -> Option<LootPoolSpec>
+    {
+        let entries: Option<Vec<WeightedLootSpec>> = self
+            .entries
+            .iter()
+            .map(|entry|
+            {
+                let ruled: bool = !entry.when.is_empty() || !entry.unless.is_empty() || entry.count_by.is_some();
+                (!ruled).then(|| WeightedLootSpec
+                {
+                    item: entry.item.clone(),
+                    meta: entry.meta,
+                    count: entry.count,
+                    max: entry.max,
+                    weight: entry.weight,
+                    player: entry.player,
+                    block_meta: entry.block_meta,
+                })
+            })
+            .collect();
+        Some(LootPoolSpec { rolls: self.rolls, max_rolls: self.max_rolls, entries: entries? })
+    }
+}

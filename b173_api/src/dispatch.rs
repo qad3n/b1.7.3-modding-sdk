@@ -80,6 +80,8 @@ struct Tables
     m_tooltips: Vec<TooltipHandler>,
     m_worldRenders: Vec<WorldRenderHandler>,
     m_features: Vec<crate::features::FeatureHandler>,
+    m_lootConditions: Vec<Rc<dyn Fn(&crate::LootQuery) -> bool>>,
+    m_lootCounts: Vec<Rc<dyn Fn(&crate::LootQuery) -> i32>>,
 }
 
 thread_local!
@@ -125,6 +127,8 @@ adder!(addConfigListener, m_configListeners, ConfigListener);
 adder!(addTooltip, m_tooltips, TooltipHandler);
 adder!(addWorldRender, m_worldRenders, WorldRenderHandler);
 adder!(addFeature, m_features, crate::features::FeatureHandler);
+adder!(addLootCondition, m_lootConditions, Rc<dyn Fn(&crate::LootQuery) -> bool>);
+adder!(addLootCount, m_lootCounts, Rc<dyn Fn(&crate::LootQuery) -> i32>);
 
 pub(crate) fn feature(handle: u32) -> Option<crate::features::FeatureHandler>
 {
@@ -697,6 +701,21 @@ pub(crate) fn handle(call: GuestCall) -> GuestReply
             }
 
             None => GuestReply::Error(format!("no feature {handler}")),
+        },
+
+        GuestCall::LootCondition { handler, context } =>
+        {
+            match get(|tables| tables.m_lootConditions.get(handler as usize))
+            {
+                Some(condition) => GuestReply::Bool(condition(&crate::LootQuery::new(context))),
+                None => GuestReply::Error(format!("no loot condition {handler}")),
+            }
+        }
+
+        GuestCall::LootCount { handler, context } => match get(|tables| tables.m_lootCounts.get(handler as usize))
+        {
+            Some(count) => GuestReply::Int(count(&crate::LootQuery::new(context))),
+            None => GuestReply::Error(format!("no loot count rule {handler}")),
         },
     }
 }
