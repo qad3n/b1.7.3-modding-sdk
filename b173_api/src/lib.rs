@@ -31,18 +31,18 @@ pub use mod_protocol::handshake::ChannelDirection as Direction;
 use mod_protocol::identifier::IdentifierError;
 pub use mod_protocol::spec::
 {
-    AchievementSpec, ArmorSlot, ArmorSpec, BedFaces, BlockModelSpec, BlockModifySpec, BlockSpec, BlockStatesSpec,
-    CreatureKind, Cuboid, DropSpec, EffectModifierSpec, EffectSpec, EntityModelSpec, EntitySounds, EntitySpec,
-    FaceTextures, Flammability, FluidSpec, FluidStyle, FoodSpec, ItemSpec, ItemToolSpec, LootEntrySpec, LootSpec,
-    ModelBox, ModelPart, ParticleSpec, PropertySpec, SpawnModifySpec, SpawnSpec, StateVariantSpec, SteeringSpec,
-    TagEntry, TagRef, TileEntitySpec, ToolClass, ToolSpec,
+    AchievementSpec, ArmorSlot, ArmorSpec, AttributeSpec, BedFaces, BlockModelSpec, BlockModifySpec, BlockSpec,
+    BlockStatesSpec, CreatureKind, Cuboid, DropSpec, EffectModifierSpec, EffectSpec, EntityModelSpec, EntitySounds,
+    EntitySpec, FaceTextures, Flammability, FluidSpec, FluidStyle, FoodSpec, ItemSpec, ItemToolSpec, LootEntrySpec,
+    LootSpec, ModelBox, ModelPart, ParticleSpec, PropertySpec, SpawnModifySpec, SpawnSpec, StateVariantSpec,
+    SteeringSpec, TagEntry, TagRef, TileEntitySpec, ToolClass, ToolSpec,
 };
 use mod_protocol::wire::WireError;
 pub use register::*;
 pub(crate) use reply::
 {
-    expectBool, expectBytes, expectEntities, expectEntity, expectFloat, expectId, expectInt, expectLocated, expectLong,
-    expectStack, expectStarts, expectState, expectText, expectUnit, fetchData,
+    expectBool, expectBytes, expectDouble, expectEntities, expectEntity, expectFloat, expectId, expectInt,
+    expectLocated, expectLong, expectStack, expectStarts, expectState, expectText, expectUnit, fetchData,
 };
 pub use serde;
 use std::cell::{Cell, RefCell};

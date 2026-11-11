@@ -2,7 +2,7 @@ use crate::rt::call;
 use crate::{Result, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
 use mod_protocol::abi::{HostCall, HostReply, RegistryKind};
-use mod_protocol::spec::{AchievementSpec, EffectSpec, FluidSpec, LootSpec, ParticleSpec, TagEntry};
+use mod_protocol::spec::{AchievementSpec, AttributeSpec, EffectSpec, FluidSpec, LootSpec, ParticleSpec, TagEntry};
 
 pub struct Tags;
 
@@ -15,6 +15,17 @@ pub struct Effects;
 pub struct Particles;
 
 pub struct Achievements;
+
+pub struct Attributes;
+
+impl Attributes
+{
+    /// read it with Entity::attribute and change it with Entity::setModifier under its full name <modid>:<name>
+    pub fn register(&self, name: &str, spec: AttributeSpec) -> Result<()>
+    {
+        expectUnit(call(HostCall::RegisterAttribute { name: name.to_owned(), spec }))
+    }
+}
 
 impl Achievements
 {

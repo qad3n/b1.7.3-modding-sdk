@@ -1,6 +1,6 @@
 use super::{World, encode};
 use crate::rt::{call, fire};
-use crate::{ItemStack, Result, expectBool, expectInt, expectStack, expectUnit, fetchData};
+use crate::{ItemStack, Result, expectBool, expectDouble, expectInt, expectStack, expectUnit, fetchData};
 use mod_protocol::Identifier;
 use mod_protocol::abi::{BlockPos, EntityField, EntityInfo, HostCall, HostReply, ModifierOperation};
 use serde::Serialize;
@@ -47,8 +47,8 @@ impl Entity
             .unwrap_or(false)
     }
 
-    /// needs api 1.18, attributes are minecraft:max_health, movement_speed, attack_damage, armor and
-    /// knockback_resistance
+    /// needs api 1.18, vanilla attributes are minecraft:max_health, movement_speed, attack_damage, armor,
+    /// knockback_resistance and swim_speed, api 1.27 adds any a mod registers
     pub fn setModifier(self, attribute: &str, modifier: &str, amount: f64, operation: ModifierOperation) -> Result<()>
     {
         expectUnit(call(HostCall::SetModifier
@@ -72,6 +72,13 @@ impl Entity
             attribute: Identifier::parse(attribute)?,
             modifier: Identifier::parse(modifier)?,
         }))
+    }
+
+    /// needs api 1.27, the attribute's registered default with this entity's modifiers applied
+    pub fn attribute(self, attribute: &str) -> Result<f64>
+    {
+        let attribute: Identifier = Identifier::parse(attribute)?;
+        expectDouble(call(HostCall::AttributeValue { world: self.world.dimension, id: self.id, attribute }))
     }
 
     /// needs api 1.22, level 0 is the first level

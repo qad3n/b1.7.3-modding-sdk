@@ -14,7 +14,7 @@ mod ui;
 mod world;
 
 pub use blocks::{BlockSpecBuilder, Blocks};
-pub use content::{Achievements, Effects, Fluids, Loot, Particles, Tags, tagValues};
+pub use content::{Achievements, Attributes, Effects, Fluids, Loot, Particles, Tags, tagValues};
 pub use entities::{Entities, TileEntities};
 pub use items::{ItemSpecBuilder, Items};
 pub use net::{Channels, Commands, Events, Keybinds};
@@ -73,6 +73,9 @@ impl RegisterCtx
 
     /// needs api 1.25
     pub fn achievements(&mut self) -> Achievements { Achievements }
+
+    /// needs api 1.27
+    pub fn attributes(&mut self) -> Attributes { Attributes }
 
     pub fn worldgen(&mut self) -> Worldgen { Worldgen }
 

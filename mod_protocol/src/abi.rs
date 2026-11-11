@@ -2608,6 +2608,22 @@ pub enum HostCall
         max: i32,
         simulate: bool,
     },
+
+    /// api 1.27: an attribute named <modid>:<name> that every living entity carries
+    RegisterAttribute
+    {
+        name: String,
+        spec: crate::spec::AttributeSpec,
+    },
+
+    /// api 1.27: an attribute's default with the entity's modifiers applied, answered with Double; a vanilla
+    /// attribute whose base the game works out where it reads it starts from its registered default here
+    AttributeValue
+    {
+        world: i32,
+        id: i32,
+        attribute: Identifier,
+    },
 }
 
 /// how a modifier combines with an attribute: adds first, then base multipliers summed, then total multipliers one by one
@@ -2735,6 +2751,8 @@ pub enum HostReply
     /// api 1.10
     Starts(Vec<StructureStart>),
     Located(Option<Located>),
+    /// api 1.27
+    Double(f64),
 }
 
 /// api 1.2: a recipe as a viewer shows it, an ingredient with damage -1 takes any damage

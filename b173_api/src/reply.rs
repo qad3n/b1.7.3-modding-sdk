@@ -77,6 +77,15 @@ pub(crate) fn expectStarts(reply: HostReply) -> Result<Vec<StructureStart>>
     }
 }
 
+pub(crate) fn expectDouble(reply: HostReply) -> Result<f64>
+{
+    match reply
+    {
+        HostReply::Double(value) => Ok(value),
+        other => Err(unexpected(other)),
+    }
+}
+
 pub(crate) fn expectLocated(reply: HostReply) -> Result<Option<Located>>
 {
     match reply

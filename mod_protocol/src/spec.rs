@@ -849,3 +849,18 @@ pub struct AchievementSpec
     #[serde(default)]
     pub parent: Option<Identifier>,
 }
+
+/// api 1.27: a number every living entity carries, modifiers change it and the value stays within min and max
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Debug)]
+#[serde(default, deny_unknown_fields)]
+pub struct AttributeSpec
+{
+    pub default: f64,
+    pub min: f64,
+    pub max: f64,
+}
+
+impl Default for AttributeSpec
+{
+    fn default() -> AttributeSpec { AttributeSpec { default: 0.0, min: f64::MIN, max: f64::MAX } }
+}

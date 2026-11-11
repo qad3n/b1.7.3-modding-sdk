@@ -3,8 +3,8 @@ use mod_protocol::Identifier;
 use mod_protocol::identifier::isValidModId;
 use mod_protocol::spec::
 {
-    AchievementSpec, BlockModifySpec, BlockSpec, BlockStatesSpec, EffectSpec, FluidSpec, ItemSpec, LootSpec,
-    ParticleSpec, RecipeSpec, SpawnModifySpec, TagSpec, WorldgenSpec,
+    AchievementSpec, AttributeSpec, BlockModifySpec, BlockSpec, BlockStatesSpec, EffectSpec, FluidSpec, ItemSpec,
+    LootSpec, ParticleSpec, RecipeSpec, SpawnModifySpec, TagSpec, WorldgenSpec,
 };
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
@@ -122,6 +122,7 @@ pub(crate) fn run(root: &Path) -> Result<Vec<String>>
             "loot" => parse::<LootSpec>(&path).map(drop),
             "fluids" => parse::<FluidSpec>(&path).map(drop),
             "effects" => parse::<EffectSpec>(&path).map(drop),
+            "attributes" => parse::<AttributeSpec>(&path).map(drop),
             "particles" => parse::<ParticleSpec>(&path).map(drop),
             "achievements" => parse::<AchievementSpec>(&path).map(drop),
             "tags" => parse::<TagSpec>(&path).and_then(|spec|
