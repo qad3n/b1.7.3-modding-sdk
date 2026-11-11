@@ -3296,6 +3296,11 @@ pub enum EntityField
     PickupDelay,
     /// api 1.33: EntityMinecart.minecartType, 0 to ride, 1 with a chest, 2 with a furnace; read only
     MinecartType,
+    /// api 1.36: Entity.getMountedYOffset, how far above the mount's feet a rider sits; setting it overrides the
+    /// mount's own on the side that sets it, so a mod sets it on server and client
+    Seat,
+    /// api 1.36: EntityLiving.renderYawOffset, the body's yaw the head turns from
+    BodyYaw,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
