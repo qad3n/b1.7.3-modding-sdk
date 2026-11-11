@@ -4,13 +4,14 @@ use crate::screen::{Draw, Screen};
 use crate::services::{Lookup, Service};
 use crate::terrain::ChunkBlocks;
 use crate::{BlockCtx, Entity, ItemStack, Player, RegisterCtx, World};
-use mod_protocol::abi::{
+use mod_protocol::abi::
+{
     BlockCall, ChunkInfo, EntityCall, GuestCall, GuestReply, ItemCall, Lifecycle, Sender, TileCall,
 };
-use std::cell::RefCell;
+use std::cell::{RefCell, RefMut};
 use std::rc::Rc;
 
-// a running command: who sent it, its arguments and the reply shown to the sender
+/// a running command: who sent it, its arguments and the reply shown to the sender
 pub struct Command
 {
     pub sender: Sender,
@@ -30,6 +31,7 @@ impl Command
         {
             self.m_reply.push('\n');
         }
+
         self.m_reply.push_str(text);
     }
 
@@ -78,16 +80,20 @@ struct Tables
     m_worldRenders: Vec<WorldRenderHandler>,
 }
 
-thread_local! {
+thread_local!
+{
     static TABLES: RefCell<Tables> = RefCell::new(Tables::default());
 }
 
-macro_rules! adder {
-    ($name:ident, $field:ident, $kind:ty) => {
+macro_rules! adder
+{
+    ($name:ident, $field:ident, $kind:ty) =>
+    {
         pub(crate) fn $name(value: $kind) -> u32
         {
-            TABLES.with(|tables| {
-                let mut tables = tables.borrow_mut();
+            TABLES.with(|tables|
+            {
+                let mut tables: RefMut<Tables> = tables.borrow_mut();
                 tables.$field.push(value);
                 (tables.$field.len() - 1) as u32
             })
@@ -118,8 +124,9 @@ adder!(addWorldRender, m_worldRenders, WorldRenderHandler);
 
 pub(crate) fn addOverlay(overlay: impl crate::screen::Overlay + 'static) -> u32
 {
-    TABLES.with(|tables| {
-        let mut tables = tables.borrow_mut();
+    TABLES.with(|tables|
+    {
+        let mut tables: RefMut<Tables> = tables.borrow_mut();
         tables.m_overlays.push(Rc::new(RefCell::new(overlay)));
         (tables.m_overlays.len() - 1) as u32
     })
@@ -127,8 +134,9 @@ pub(crate) fn addOverlay(overlay: impl crate::screen::Overlay + 'static) -> u32
 
 pub(crate) fn addScreen(screen: impl Screen + 'static) -> u32
 {
-    TABLES.with(|tables| {
-        let mut tables = tables.borrow_mut();
+    TABLES.with(|tables|
+    {
+        let mut tables: RefMut<Tables> = tables.borrow_mut();
         tables.m_screens.push(Rc::new(RefCell::new(screen)));
         (tables.m_screens.len() - 1) as u32
     })
@@ -152,28 +160,34 @@ fn block(handle: u32, call: BlockCall) -> GuestReply
     {
         return GuestReply::Error(format!("no block behavior {handle}"));
     };
-    let wrap = |raw| BlockCtx { raw };
+
     match call
     {
         BlockCall::Activated { ctx, player } =>
         {
             GuestReply::Bool(behavior.onActivated(&mut wrap(ctx), Player { id: player }))
         }
+
         BlockCall::Clicked { ctx, player } => unit(|| behavior.onClicked(&mut wrap(ctx), Player { id: player })),
         BlockCall::Added { ctx } => unit(|| behavior.onAdded(&mut wrap(ctx))),
         BlockCall::Removed { ctx } => unit(|| behavior.onRemoved(&mut wrap(ctx))),
         BlockCall::Placed { ctx, face } => unit(|| behavior.onPlaced(&mut wrap(ctx), face)),
+
         BlockCall::PlacedBy { ctx, entity } =>
         {
             unit(|| behavior.onPlacedBy(&mut wrap(ctx), Entity { world: World { dimension: ctx.world }, id: entity }))
         }
+
         BlockCall::NeighborChanged { ctx, neighbor } => unit(|| behavior.onNeighborChanged(&mut wrap(ctx), neighbor)),
         BlockCall::UpdateTick { ctx } => unit(|| behavior.onUpdateTick(&mut wrap(ctx))),
         BlockCall::RandomDisplayTick { ctx } => unit(|| behavior.onRandomDisplayTick(&mut wrap(ctx))),
-        BlockCall::EntityCollided { ctx, entity } => unit(|| {
+        BlockCall::EntityCollided { ctx, entity } => unit(||
+        {
             behavior.onEntityCollided(&mut wrap(ctx), Entity { world: World { dimension: ctx.world }, id: entity })
         }),
-        BlockCall::EntityWalking { ctx, entity } => unit(|| {
+
+        BlockCall::EntityWalking { ctx, entity } => unit(||
+        {
             behavior.onEntityWalking(&mut wrap(ctx), Entity { world: World { dimension: ctx.world }, id: entity })
         }),
         BlockCall::DestroyedByPlayer { ctx } => unit(|| behavior.onDestroyedByPlayer(&mut wrap(ctx))),
@@ -182,21 +196,26 @@ fn block(handle: u32, call: BlockCall) -> GuestReply
         BlockCall::CanPlaceAt { ctx } => GuestReply::Bool(behavior.canPlaceAt(&mut wrap(ctx))),
         BlockCall::CanStay { ctx } => GuestReply::Bool(behavior.canStay(&mut wrap(ctx))),
         BlockCall::PoweringTo { ctx, direction } => GuestReply::Bool(behavior.poweringTo(&mut wrap(ctx), direction)),
+
         BlockCall::IndirectlyPoweringTo { ctx, direction } =>
         {
             GuestReply::Bool(behavior.indirectlyPoweringTo(&mut wrap(ctx), direction))
         }
+
         BlockCall::CanProvidePower { .. } => GuestReply::Bool(behavior.canProvidePower()),
         BlockCall::Texture { face, meta } => GuestReply::Int(behavior.texture(face, meta)),
         BlockCall::ColorMultiplier { ctx } => GuestReply::Int(behavior.colorMultiplier(&mut wrap(ctx)) as i32),
+
         BlockCall::FaceTexture { ctx, face } =>
         {
             GuestReply::Int(behavior.faceTexture(&mut wrap(ctx), face).unwrap_or(-1))
         }
+
         BlockCall::Strength { ctx, player } =>
         {
             GuestReply::Float(behavior.strength(&mut wrap(ctx), Player { id: player }).unwrap_or(-1.0))
         }
+
         BlockCall::Overlay { ctx, face } => GuestReply::Overlay(behavior.overlay(&mut wrap(ctx), face)),
         BlockCall::FaceRotation { ctx } => match behavior.faceRotations(&mut wrap(ctx))
         {
@@ -205,6 +224,8 @@ fn block(handle: u32, call: BlockCall) -> GuestReply
         },
     }
 }
+
+fn wrap(raw: mod_protocol::abi::BlockCtx) -> BlockCtx { BlockCtx { raw } }
 
 // a void callback answers Unit, which the host reads as handled
 fn unit(body: impl FnOnce()) -> GuestReply
@@ -229,6 +250,7 @@ fn item(handle: u32, call: ItemCall) -> GuestReply
     {
         return GuestReply::Error(format!("no item behavior {handle}"));
     };
+
     match call
     {
         ItemCall::RightClick { world, player, stack } => useReply(behavior.onRightClick(
@@ -248,26 +270,34 @@ fn item(handle: u32, call: ItemCall) -> GuestReply
             Entity { world: World::OVERWORLD, id: target },
             attacker,
         )),
-        ItemCall::InteractEntity { stack, target, .. } => unit(|| {
+        ItemCall::InteractEntity { stack, target, .. } => unit(||
+        {
             behavior.onInteractEntity(ItemStack::fromRaw(stack), Entity { world: World::OVERWORLD, id: target })
         }),
+
         ItemCall::BlockDestroyed { stack, block, pos, player } =>
         {
             GuestReply::Bool(behavior.onBlockDestroyed(ItemStack::fromRaw(stack), block, pos, Player { id: player }))
         }
+
         ItemCall::Icon { damage } => GuestReply::Int(behavior.icon(damage)),
+
         ItemCall::StrVsBlock { stack, block } =>
         {
             GuestReply::Float(behavior.strVsBlock(ItemStack::fromRaw(stack), block))
         }
+
         ItemCall::CanHarvest { block } => GuestReply::Bool(behavior.canHarvest(block)),
+
         ItemCall::Crafted { stack, player } =>
         {
             unit(|| behavior.onCrafted(ItemStack::fromRaw(stack), Player { id: player }))
         }
+
         ItemCall::UseDuration { stack } => GuestReply::Int(behavior.useDuration(ItemStack::fromRaw(stack))),
         ItemCall::UseAction { stack } => GuestReply::Int(behavior.useAction(ItemStack::fromRaw(stack)) as i32),
-        ItemCall::UsingTick { world, player, stack, left } => unit(|| {
+        ItemCall::UsingTick { world, player, stack, left } => unit(||
+        {
             behavior.onUsingTick(World { dimension: world }, Player { id: player }, ItemStack::fromRaw(stack), left)
         }),
         ItemCall::StoppedUsing { world, player, stack, left } => useReply(behavior.onStoppedUsing(
@@ -276,10 +306,12 @@ fn item(handle: u32, call: ItemCall) -> GuestReply
             ItemStack::fromRaw(stack),
             left,
         )),
+
         ItemCall::UseIcon { stack, used } =>
         {
             GuestReply::Int(behavior.useIcon(ItemStack::fromRaw(stack), used).unwrap_or(-1))
         }
+
         ItemCall::UseFinish { world, player, stack } =>
         {
             useReply(behavior.onUseFinish(World { dimension: world }, Player { id: player }, ItemStack::fromRaw(stack)))
@@ -294,26 +326,32 @@ fn entity(handle: u32, call: EntityCall) -> GuestReply
     {
         return GuestReply::Error(format!("no entity behavior {handle}"));
     };
-    let handleOf =
-        |info: &mod_protocol::abi::EntityInfo| Entity { world: World { dimension: info.world }, id: info.id };
+
     match call
     {
-        EntityCall::Tick { entity } => unit(|| behavior.onTick(handleOf(&entity), &entity)),
-        EntityCall::LivingUpdate { entity } => unit(|| behavior.onLivingUpdate(handleOf(&entity), &entity)),
+        EntityCall::Tick { entity } => unit(|| behavior.onTick(entityOf(&entity), &entity)),
+        EntityCall::LivingUpdate { entity } => unit(|| behavior.onLivingUpdate(entityOf(&entity), &entity)),
+
         EntityCall::Interact { entity, player } =>
         {
-            GuestReply::Bool(behavior.onInteract(handleOf(&entity), Player { id: player }))
+            GuestReply::Bool(behavior.onInteract(entityOf(&entity), Player { id: player }))
         }
-        EntityCall::Hurt { entity, source, amount } => match behavior.onHurt(handleOf(&entity), source, amount)
+
+        EntityCall::Hurt { entity, source, amount } => match behavior.onHurt(entityOf(&entity), source, amount)
         {
             Some(amount) => GuestReply::Int(amount),
             None => GuestReply::Bool(false),
         },
-        EntityCall::Death { entity, source } => unit(|| behavior.onDeath(handleOf(&entity), source)),
-        EntityCall::CanSpawn { entity } => GuestReply::Bool(behavior.canSpawn(handleOf(&entity), &entity)),
+        EntityCall::Death { entity, source } => unit(|| behavior.onDeath(entityOf(&entity), source)),
+        EntityCall::CanSpawn { entity } => GuestReply::Bool(behavior.canSpawn(entityOf(&entity), &entity)),
         EntityCall::Pose { input } => GuestReply::Pose(behavior.pose(&input)),
-        EntityCall::Ai { entity } => unit(|| behavior.onAi(handleOf(&entity), &entity)),
+        EntityCall::Ai { entity } => unit(|| behavior.onAi(entityOf(&entity), &entity)),
     }
+}
+
+fn entityOf(info: &mod_protocol::abi::EntityInfo) -> Entity
+{
+    Entity { world: World { dimension: info.world }, id: info.id }
 }
 
 fn tile(handle: u32, call: TileCall) -> GuestReply
@@ -323,10 +361,12 @@ fn tile(handle: u32, call: TileCall) -> GuestReply
     {
         return GuestReply::Error(format!("no tile behavior {handle}"));
     };
+
     match call
     {
         TileCall::Tick { ctx } => unit(|| behavior.onTick(&mut BlockCtx { raw: ctx })),
         TileCall::Removed { ctx } => unit(|| behavior.onRemoved(&mut BlockCtx { raw: ctx })),
+
         TileCall::Pose { ctx, partial, ticks } =>
         {
             GuestReply::Pose(behavior.pose(&mut BlockCtx { raw: ctx }, partial, ticks))
@@ -341,6 +381,7 @@ pub(crate) fn handle(call: GuestCall) -> GuestReply
         GuestCall::Lifecycle(Lifecycle::Register(modid)) =>
         {
             crate::setModId(&modid);
+
             let mut ctx: RegisterCtx = RegisterCtx { m_modId: modid };
             match crate::rt::runMain(&mut ctx)
             {
@@ -348,12 +389,15 @@ pub(crate) fn handle(call: GuestCall) -> GuestReply
                 Err(error) => GuestReply::Error(error.0),
             }
         }
+
         GuestCall::Lifecycle(Lifecycle::Remapped) =>
         {
             crate::bumpEpoch();
             GuestReply::Unit
         }
+
         GuestCall::Lifecycle(Lifecycle::InterMod) => GuestReply::Unit,
+
         GuestCall::Lifecycle(Lifecycle::ConfigChanged(key)) =>
         {
             let listeners: Vec<ConfigListener> = TABLES.with(|tables| tables.borrow().m_configListeners.clone());
@@ -361,8 +405,10 @@ pub(crate) fn handle(call: GuestCall) -> GuestReply
             {
                 listener(&key);
             }
+
             GuestReply::Unit
         }
+
         GuestCall::Block { handle, call } => block(handle, call),
         GuestCall::Item { handle, call } => item(handle, call),
         GuestCall::Entity { handle, call } => entity(handle, call),
@@ -375,8 +421,10 @@ pub(crate) fn handle(call: GuestCall) -> GuestReply
                 listener(&mut wrapped);
                 GuestReply::Event(wrapped.m_envelope)
             }
+
             None => GuestReply::Error(format!("no event handler {handler}")),
         },
+
         GuestCall::Command { handler, sender, args } => match get(|tables| tables.m_commands.get(handler as usize))
         {
             Some(command) =>
@@ -388,18 +436,22 @@ pub(crate) fn handle(call: GuestCall) -> GuestReply
                     Err(error) => GuestReply::Bytes(format!("\u{a7}c{}", error.0).into_bytes()),
                 }
             }
+
             None => GuestReply::Error(format!("no command handler {handler}")),
         },
+
         GuestCall::Key { handler, pressed } => match get(|tables| tables.m_keys.get(handler as usize))
         {
             Some(key) => unit(|| key(pressed)),
             None => GuestReply::Error(format!("no key handler {handler}")),
         },
+
         GuestCall::Channel { handler, player, data } => match get(|tables| tables.m_channels.get(handler as usize))
         {
             Some(channel) => unit(|| channel(Player { id: player }, &data)),
             None => GuestReply::Error(format!("no channel handler {handler}")),
         },
+
         GuestCall::Screen { handler, op } => match get(|tables| tables.m_screens.get(handler as usize))
         {
             Some(screen) => match crate::screen::run(&mut *screen.borrow_mut(), op)
@@ -409,6 +461,7 @@ pub(crate) fn handle(call: GuestCall) -> GuestReply
             },
             None => GuestReply::Error(format!("no screen {handler}")),
         },
+
         GuestCall::PlayerLayers { handler, player, synced } =>
         {
             match get(|tables| tables.m_layers.get(handler as usize))
@@ -417,11 +470,13 @@ pub(crate) fn handle(call: GuestCall) -> GuestReply
                 None => GuestReply::Error(format!("no player layer {handler}")),
             }
         }
+
         GuestCall::Overlay { handler, op } => match get(|tables| tables.m_overlays.get(handler as usize))
         {
             Some(overlay) => crate::screen::runOverlay(&mut *overlay.borrow_mut(), op),
             None => GuestReply::Error(format!("no overlay {handler}")),
         },
+
         GuestCall::Tooltip { handler, stack } => match get(|tables| tables.m_tooltips.get(handler as usize))
         {
             Some(tooltip) =>
@@ -430,8 +485,10 @@ pub(crate) fn handle(call: GuestCall) -> GuestReply
                 tooltip(&ItemStack::fromRaw(stack), &mut lines);
                 GuestReply::Lines(lines)
             }
+
             None => GuestReply::Error(format!("no tooltip {handler}")),
         },
+
         GuestCall::WorldRender { handler, partial, camera } =>
         {
             match get(|tables| tables.m_worldRenders.get(handler as usize))
@@ -440,9 +497,11 @@ pub(crate) fn handle(call: GuestCall) -> GuestReply
                 {
                     GuestReply::Pose(mod_protocol::abi::Pose { pre: Vec::new(), model: render(partial, camera) })
                 }
+
                 None => GuestReply::Error(format!("no world render {handler}")),
             }
         }
+
         GuestCall::Hud { handler, partial, width, height } => match get(|tables| tables.m_huds.get(handler as usize))
         {
             Some(hud) =>
@@ -451,8 +510,10 @@ pub(crate) fn handle(call: GuestCall) -> GuestReply
                 hud(&mut draw, partial, width, height);
                 GuestReply::Draw(draw.m_list)
             }
+
             None => GuestReply::Error(format!("no hud {handler}")),
         },
+
         GuestCall::Service { handler, method, args } => match get(|tables| tables.m_services.get(handler as usize))
         {
             Some(service) => match service.call(&method, &args)
@@ -462,6 +523,7 @@ pub(crate) fn handle(call: GuestCall) -> GuestReply
             },
             None => GuestReply::Error(format!("no service {handler}")),
         },
+
         GuestCall::Lookup { handler, world, pos, side, method, args } =>
         {
             match get(|tables| tables.m_lookups.get(handler as usize))
@@ -474,19 +536,23 @@ pub(crate) fn handle(call: GuestCall) -> GuestReply
                 None => GuestReply::Error(format!("no lookup {handler}")),
             }
         }
+
         GuestCall::InterMod { from, kind, data } =>
         {
             if let Some(handler) = TABLES.with(|tables| tables.borrow().m_interMod.clone())
             {
                 handler(&from, &kind, &data);
             }
+
             GuestReply::Unit
         }
+
         GuestCall::Generate { handler, chunk } => match get(|tables| tables.m_generators.get(handler as usize))
         {
             Some(generator) => unit(|| generator(chunk)),
             None => GuestReply::Error(format!("no generator {handler}")),
         },
+
         GuestCall::Terrain { handler, chunk } => match get(|tables| tables.m_terrains.get(handler as usize))
         {
             Some(terrain) =>
@@ -495,8 +561,10 @@ pub(crate) fn handle(call: GuestCall) -> GuestReply
                 terrain(&chunk, &mut blocks);
                 GuestReply::Chunk { blocks: blocks.m_blocks, meta: blocks.m_meta }
             }
+
             None => GuestReply::Error(format!("no terrain generator {handler}")),
         },
+
         GuestCall::BiomeSource { handler, chunk } => match get(|tables| tables.m_biomeSources.get(handler as usize))
         {
             Some(source) =>
@@ -504,8 +572,10 @@ pub(crate) fn handle(call: GuestCall) -> GuestReply
                 let biomes: crate::ChunkBiomes = source(&chunk);
                 GuestReply::Biomes { biomes: biomes.biomes }
             }
+
             None => GuestReply::Error(format!("no biome source {handler}")),
         },
+
         GuestCall::Spawns { handler, world, kind, pos } =>
         {
             match get(|tables| tables.m_spawnLists.get(handler as usize))
@@ -516,9 +586,11 @@ pub(crate) fn handle(call: GuestCall) -> GuestReply
                         crate::SpawnQuery { world: crate::world::World { dimension: world }, kind, pos };
                     GuestReply::Spawns { entries: spawns(&query) }
                 }
+
                 None => GuestReply::Error(format!("no spawn list {handler}")),
             }
         }
+
         GuestCall::StructureFinder { handler, seed, chunk_x, chunk_z } =>
         {
             match get(|tables| tables.m_finders.get(handler as usize))

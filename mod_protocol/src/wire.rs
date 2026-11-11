@@ -1,6 +1,8 @@
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use std::fmt;
+#[cfg(feature = "framing")]
+use std::io::{Read, Write};
 
 pub mod limits
 {
@@ -10,7 +12,7 @@ pub mod limits
     pub const COMPRESS_THRESHOLD: usize = 512;
 }
 
-// the top bit of the channel varint marks a deflated body
+/// the top bit of the channel varint marks a deflated body
 pub const COMPRESSED_FLAG: u32 = 1 << 31;
 pub const CONTROL_CHANNEL: u32 = 0;
 
@@ -51,34 +53,48 @@ pub fn decode<T: DeserializeOwned>(bytes: &[u8]) -> Result<T, WireError>
     postcard::from_bytes(bytes).map_err(|error| WireError::Codec(error.to_string()))
 }
 
+mod varint
+{
+    pub const PAYLOAD: u32 = 0x7F;
+    pub const MORE: u8 = 0x80;
+    pub const BITS: u32 = 7;
+    pub const MAX_BYTES: u32 = 5;
+}
+
 pub fn writeVarint(out: &mut Vec<u8>, mut value: u32)
 {
     loop
     {
-        let byte: u8 = (value & 0x7F) as u8;
-        value >>= 7;
+        let byte: u8 = (value & varint::PAYLOAD) as u8;
+
+        value >>= varint::BITS;
         if value == 0
         {
             out.push(byte);
             return;
         }
-        out.push(byte | 0x80);
+
+        out.push(byte | varint::MORE);
     }
 }
 
 pub fn readVarint(bytes: &[u8], position: &mut usize) -> Result<u32, WireError>
 {
     let mut value: u32 = 0;
-    for shift in 0..5
+
+    for shift in 0..varint::MAX_BYTES
     {
         let byte: u8 = *bytes.get(*position).ok_or(WireError::Truncated)?;
+
         *position += 1;
-        value |= ((byte & 0x7F) as u32) << (shift * 7);
-        if byte & 0x80 == 0
+        value |= (byte as u32 & varint::PAYLOAD) << (shift * varint::BITS);
+
+        if byte & varint::MORE == 0
         {
             return Ok(value);
         }
     }
+
     Err(WireError::VarintTooLong)
 }
 
@@ -89,26 +105,25 @@ pub struct Frame
     pub m_data: Vec<u8>,
 }
 
-// bodies over the threshold are deflated and flagged in the channel's top bit
+/// bodies over the threshold are deflated and flagged in the channel's top bit
 #[cfg(feature = "framing")]
 pub fn compress(channel: u32, data: &[u8]) -> (u32, Vec<u8>)
 {
-    use std::io::Write;
     if data.len() <= limits::COMPRESS_THRESHOLD
     {
         return (channel, data.to_vec());
     }
+
     let mut encoder: flate2::write::ZlibEncoder<Vec<u8>> =
         flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::default());
     encoder.write_all(data).expect("writing into a vec cannot fail");
     (channel | COMPRESSED_FLAG, encoder.finish().expect("finishing into a vec cannot fail"))
 }
 
-// limit bounds both the wire body and the inflated body
+/// limit bounds both the wire body and the inflated body
 #[cfg(feature = "framing")]
 pub fn decompress(channel: u32, body: &[u8], limit: usize) -> Result<Frame, WireError>
 {
-    use std::io::Read;
     if body.len() > limit
     {
         return Err(WireError::TooLarge(body.len(), limit));
@@ -121,10 +136,12 @@ pub fn decompress(channel: u32, body: &[u8], limit: usize) -> Result<Frame, Wire
     let read: std::io::Result<usize> =
         flate2::read::ZlibDecoder::new(body).take(limit as u64 + 1).read_to_end(&mut inflated);
     read.map_err(|error| WireError::Inflate(error.to_string()))?;
+
     if inflated.len() > limit
     {
         return Err(WireError::TooLarge(inflated.len(), limit));
     }
+
     Ok(Frame { m_channel: channel & !COMPRESSED_FLAG, m_data: inflated })
 }
 
@@ -132,7 +149,7 @@ pub fn decompress(channel: u32, body: &[u8], limit: usize) -> Result<Frame, Wire
 pub fn encodeFrame(channel: u32, data: &[u8]) -> Vec<u8>
 {
     let (flagged, body): (u32, Vec<u8>) = compress(channel, data);
-    let mut out: Vec<u8> = Vec::with_capacity(body.len() + 10);
+    let mut out: Vec<u8> = Vec::with_capacity(body.len() + 2 * varint::MAX_BYTES as usize);
     writeVarint(&mut out, flagged);
     writeVarint(&mut out, body.len() as u32);
     out.extend_from_slice(&body);
@@ -149,6 +166,7 @@ pub fn decodeFrame(bytes: &[u8], limit: usize) -> Result<Frame, WireError>
     {
         return Err(WireError::TooLarge(length, limit));
     }
+
     let body: &[u8] = bytes.get(position..position + length).ok_or(WireError::Truncated)?;
     decompress(channel, body, limit)
 }
@@ -175,7 +193,7 @@ mod tests
     #[test]
     fn rejectsOversizeInflate()
     {
-        let frame: Vec<u8> = encodeFrame(1, &vec![0; 100_000]);
+        let frame: Vec<u8> = encodeFrame(1, &vec![0; 100000]);
         assert!(matches!(decodeFrame(&frame, 1000), Err(WireError::TooLarge(_, _))));
     }
 }

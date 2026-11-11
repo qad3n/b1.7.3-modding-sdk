@@ -15,20 +15,15 @@ use mod_protocol::abi::
 use mod_protocol::handshake::ChannelDirection;
 use mod_protocol::spec::
 {
-    AchievementSpec, Behavior, BlockModifySpec, BlockSpec, BlockStatesSpec, CreatureKind, EffectSpec, EntitySpec,
-    FluidSpec, FuelSpec, ItemSpec, LootSpec, ParticleSpec, RecipeSpec, RecordSpec, ShapedSpec, ShapelessSpec,
-    SmeltingSpec, SpawnModifySpec, StackSpec, TagEntry, TileEntitySpec, ToolClass, ToolSpec, WorldgenKind,
-    WorldgenSpec,
+    AchievementSpec, Behavior, BlockMethod, BlockModifySpec, BlockSpec, BlockStatesSpec, CreatureKind, EffectSpec,
+    EntityMethod, EntitySpec, FluidSpec, FuelSpec, ItemMethod, ItemSpec, LootSpec, ParticleSpec, RecipeSpec,
+    RecordSpec, ShapedSpec, ShapelessSpec, SmeltingSpec, SpawnModifySpec, StackSpec, TagEntry, TileEntitySpec,
+    TileMethod, ToolClass, ToolSpec, WorldgenKind, WorldgenSpec,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use std::collections::BTreeMap;
 use std::rc::Rc;
-
-fn parse(name: &str) -> Result<Identifier>
-{
-    Identifier::parseIn(name, &crate::modId()).map_err(|error| Error(error.to_string()))
-}
 
 fn stackSpec(stack: &ItemStack) -> Result<StackSpec>
 {
@@ -36,7 +31,7 @@ fn stackSpec(stack: &ItemStack) -> Result<StackSpec>
     Ok(StackSpec { item, count: stack.count, meta: stack.damage })
 }
 
-// the context handed to #[mod_main], registration only works while the loader is in its register phase
+/// the context handed to #[mod_main], registration only works while the loader is in its register phase
 pub struct RegisterCtx
 {
     pub(crate) m_modId: String,
@@ -72,19 +67,19 @@ impl RegisterCtx
 
     pub fn tags(&mut self) -> Tags { Tags }
 
-    // needs api 1.19
+    /// needs api 1.19
     pub fn loot(&mut self) -> Loot { Loot }
 
-    // needs api 1.21
+    /// needs api 1.21
     pub fn fluids(&mut self) -> Fluids { Fluids }
 
-    // needs api 1.22
+    /// needs api 1.22
     pub fn effects(&mut self) -> Effects { Effects }
 
-    // needs api 1.24
+    /// needs api 1.24
     pub fn particles(&mut self) -> Particles { Particles }
 
-    // needs api 1.25
+    /// needs api 1.25
     pub fn achievements(&mut self) -> Achievements { Achievements }
 
     pub fn worldgen(&mut self) -> Worldgen { Worldgen }
@@ -102,32 +97,32 @@ impl Blocks
 {
     pub fn register(&self, name: &str, spec: BlockSpecBuilder) -> Result<ItemRef>
     {
-        let id: Identifier = parse(name)?;
+        let id: Identifier = ownId(name)?;
         expectUnit(call(HostCall::RegisterBlock { name: id.to_string(), spec: spec.m_spec }))?;
         Ok(ItemRef::Named(id))
     }
 
     pub fn replace(&self, id: &str, spec: BlockSpecBuilder) -> Result<()>
     {
-        expectUnit(call(HostCall::ReplaceBlock { id: parse(id)?, spec: spec.m_spec }))
+        expectUnit(call(HostCall::ReplaceBlock { id: ownId(id)?, spec: spec.m_spec }))
     }
 
-    // named states for one of this mod's blocks, saved by name so properties may change between versions
+    /// named states for one of this mod's blocks, saved by name so properties may change between versions
     pub fn states(&self, name: &str, spec: BlockStatesSpec) -> Result<()>
     {
-        expectUnit(call(HostCall::RegisterBlockStates { block: parse(name)?, spec }))
+        expectUnit(call(HostCall::RegisterBlockStates { block: ownId(name)?, spec }))
     }
 
-    // changes chosen properties of any block, other mods changing the same field are reported as conflicts
+    /// changes chosen properties of any block, other mods changing the same field are reported as conflicts
     pub fn modify(&self, spec: BlockModifySpec) -> Result<()> { expectUnit(call(HostCall::ModifyBlock { spec })) }
 
-    // adds an entity to biome spawn lists, or with weight 0 removes it, for vanilla and other mods' mobs too
+    /// adds an entity to biome spawn lists, or with weight 0 removes it, for vanilla and other mods' mobs too
     pub fn modifySpawns(&self, spec: SpawnModifySpec) -> Result<()>
     {
         expectUnit(call(HostCall::ModifySpawns { spec }))
     }
 
-    pub fn id(&self, name: &str) -> Result<i32> { crate::resolve(RegistryKind::Block, &parse(name)?) }
+    pub fn id(&self, name: &str) -> Result<i32> { crate::resolve(RegistryKind::Block, &ownId(name)?) }
 }
 
 pub struct BlockSpecBuilder
@@ -216,7 +211,7 @@ impl BlockSpecBuilder
 
     pub fn tileEntity(mut self, tile: &str) -> Self
     {
-        self.m_spec.tile_entity = parse(tile).ok();
+        self.m_spec.tile_entity = ownId(tile).ok();
         self
     }
 
@@ -226,10 +221,10 @@ impl BlockSpecBuilder
         self
     }
 
-    // needs api 1.12, how the block's own item behaves in the hand, as an ItemBlock subclass placing onto water
+    /// needs api 1.12, how the block's own item behaves in the hand, as an ItemBlock subclass placing onto water
     pub fn itemBehavior(mut self, behavior: impl ItemBehavior + 'static) -> Self
     {
-        let methods = behavior::methods(behavior.overridden(), &behavior::ITEM_METHODS);
+        let methods: Vec<ItemMethod> = behavior::methods(behavior.overridden(), &behavior::ITEM_METHODS);
         let handle: u32 = dispatch::addItem(Rc::new(behavior));
         self.m_spec.item.get_or_insert_with(ItemSpec::default).behavior = Some(Behavior { handle, methods });
         self
@@ -247,7 +242,7 @@ impl BlockSpecBuilder
         self
     }
 
-    // a bed of the bed template, its sprites picked by half and facing
+    /// a bed of the bed template, its sprites picked by half and facing
     pub fn bed(mut self, faces: mod_protocol::spec::BedFaces) -> Self
     {
         self.m_spec.bed = Some(faces);
@@ -290,6 +285,7 @@ impl BlockSpecBuilder
         {
             self.m_spec.tags.push(tag);
         }
+
         self
     }
 
@@ -301,7 +297,7 @@ impl BlockSpecBuilder
 
     pub fn behavior(mut self, behavior: impl BlockBehavior + 'static) -> Self
     {
-        let methods = behavior::methods(behavior.overridden(), &behavior::BLOCK_METHODS);
+        let methods: Vec<BlockMethod> = behavior::methods(behavior.overridden(), &behavior::BLOCK_METHODS);
         let handle: u32 = dispatch::addBlock(Rc::new(behavior));
         self.m_spec.behavior = Some(Behavior { handle, methods });
         self
@@ -314,15 +310,15 @@ impl Items
 {
     pub fn register(&self, name: &str, spec: ItemSpecBuilder) -> Result<ItemRef>
     {
-        let id: Identifier = parse(name)?;
+        let id: Identifier = ownId(name)?;
         expectUnit(call(HostCall::RegisterItem { name: id.to_string(), spec: spec.m_spec }))?;
         Ok(ItemRef::Named(id))
     }
 
-    // content from data/ files and other mods registers before code runs, so lookups by name work here
+    /// content from data/ files and other mods registers before code runs, so lookups by name work here
     pub fn get(&self, name: &str) -> Result<ItemRef>
     {
-        let id: Identifier = parse(name)?;
+        let id: Identifier = ownId(name)?;
         Ok(ItemRef::Named(id))
     }
 }
@@ -408,12 +404,13 @@ impl ItemSpecBuilder
         {
             self.m_spec.tags.push(tag);
         }
+
         self
     }
 
     pub fn behavior(mut self, behavior: impl ItemBehavior + 'static) -> Self
     {
-        let methods = behavior::methods(behavior.overridden(), &behavior::ITEM_METHODS);
+        let methods: Vec<ItemMethod> = behavior::methods(behavior.overridden(), &behavior::ITEM_METHODS);
         let handle: u32 = dispatch::addItem(Rc::new(behavior));
         self.m_spec.behavior = Some(Behavior { handle, methods });
         self
@@ -432,12 +429,14 @@ impl Entities
     pub fn register(&self, name: &str, spec: EntitySpec, behavior: Option<Rc<dyn EntityBehavior>>) -> Result<()>
     {
         let mut spec: EntitySpec = spec;
+
         if let Some(behavior) = behavior
         {
-            let methods = behavior::methods(behavior.overridden(), &behavior::ENTITY_METHODS);
+            let methods: Vec<EntityMethod> = behavior::methods(behavior.overridden(), &behavior::ENTITY_METHODS);
             spec.behavior = Some(Behavior { handle: dispatch::addEntity(behavior), methods });
         }
-        expectUnit(call(HostCall::RegisterEntity { name: parse(name)?.to_string(), spec }))
+
+        expectUnit(call(HostCall::RegisterEntity { name: ownId(name)?.to_string(), spec }))
     }
 }
 
@@ -448,18 +447,20 @@ impl TileEntities
     pub fn register(&self, name: &str, spec: TileEntitySpec, behavior: Option<Rc<dyn TileBehavior>>) -> Result<()>
     {
         let mut spec: TileEntitySpec = spec;
+
         if let Some(behavior) = behavior
         {
-            let methods = behavior::methods(behavior.overridden(), &behavior::TILE_METHODS);
+            let methods: Vec<TileMethod> = behavior::methods(behavior.overridden(), &behavior::TILE_METHODS);
             spec.behavior = Some(Behavior { handle: dispatch::addTile(behavior), methods });
         }
-        expectUnit(call(HostCall::RegisterTileEntity { name: parse(name)?.to_string(), spec }))
+
+        expectUnit(call(HostCall::RegisterTileEntity { name: ownId(name)?.to_string(), spec }))
     }
 
-    // needs api 1.20, the model every tile of the type draws with, posed each frame by its behavior's pose
+    /// needs api 1.20, the model every tile of the type draws with, posed each frame by its behavior's pose
     pub fn model(&self, name: &str, model: crate::EntityModelSpec) -> Result<()>
     {
-        expectUnit(call(HostCall::TileModel { tile: parse(name)?, model }))
+        expectUnit(call(HostCall::TileModel { tile: ownId(name)?, model }))
     }
 }
 
@@ -478,7 +479,7 @@ impl ShapedBuilder
 {
     pub fn pattern<const N: usize>(self, rows: [&str; N]) -> Self { self.rows(&rows) }
 
-    // the pattern as a slice, for recipe tables whose rows differ in count
+    /// the pattern as a slice, for recipe tables whose rows differ in count
     pub fn rows(mut self, rows: &[&str]) -> Self
     {
         self.m_pattern = rows.iter().map(|row| (*row).to_owned()).collect();
@@ -487,7 +488,7 @@ impl ShapedBuilder
 
     pub fn key(self, symbol: char, item: impl Into<ItemRef>) -> Self { self.keyStack(symbol, ItemStack::of(item, 1)) }
 
-    // a key that needs one metadata, or any metadata with damage -1
+    /// a key that needs one metadata, or any metadata with damage -1
     pub fn keyStack(mut self, symbol: char, stack: ItemStack) -> Self
     {
         match stackSpec(&stack)
@@ -496,8 +497,10 @@ impl ShapedBuilder
             {
                 self.m_key.insert(symbol.to_string(), stack);
             }
+
             Err(error) => self.m_error = Some(error),
         }
+
         self
     }
 
@@ -507,7 +510,9 @@ impl ShapedBuilder
         {
             return Err(error);
         }
-        let spec: RecipeSpec = RecipeSpec::Shaped(ShapedSpec {
+
+        let spec: RecipeSpec = RecipeSpec::Shaped(ShapedSpec
+        {
             pattern: self.m_pattern,
             key: self.m_key,
             result: stackSpec(&self.m_result)?,
@@ -520,7 +525,8 @@ impl Recipes
 {
     pub fn shaped(&self, name: &str, result: ItemStack) -> ShapedBuilder
     {
-        ShapedBuilder {
+        ShapedBuilder
+        {
             m_name: name.to_owned(),
             m_result: result,
             m_pattern: Vec::new(),
@@ -546,13 +552,15 @@ impl Recipes
     pub fn fuel(&self, name: &str, item: impl Into<ItemRef>, ticks: i32) -> Result<()>
     {
         let item: Identifier = item.into().name().ok_or("fuel item is not registered")?;
-        expectUnit(call(HostCall::RegisterRecipe {
+
+        expectUnit(call(HostCall::RegisterRecipe
+        {
             name: name.to_owned(),
             spec: RecipeSpec::Fuel(FuelSpec { item, ticks }),
         }))
     }
 
-    pub fn remove(&self, id: &str) -> Result<()> { expectUnit(call(HostCall::RemoveRecipe { id: parse(id)? })) }
+    pub fn remove(&self, id: &str) -> Result<()> { expectUnit(call(HostCall::RemoveRecipe { id: ownId(id)? })) }
 }
 
 pub struct Events;
@@ -573,7 +581,9 @@ impl Events
     ) -> Result<()>
     {
         let handle: u32 = dispatch::addEvent(Rc::new(handler));
-        expectUnit(call(HostCall::Subscribe {
+
+        expectUnit(call(HostCall::Subscribe
+        {
             kind,
             custom: None,
             priority,
@@ -582,12 +592,14 @@ impl Events
         }))
     }
 
-    // a custom event another mod defined, the defining mod must load first
+    /// a custom event another mod defined, the defining mod must load first
     pub fn onCustom(&self, event: &str, priority: Priority, handler: impl Fn(&mut Event) + 'static) -> Result<()>
     {
         let handle: u32 = dispatch::addEvent(Rc::new(handler));
-        let custom: Identifier = parse(event)?;
-        expectUnit(call(HostCall::Subscribe {
+        let custom: Identifier = ownId(event)?;
+
+        expectUnit(call(HostCall::Subscribe
+        {
             kind: EventKind::Custom,
             custom: Some(custom),
             priority,
@@ -596,7 +608,7 @@ impl Events
         }))
     }
 
-    pub fn define(&self, event: &str) -> Result<()> { expectUnit(call(HostCall::DefineEvent { id: parse(event)? })) }
+    pub fn define(&self, event: &str) -> Result<()> { expectUnit(call(HostCall::DefineEvent { id: ownId(event)? })) }
 }
 
 pub struct Commands;
@@ -622,7 +634,9 @@ impl Commands
     ) -> Result<()>
     {
         let handle: u32 = dispatch::addCommand(Rc::new(handler));
-        expectUnit(call(HostCall::RegisterCommand {
+
+        expectUnit(call(HostCall::RegisterCommand
+        {
             name: name.to_owned(),
             permission,
             usage: usage.to_owned(),
@@ -635,7 +649,7 @@ pub struct Keybinds;
 
 impl Keybinds
 {
-    // key is an LWJGL key code, the handler runs on press and release
+    /// key is an LWJGL key code, the handler runs on press and release
     pub fn register(&self, name: &str, key: i32, handler: impl Fn(bool) + 'static) -> Result<()>
     {
         let handle: u32 = dispatch::addKey(Rc::new(handler));
@@ -647,7 +661,7 @@ pub struct Channels;
 
 impl Channels
 {
-    // typed payloads with any serde type, handlers run on the main thread and must validate serverbound input
+    /// typed payloads with any serde type, handlers run on the main thread and must validate serverbound input
     pub fn register<T: DeserializeOwned + 'static>(
         &self,
         name: &str,
@@ -661,7 +675,9 @@ impl Channels
                 Ok(message) => handler(message, player),
                 Err(error) => crate::warn(&format!("bad payload: {error}")),
             }));
-        expectUnit(call(HostCall::RegisterChannel {
+
+        expectUnit(call(HostCall::RegisterChannel
+        {
             name: name.to_owned(),
             version: "1".to_owned(),
             direction,
@@ -678,7 +694,9 @@ impl Channels
     ) -> Result<()>
     {
         let handle: u32 = dispatch::addChannel(Rc::new(handler));
-        expectUnit(call(HostCall::RegisterChannel {
+
+        expectUnit(call(HostCall::RegisterChannel
+        {
             name: name.to_owned(),
             version: version.to_owned(),
             direction,
@@ -740,7 +758,7 @@ impl Screens
         expectUnit(call(HostCall::RegisterScreen { name: name.to_owned(), spec: spec.m_spec, handler: handle }))
     }
 
-    // layers over every player model, from the player and its synced bytes
+    /// layers over every player model, from the player and its synced bytes
     pub fn playerLayer(
         &self,
         handler: impl Fn(&mod_protocol::abi::EntityInfo, &[u8]) -> Vec<mod_protocol::abi::PlayerLayer> + 'static,
@@ -756,14 +774,14 @@ impl Screens
         expectUnit(call(HostCall::RegisterOverlay { target: target.to_owned(), handler: handle }))
     }
 
-    // needs api 1.4, lines pushed here show under the item name in every vanilla slot tooltip
+    /// needs api 1.4, lines pushed here show under the item name in every vanilla slot tooltip
     pub fn tooltip(&self, handler: impl Fn(&ItemStack, &mut Vec<String>) + 'static) -> Result<()>
     {
         let handle: u32 = dispatch::addTooltip(Rc::new(handler));
         expectUnit(call(HostCall::RegisterTooltip { handler: handle }))
     }
 
-    // needs api 1.8, ops drawn after the world each frame, in block units from the camera position the handler gets
+    /// needs api 1.8, ops drawn after the world each frame, in block units from the camera position the handler gets
     pub fn worldRender(
         &self,
         handler: impl Fn(f32, [f64; 3]) -> Vec<mod_protocol::abi::ModelOp> + 'static,
@@ -787,18 +805,14 @@ impl Services
     pub fn provide(&self, name: &str, version: u32, service: impl Service + 'static) -> Result<()>
     {
         let handle: u32 = dispatch::addService(Rc::new(service));
-        expectUnit(call(HostCall::ProvideService {
-            name: Identifier::parse(name).map_err(|error| Error(error.to_string()))?,
-            version,
-            handler: handle,
-        }))
+        expectUnit(call(HostCall::ProvideService { name: Identifier::parse(name)?, version, handler: handle }))
     }
 
     pub fn lookup(&self, api: &str, block: &str, lookup: impl Lookup + 'static) -> Result<()>
     {
         let handle: u32 = dispatch::addLookup(Rc::new(lookup));
-        let api: Identifier = Identifier::parse(api).map_err(|error| Error(error.to_string()))?;
-        expectUnit(call(HostCall::RegisterLookup { api, block: parse(block)?, handler: handle }))
+        let api: Identifier = Identifier::parse(api)?;
+        expectUnit(call(HostCall::RegisterLookup { api, block: ownId(block)?, handler: handle }))
     }
 
     pub fn onInterMod(&self, handler: impl Fn(&str, &str, &[u8]) + 'static) { dispatch::setInterMod(Rc::new(handler)); }
@@ -826,7 +840,7 @@ impl Achievements
 
 impl Particles
 {
-    // spawn it later with its full name <modid>:<name>
+    /// spawn it later with its full name <modid>:<name>
     pub fn register(&self, name: &str, spec: ParticleSpec) -> Result<()>
     {
         expectUnit(call(HostCall::RegisterParticle { name: name.to_owned(), spec }))
@@ -851,7 +865,7 @@ impl Fluids
 
 impl Loot
 {
-    // adds drops to a block, replace drops its beta ones
+    /// adds drops to a block, replace drops its beta ones
     pub fn block(&self, block: &str, spec: LootSpec) -> Result<()> { setLoot(RegistryKind::Block, block, spec) }
 
     pub fn entity(&self, entity: &str, spec: LootSpec) -> Result<()> { setLoot(RegistryKind::Entity, entity, spec) }
@@ -859,30 +873,21 @@ impl Loot
 
 fn setLoot(registry: RegistryKind, target: &str, spec: LootSpec) -> Result<()>
 {
-    expectUnit(call(HostCall::SetLoot { registry, target: parse(target)?, spec }))
+    expectUnit(call(HostCall::SetLoot { registry, target: ownId(target)?, spec }))
 }
 
 impl Tags
 {
     pub fn add(&self, registry: RegistryKind, tag: &str, values: &[&str]) -> Result<()>
     {
-        let values: Vec<Identifier> = values.iter().map(|value| parse(value)).collect::<Result<_>>()?;
-        expectUnit(call(HostCall::AddTag {
-            registry,
-            tag: Identifier::parse(tag).map_err(|error| Error(error.to_string()))?,
-            values,
-        }))
+        let values: Vec<Identifier> = values.iter().map(|value| ownId(value)).collect::<Result<_>>()?;
+        expectUnit(call(HostCall::AddTag { registry, tag: Identifier::parse(tag)?, values }))
     }
 
-    // entries may name other tags as #ns:path or be optional, replace also drops the vanilla members (api 1.15)
+    /// entries may name other tags as #ns:path or be optional, replace also drops the vanilla members (api 1.15)
     pub fn addEntries(&self, registry: RegistryKind, tag: &str, entries: Vec<TagEntry>, replace: bool) -> Result<()>
     {
-        expectUnit(call(HostCall::AddTagEntries {
-            registry,
-            tag: Identifier::parse(tag).map_err(|error| Error(error.to_string()))?,
-            entries,
-            replace,
-        }))
+        expectUnit(call(HostCall::AddTagEntries { registry, tag: Identifier::parse(tag)?, entries, replace }))
     }
 
     pub fn values(&self, registry: RegistryKind, tag: &str) -> Vec<Identifier> { tagValues(registry, tag) }
@@ -895,6 +900,7 @@ pub fn tagValues(registry: RegistryKind, tag: &str) -> Vec<Identifier>
     {
         return Vec::new();
     };
+
     match call(HostCall::TagValues { registry, tag })
     {
         HostReply::Ids(ids) => ids,
@@ -908,9 +914,10 @@ impl Worldgen
 {
     pub fn ore(&self, name: &str, block: &str, veinSize: i32, perChunk: i32, y: [i32; 2]) -> Result<()>
     {
-        let spec: WorldgenSpec = WorldgenSpec {
+        let spec: WorldgenSpec = WorldgenSpec
+        {
             kind: WorldgenKind::Ore,
-            block: parse(block)?,
+            block: ownId(block)?,
             dimension: Identifier::minecraft("overworld"),
             vein_size: veinSize,
             per_chunk: perChunk,
@@ -931,11 +938,11 @@ pub struct Dimensions;
 
 impl Dimensions
 {
-    // the handle it returns sets everything else about the dimension, so handlers never name the wrong one
+    /// the handle it returns sets everything else about the dimension, so handlers never name the wrong one
     pub fn register(&self, name: &str, spec: DimensionSpec) -> Result<Dimension>
     {
         expectUnit(call(HostCall::RegisterDimension { name: name.to_owned(), spec }))?;
-        Ok(Dimension { m_id: parse(name)? })
+        Ok(Dimension { m_id: ownId(name)? })
     }
 
     pub fn biome(&self, name: &str, spec: BiomeSpec) -> Result<()>
@@ -943,13 +950,13 @@ impl Dimensions
         expectUnit(call(HostCall::RegisterBiome { name: name.to_owned(), spec }))
     }
 
-    // the generator runs once per populated chunk of the dimension, vanilla dimensions take generators too
+    /// the generator runs once per populated chunk of the dimension, vanilla dimensions take generators too
     pub fn generator(&self, dimension: &str, handler: impl Fn(ChunkInfo) + 'static) -> Result<()>
     {
-        addGenerator(parse(dimension)?, handler)
+        addGenerator(ownId(dimension)?, handler)
     }
 
-    // needs api 1.7, the mod names the biome of every column, vanilla spawning snow and grass colors follow it
+    /// needs api 1.7, the mod names the biome of every column, vanilla spawning snow and grass colors follow it
     pub fn biomeSource(
         &self,
         dimension: &str,
@@ -957,17 +964,17 @@ impl Dimensions
         handler: impl Fn(&ChunkInfo) -> crate::ChunkBiomes + 'static,
     ) -> Result<()>
     {
-        addBiomeSource(parse(dimension)?, biomes, handler)
+        addBiomeSource(ownId(dimension)?, biomes, handler)
     }
 
-    // the terrain generator fills every new chunk of a mod dimension, the generator above then populates it
+    /// the terrain generator fills every new chunk of a mod dimension, the generator above then populates it
     pub fn terrain(&self, dimension: &str, handler: impl Fn(&ChunkInfo, &mut ChunkBlocks) + 'static) -> Result<()>
     {
-        addTerrain(parse(dimension)?, handler)
+        addTerrain(ownId(dimension)?, handler)
     }
 }
 
-// one dimension this mod registered, each call sets one part of it and hands the dimension back for the next
+/// one dimension this mod registered, each call sets one part of it and hands the dimension back for the next
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Dimension
 {
@@ -978,24 +985,24 @@ impl Dimension
 {
     pub fn id(&self) -> &Identifier { &self.m_id }
 
-    // the numeric id worlds of it carry, known once registration is over
+    /// the numeric id worlds of it carry, known once registration is over
     pub fn numeric(&self) -> Option<i32> { crate::resolve(RegistryKind::Dimension, &self.m_id).ok() }
 
-    // fills every new chunk, 128 high, before the generators populate it
+    /// fills every new chunk, 128 high, before the generators populate it
     pub fn terrain(&self, handler: impl Fn(&ChunkInfo, &mut ChunkBlocks) + 'static) -> Result<&Self>
     {
         addTerrain(self.m_id.clone(), handler)?;
         Ok(self)
     }
 
-    // runs once per populated chunk, structures and decoration go here
+    /// runs once per populated chunk, structures and decoration go here
     pub fn generator(&self, handler: impl Fn(ChunkInfo) + 'static) -> Result<&Self>
     {
         addGenerator(self.m_id.clone(), handler)?;
         Ok(self)
     }
 
-    // needs api 1.7, the biome of every column, an index into biomes
+    /// needs api 1.7, the biome of every column, an index into biomes
     pub fn biomeSource(
         &self,
         biomes: &[&str],
@@ -1006,23 +1013,23 @@ impl Dimension
         Ok(self)
     }
 
-    // needs api 1.9, a world as tall as height, a multiple of 16 up to 256; generators and structures fill all of it
-    // while players place blocks only below the build limit, terrain handlers still fill the bottom 128
+    /// needs api 1.9, a world as tall as height, a multiple of 16 up to 256; generators and structures fill all of it
+    /// while players place blocks only below the build limit, terrain handlers still fill the bottom 128
     pub fn height(&self, height: i32, buildLimit: i32) -> Result<&Self>
     {
         expectUnit(call(HostCall::DimensionHeight { dimension: self.m_id.clone(), height, build_limit: buildLimit }))?;
         Ok(self)
     }
 
-    // needs api 1.12, the seed the dimension generates from instead of the save's
+    /// needs api 1.12, the seed the dimension generates from instead of the save's
     pub fn seed(&self, seed: i64) -> Result<&Self>
     {
         expectUnit(call(HostCall::DimensionSeed { dimension: self.m_id.clone(), seed }))?;
         Ok(self)
     }
 
-    // needs api 1.9, the creatures that may spawn at each natural spawn attempt, None keeps the biome's own list and
-    // an empty list spawns nothing there; with this the biome spawn lists of the dimension go unused
+    /// needs api 1.9, the creatures that may spawn at each natural spawn attempt, None keeps the biome's own list and
+    /// an empty list spawns nothing there; with this the biome spawn lists of the dimension go unused
     pub fn spawns(&self, handler: impl Fn(&SpawnQuery) -> Option<Vec<SpawnEntry>> + 'static) -> Result<&Self>
     {
         let handle: u32 = dispatch::addSpawnList(Rc::new(handler));
@@ -1035,15 +1042,15 @@ pub struct Structures;
 
 impl Structures
 {
-    // needs api 1.10, a kind of structure this mod builds; the dimension is a bare name for this mod's own or a full
-    // identifier such as minecraft:overworld
+    /// needs api 1.10, a kind of structure this mod builds; the dimension is a bare name for this mod's own or a full
+    /// identifier such as minecraft:overworld
     pub fn register(&self, name: &str, label: &str, dimension: &str) -> Result<Structure>
     {
         addStructure(name, label, dimension, None)
     }
 
-    // needs api 1.10, as register with a finder that answers whether one starts in a chunk of a seed, so locate also
-    // finds the ones no chunk has built yet
+    /// needs api 1.10, as register with a finder that answers whether one starts in a chunk of a seed, so locate also
+    /// finds the ones no chunk has built yet
     pub fn withFinder(
         &self,
         name: &str,
@@ -1058,12 +1065,12 @@ impl Structures
 
 fn addStructure(name: &str, label: &str, dimension: &str, finder: Option<u32>) -> Result<Structure>
 {
-    let spec: StructureSpec = StructureSpec { name: label.to_owned(), dimension: parse(dimension)? };
+    let spec: StructureSpec = StructureSpec { name: label.to_owned(), dimension: ownId(dimension)? };
     expectUnit(call(HostCall::RegisterStructure { name: name.to_owned(), spec, finder }))?;
-    Ok(Structure { m_id: parse(name)? })
+    Ok(Structure { m_id: ownId(name)? })
 }
 
-// one structure kind this mod registered
+/// one structure kind this mod registered
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Structure
 {
@@ -1075,7 +1082,7 @@ impl Structure
     pub fn id(&self) -> &Identifier { &self.m_id }
 }
 
-// one natural spawn attempt a spawn list handler answers
+/// one natural spawn attempt a spawn list handler answers
 #[derive(Clone, Copy, Debug)]
 pub struct SpawnQuery
 {
@@ -1084,8 +1091,8 @@ pub struct SpawnQuery
     pub pos: BlockPos,
 }
 
-// a weighted spawn list entry, vanilla names such as minecraft:zombie or identifiers, bare names in this mod
-pub fn spawnEntry(entity: &str, weight: i32) -> Result<SpawnEntry> { Ok(SpawnEntry { entity: parse(entity)?, weight }) }
+/// a weighted spawn list entry, vanilla names such as minecraft:zombie or identifiers, bare names in this mod
+pub fn spawnEntry(entity: &str, weight: i32) -> Result<SpawnEntry> { Ok(SpawnEntry { entity: ownId(entity)?, weight }) }
 
 fn addGenerator(dimension: Identifier, handler: impl Fn(ChunkInfo) + 'static) -> Result<()>
 {
@@ -1105,7 +1112,7 @@ fn addBiomeSource(
     handler: impl Fn(&ChunkInfo) -> crate::ChunkBiomes + 'static,
 ) -> Result<()>
 {
-    let biomes: Vec<Identifier> = biomes.iter().map(|name| parse(name)).collect::<Result<_>>()?;
+    let biomes: Vec<Identifier> = biomes.iter().map(|name| ownId(name)).collect::<Result<_>>()?;
     let handle: u32 = dispatch::addBiomeSource(Rc::new(handler));
     expectUnit(call(HostCall::RegisterBiomeSource { dimension, biomes, handler: handle }))
 }

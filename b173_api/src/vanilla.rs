@@ -1,4 +1,4 @@
-// identifiers of vanilla content, the loader maps each to its b1.7.3 numeric id
+/// identifiers of vanilla content, the loader maps each to its b1.7.3 numeric id
 pub mod block
 {
     pub const STONE: &str = "minecraft:stone";

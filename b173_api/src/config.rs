@@ -5,7 +5,7 @@ use std::fmt::Display;
 use std::ops::RangeInclusive;
 use std::rc::Rc;
 
-// one option for Config::options, scope defaults to common
+/// one option for Config::options, scope defaults to common
 pub struct Setting
 {
     m_option: ConfigOption,
@@ -15,8 +15,10 @@ impl Setting
 {
     fn new(key: &str, kind: ConfigKind) -> Setting
     {
-        Setting {
-            m_option: ConfigOption {
+        Setting
+        {
+            m_option: ConfigOption
+            {
                 key: key.to_owned(),
                 label: String::new(),
                 comment: String::new(),
@@ -62,14 +64,14 @@ impl Setting
         self
     }
 
-    // only this machine reads it, never synced
+    /// only this machine reads it, never synced
     pub fn client(mut self) -> Self
     {
         self.m_option.scope = ConfigScope::Client;
         self
     }
 
-    // the server value wins on every client while connected
+    /// the server value wins on every client while connected
     pub fn server(mut self) -> Self
     {
         self.m_option.scope = ConfigScope::Server;
@@ -92,7 +94,8 @@ impl Config
     {
         let entries: Vec<ConfigEntry> = entries
             .iter()
-            .map(|(key, default, comment, scope)| ConfigEntry {
+            .map(|(key, default, comment, scope)| ConfigEntry
+            {
                 key: (*key).to_owned(),
                 default: (*default).to_owned(),
                 comment: (*comment).to_owned(),
@@ -102,7 +105,7 @@ impl Config
         expectUnit(call(HostCall::DefineConfig { entries }))
     }
 
-    // values live in config/<modid>.toml and the player edits them in the mod menu
+    /// values live in config/<modid>.toml and the player edits them in the mod menu
     pub fn options(&self, settings: impl IntoIterator<Item = Setting>) -> Result<()>
     {
         let options: Vec<ConfigOption> = settings.into_iter().map(|setting| setting.m_option).collect();
@@ -123,7 +126,7 @@ impl Config
             .map_err(|error| Error(format!("config {key}: {}", error.0)))
     }
 
-    // runs with the key after the player changes an option in the mod menu
+    /// runs with the key after the player changes an option in the mod menu
     pub fn onChange(&self, handler: impl Fn(&str) + 'static) { dispatch::addConfigListener(Rc::new(handler)); }
 }
 

@@ -1,5 +1,4 @@
-use super::NoiseGeneratorPerlin;
-use super::Random;
+use super::{NoiseGeneratorPerlin, Random};
 
 pub struct NoiseGeneratorOctaves
 {
@@ -20,11 +19,13 @@ impl NoiseGeneratorOctaves
     {
         let mut d: f64 = 0.0;
         let mut d2: f64 = 1.0;
+
         for i in 0..self.m_levels
         {
             d += self.m_generatorCollection[i as usize].getValue(x * d2, y * d2) / d2;
             d2 /= 2.0;
         }
+
         d
     }
 
@@ -45,13 +46,16 @@ impl NoiseGeneratorOctaves
         let mut values: Vec<f64> = match values
         {
             None => vec![0.0; (sizeX * sizeY * sizeZ) as usize],
+
             Some(mut values) =>
             {
                 values.iter_mut().for_each(|value| *value = 0.0);
                 values
             }
         };
+
         let mut d: f64 = 1.0;
+
         for i in 0..self.m_levels
         {
             self.m_generatorCollection[i as usize].add(
@@ -69,6 +73,7 @@ impl NoiseGeneratorOctaves
             );
             d /= 2.0;
         }
+
         values
     }
 

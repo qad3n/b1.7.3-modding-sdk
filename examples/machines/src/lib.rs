@@ -24,6 +24,7 @@ impl TileBehavior for GeneratorTile
         {
             return;
         }
+
         let mut state: Generator = ctx.tileData();
         state.ticks += 1;
         if state.ticks.is_multiple_of(PERIOD)
@@ -39,12 +40,14 @@ impl TileBehavior for GeneratorTile
                     methods::INSERT,
                     &Amount(OUTPUT),
                 );
+
                 if let Ok(Some(amount)) = inserted
                 {
                     state.produced += amount.0;
                 }
             }
         }
+
         let _ = ctx.setTileData(&state);
     }
 }
@@ -67,6 +70,7 @@ impl BlockBehavior for GeneratorBlock
                 total.map(|amount| amount.0).unwrap_or(0)
             ));
         }
+
         true
     }
 }
@@ -78,6 +82,7 @@ fn register(ctx: &mut RegisterCtx) -> Result<()>
     {
         warn("the energy service is missing, generators will idle");
     }
+
     ctx.tileEntities().register(
         "generator",
         TileEntitySpec { inventory: 0, ticks: true, sync: false, behavior: None },
@@ -92,14 +97,17 @@ fn register(ctx: &mut RegisterCtx) -> Result<()>
             .tileEntity("generator")
             .behavior(GeneratorBlock),
     )?;
-    ctx.events().onCustom(energy_api::CHANGED_EVENT, Priority::Monitor, |event| {
+
+    ctx.events().onCustom(energy_api::CHANGED_EVENT, Priority::Monitor, |event|
+    {
         if let Some((_, data)) = event.custom()
             && let Ok(changed) = fromBytes::<Changed>(data)
-            && changed.stored.0 >= 10_000
+            && changed.stored.0 >= 10000
         {
             broadcast(&format!("a battery at {} {} {} is full", changed.x, changed.y, changed.z));
         }
     })?;
+
     ctx.recipes()
         .shaped("generator", ItemStack::of("machines:generator", 1))
         .pattern(["CCC", "CFC", "CRC"])

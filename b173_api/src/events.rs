@@ -3,7 +3,7 @@ use mod_protocol::Identifier;
 pub use mod_protocol::abi::EventData;
 use mod_protocol::abi::{BlockPos, EventEnvelope, EventKind, StackData};
 
-// one fired event, listeners read it, cancel it, set its result or change its data
+/// one fired event, listeners read it, cancel it, set its result or change its data
 pub struct Event
 {
     pub(crate) m_envelope: EventEnvelope,
@@ -74,6 +74,7 @@ impl Event
             {
                 Some(Entity { world: World { dimension: entity.world }, id: entity.id })
             }
+
             _ => None,
         }
     }
@@ -103,7 +104,7 @@ impl Event
         }
     }
 
-    // adds a drop to a harvest or death event
+    /// adds a drop to a harvest or death event
     pub fn addDrop(&mut self, stack: ItemStack)
     {
         let Ok(raw) = stack.toRaw()
@@ -111,6 +112,7 @@ impl Event
         {
             return;
         };
+
         if let EventData::Drops { drops, .. } | EventData::Death { drops, .. } = &mut self.m_envelope.data
         {
             drops.push(raw);
@@ -145,8 +147,7 @@ impl Event
     {
         let raw: &StackData = match &self.m_envelope.data
         {
-            EventData::Item { stack, .. } => stack,
-            EventData::ItemUse { stack: Some(stack), .. } => stack,
+            EventData::Item { stack, .. } | EventData::ItemUse { stack: Some(stack), .. } => stack,
             _ => return None,
         };
         Some(ItemStack::fromRaw(raw.clone()))
@@ -167,8 +168,10 @@ pub trait EventType
     const KIND: EventKind;
 }
 
-macro_rules! event_types {
-    ($($name:ident,)*) => {
+macro_rules! event_types
+{
+    ($($name:ident,)*) =>
+    {
         $(
             pub struct $name;
 
@@ -180,7 +183,8 @@ macro_rules! event_types {
     };
 }
 
-event_types! {
+event_types!
+{
     Setup, ClientSetup, ServerSetup, LoadComplete, Shutdown, ServerStarting, ServerStarted, ServerStopping, TickPre, TickPost,
     WorldLoad, WorldSave, WorldUnload, ChunkLoad, ChunkUnload, ChunkGenerate, ChunkPopulate, BlockPlace, BlockBreak,
     BlockHarvestDrops, BlockActivate, NeighborChange, ExplosionAffect, ItemUse, ItemUseFirst, ItemUseOnBlock, ItemDestroyed,

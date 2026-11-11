@@ -13,7 +13,7 @@ mod lcg
     pub const MASK: i64 = (1 << 48) - 1;
 }
 
-// java.util.Random, so ported generators draw the same numbers as the Java game
+/// java.util.Random, so ported generators draw the same numbers as the Java game
 pub struct Random
 {
     m_seed: Cell<i64>,
@@ -44,7 +44,7 @@ impl Random
 
     pub fn nextInt(&self) -> i32 { self.next(32) }
 
-    // java throws for a bound below one, ported code never passes one so it returns zero instead
+    /// java throws for a bound below one, ported code never passes one so it returns zero instead
     pub fn nextIntBounded(&self, n: i32) -> i32
     {
         if n <= 0
@@ -55,6 +55,7 @@ impl Random
         {
             return ((n as i64).wrapping_mul(self.next(31) as i64) >> 31) as i32;
         }
+
         loop
         {
             let bits: i32 = self.next(31);
@@ -83,6 +84,7 @@ impl Random
         {
             return next;
         }
+
         loop
         {
             let v1: f64 = 2.0 * self.nextDouble() - 1.0;
@@ -92,6 +94,7 @@ impl Random
             {
                 continue;
             }
+
             let multiplier: f64 = (-2.0 * s.ln() / s).sqrt();
             self.m_gaussian.set(Some(v2 * multiplier));
             return v1 * multiplier;
@@ -106,7 +109,7 @@ pub mod chunk
     pub const BLOCK_COUNT: usize = 32768;
 }
 
-// a chunk's blocks in the b1.7.3 layout, index x << 11 | z << 7 | y, with ids up to 4095 and 4 bit metadata
+/// a chunk's blocks in the b1.7.3 layout, index x << 11 | z << 7 | y, with ids up to 4095 and 4 bit metadata
 pub struct ChunkBlocks
 {
     pub m_blocks: Vec<u16>,
@@ -128,6 +131,7 @@ impl ChunkBlocks
         {
             return 0;
         }
+
         self.m_blocks[Self::index(x, y, z)] as i32
     }
 
@@ -139,13 +143,14 @@ impl ChunkBlocks
         {
             return;
         }
+
         let index: usize = Self::index(x, y, z);
         self.m_blocks[index] = block as u16;
         self.m_meta[index] = (meta & 15) as u8;
     }
 }
 
-// net.minecraft.src.MathHelper, the table sine keeps ported generators drawing the same shapes
+/// net.minecraft.src.MathHelper, the table sine keeps ported generators drawing the same shapes
 pub mod math
 {
     use std::sync::OnceLock;
@@ -156,7 +161,9 @@ pub mod math
     fn table() -> &'static [f32]
     {
         static TABLE: OnceLock<Vec<f32>> = OnceLock::new();
-        TABLE.get_or_init(|| {
+
+        TABLE.get_or_init(||
+        {
             (0..TABLE_SIZE).map(|i| (i as f64 * std::f64::consts::PI * 2.0 / TABLE_SIZE as f64).sin() as f32).collect()
         })
     }
@@ -168,6 +175,13 @@ pub mod math
     pub fn floor(value: f64) -> i32
     {
         let truncated: i32 = value as i32;
-        if value < truncated as f64 { truncated - 1 } else { truncated }
+        if value < truncated as f64
+        {
+            truncated - 1
+        }
+        else
+        {
+            truncated
+        }
     }
 }

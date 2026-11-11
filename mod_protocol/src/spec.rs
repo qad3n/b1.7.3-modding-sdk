@@ -49,7 +49,7 @@ impl StackSpec
 pub struct DropSpec
 {
     pub item: Identifier,
-    // one value is a fixed count, two values are an inclusive range
+    /// one value is a fixed count, two values are an inclusive range
     #[serde(default = "oneCount")]
     pub count: Vec<i32>,
     #[serde(default)]
@@ -85,15 +85,15 @@ pub struct Cuboid
     pub from: [f32; 3],
     pub to: [f32; 3],
     pub texture: Option<String>,
-    // the metadata values this cuboid shows for, every value when empty, as stair facings and open gates
+    /// the metadata values this cuboid shows for, every value when empty, as stair facings and open gates
     #[serde(default)]
     pub metas: Vec<i32>,
-    // a face 2 to 5 whose neighbor must connect for the cuboid to show, as wall and fence arms
+    /// a face 2 to 5 whose neighbor must connect for the cuboid to show, as wall and fence arms
     #[serde(default)]
     pub connect: Option<i32>,
 }
 
-// the six bed sprites, a bed of the bed template picks them by facing and half as BlockBed picks vanilla's
+/// the six bed sprites, a bed of the bed template picks them by facing and half as BlockBed picks vanilla's
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
 #[serde(default, deny_unknown_fields)]
 pub struct BedFaces
@@ -111,15 +111,15 @@ pub struct BedFaces
 #[serde(default, deny_unknown_fields)]
 pub struct BlockModelSpec
 {
-    // a vanilla render type id such as 1 for crossed sprites or 2 for torches
+    /// a vanilla render type id such as 1 for crossed sprites or 2 for torches
     pub render_type: Option<i32>,
     pub cuboids: Vec<Cuboid>,
     pub translucent: bool,
-    // blocks a connecting cuboid also joins besides itself and opaque cubes
+    /// blocks a connecting cuboid also joins besides itself and opaque cubes
     pub connects_to: Vec<Identifier>,
 }
 
-// the hot path block methods a code mod can route into wasm, every other method keeps the template body
+/// the hot path block methods a code mod can route into wasm, every other method keeps the template body
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum BlockMethod
@@ -145,12 +145,12 @@ pub enum BlockMethod
     CanProvidePower,
     Texture,
     ColorMultiplier,
-    // api 1.12
+    /// api 1.12
     FaceTexture,
-    // api 1.13
+    /// api 1.13
     Strength,
     Overlay,
-    // api 1.14
+    /// api 1.14
     FaceRotation,
 }
 
@@ -167,13 +167,13 @@ pub enum ItemMethod
     StrVsBlock,
     CanHarvest,
     Crafted,
-    // api 1.20
+    /// api 1.20
     UseDuration,
     UseAction,
     UsingTick,
     StoppedUsing,
     UseFinish,
-    // api 1.23
+    /// api 1.23
     UseIcon,
 }
 
@@ -188,7 +188,7 @@ pub enum EntityMethod
     Death,
     CanSpawn,
     Pose,
-    // replaces the template's own AI tick, updatePlayerActionState, the template moves and attacks no more
+    /// replaces the template's own AI tick, updatePlayerActionState, the template moves and attacks no more
     Ai,
 }
 
@@ -198,11 +198,11 @@ pub enum TileMethod
 {
     Tick,
     Removed,
-    // api 1.20
+    /// api 1.20
     Pose,
 }
 
-// behavior binds a spec to a guest object, set by the sdk and absent for data content
+/// behavior binds a spec to a guest object, set by the sdk and absent for data content
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug, Default)]
 pub struct Behavior<M>
 {
@@ -210,7 +210,7 @@ pub struct Behavior<M>
     pub methods: Vec<M>,
 }
 
-// one named property of a block state and its values, the first value listed is not special
+/// one named property of a block state and its values, the first value listed is not special
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct PropertySpec
@@ -219,7 +219,7 @@ pub struct PropertySpec
     pub values: Vec<String>,
 }
 
-// textures for the states whose properties match every entry of when
+/// textures for the states whose properties match every entry of when
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
 #[serde(default, deny_unknown_fields)]
 pub struct StateVariantSpec
@@ -229,18 +229,18 @@ pub struct StateVariantSpec
     pub textures: Option<FaceTextures>,
 }
 
-// the named states of a block, saved by name so a mod may add or reorder properties between versions
+/// the named states of a block, saved by name so a mod may add or reorder properties between versions
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
 #[serde(default, deny_unknown_fields)]
 pub struct BlockStatesSpec
 {
     pub properties: Vec<PropertySpec>,
-    // a property absent here defaults to its first value
+    /// a property absent here defaults to its first value
     pub default: BTreeMap<String, String>,
     pub variants: Vec<StateVariantSpec>,
 }
 
-// a change to a block another mod or vanilla owns, every absent field keeps the current value
+/// a change to a block another mod or vanilla owns, every absent field keeps the current value
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct BlockModifySpec
@@ -292,14 +292,14 @@ pub struct BlockSpec
     pub item: Option<ItemSpec>,
     pub tags: Vec<Identifier>,
     pub behavior: Option<Behavior<BlockMethod>>,
-    // friction factor entities slide with, vanilla is 0.6 and ice 0.98
+    /// friction factor entities slide with, vanilla is 0.6 and ice 0.98
     pub slipperiness: Option<f32>,
-    // boxes entities collide with in block units 0 to 16, empty lets entities pass, absent keeps the template's
+    /// boxes entities collide with in block units 0 to 16, empty lets entities pass, absent keeps the template's
     pub collision: Option<Vec<Cuboid>>,
     pub bed: Option<BedFaces>,
-    // decays like vanilla leaves, defaults to true for the leaves template
+    /// decays like vanilla leaves, defaults to true for the leaves template
     pub leaves: Option<bool>,
-    // keeps nearby leaves from decaying like a vanilla log
+    /// keeps nearby leaves from decaying like a vanilla log
     pub sustains_leaves: Option<bool>,
 }
 
@@ -330,7 +330,7 @@ pub struct ArmorSpec
     pub protection: i32,
     pub durability: i32,
     pub texture: String,
-    // multiplies the armor sheet, so one sheet serves several materials
+    /// multiplies the armor sheet, so one sheet serves several materials
     #[serde(default)]
     pub color: Option<u32>,
 }
@@ -368,9 +368,9 @@ pub struct ItemSpec
     pub vanilla_fallback: Option<Identifier>,
     pub tags: Vec<Identifier>,
     pub behavior: Option<Behavior<ItemMethod>>,
-    // tints the icon, Item.getColorFromDamage
+    /// tints the icon, Item.getColorFromDamage
     pub color: Option<u32>,
-    // a music disc the jukebox plays
+    /// a music disc the jukebox plays
     pub record: Option<RecordSpec>,
 }
 
@@ -378,9 +378,9 @@ pub struct ItemSpec
 #[serde(default, deny_unknown_fields)]
 pub struct RecordSpec
 {
-    // a streaming sound, a mod's sounds/record/<name>.ogg plays as <modid>.record.<name>
+    /// a streaming sound, a mod's sounds/record/<name>.ogg plays as <modid>.record.<name>
     pub sound: String,
-    // what the now playing line shows, vanilla discs show C418 - <name>
+    /// what the now playing line shows, vanilla discs show C418 - <name>
     pub title: String,
 }
 
@@ -403,7 +403,7 @@ pub struct SpawnSpec
     pub biomes: Vec<Identifier>,
 }
 
-// adds an entity, vanilla or another mod's, to biome spawn lists, a weight of 0 removes it from them instead
+/// adds an entity, vanilla or another mod's, to biome spawn lists, a weight of 0 removes it from them instead
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct SpawnModifySpec
@@ -412,7 +412,7 @@ pub struct SpawnModifySpec
     pub spawn: SpawnSpec,
 }
 
-// one cuboid of a model part in model units, the uv overrides the part's texture offset for this box
+/// one cuboid of a model part in model units, the uv overrides the part's texture offset for this box
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
 #[serde(default, deny_unknown_fields)]
 pub struct ModelBox
@@ -423,7 +423,7 @@ pub struct ModelBox
     pub uv: Option<[i32; 2]>,
 }
 
-// a ModelRenderer: boxes sharing one pivot and rotation, children render relative to it
+/// a ModelRenderer: boxes sharing one pivot and rotation, children render relative to it
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
 #[serde(default, deny_unknown_fields)]
 pub struct ModelPart
@@ -435,11 +435,11 @@ pub struct ModelPart
     pub pivot: [f32; 3],
     pub rotation: [f32; 3],
     pub boxes: Vec<ModelBox>,
-    // sheet size this part's uvs refer to, absent means the model's
+    /// sheet size this part's uvs refer to, absent means the model's
     pub texture_size: Option<[i32; 2]>,
 }
 
-// a ModelBase as data, drawn by the client with the entity's pose program
+/// a ModelBase as data, drawn by the client with the entity's pose program
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[serde(default, deny_unknown_fields)]
 pub struct EntityModelSpec
@@ -474,33 +474,33 @@ pub struct EntitySpec
     pub model: Option<EntityModelSpec>,
     pub sounds: Option<EntitySounds>,
     pub steering: Option<SteeringSpec>,
-    // Entity.isImmuneToFire: fire and lava never hurt it
+    /// Entity.isImmuneToFire: fire and lava never hurt it
     pub fire_immune: bool,
-    // never despawns away from players, as a boss
+    /// never despawns away from players, as a boss
     pub persistent: bool,
-    // nothing pushes it or adds to its motion, only its own AI moves it
+    /// nothing pushes it or adds to its motion, only its own AI moves it
     pub immovable: bool,
 }
 
-// a mount a riding player drives with movement keys and jump
+/// a mount a riding player drives with movement keys and jump
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Debug)]
 #[serde(default, deny_unknown_fields)]
 pub struct SteeringSpec
 {
-    // the mount's walking speed with a rider, vanilla walking is 0.1
+    /// the mount's walking speed with a rider, vanilla walking is 0.1
     pub speed: f32,
-    // upward speed a jump gives, vanilla is 0.42
+    /// upward speed a jump gives, vanilla is 0.42
     pub jump: f32,
-    // jumps allowed before landing again
+    /// jumps allowed before landing again
     pub air_jumps: i32,
-    // falling speed is multiplied by this every tick while the rider is not sneaking, 1 keeps vanilla falling
+    /// falling speed is multiplied by this every tick while the rider is not sneaking, 1 keeps vanilla falling
     pub glide: f32,
     pub step_height: f32,
-    // a sneaking rider gets off once the mount stands on ground
+    /// a sneaking rider gets off once the mount stands on ground
     pub sneak_dismount: bool,
-    // upward speed of a jump in the air, zero uses jump
+    /// upward speed of a jump in the air, zero uses jump
     pub air_jump: f32,
-    // air jumps only start while the mount already falls
+    /// air jumps only start while the mount already falls
     pub air_jump_falling: bool,
 }
 
@@ -508,7 +508,8 @@ impl Default for SteeringSpec
 {
     fn default() -> SteeringSpec
     {
-        SteeringSpec {
+        SteeringSpec
+        {
             speed: 0.15,
             jump: 0.42,
             air_jumps: 0,
@@ -521,7 +522,7 @@ impl Default for SteeringSpec
     }
 }
 
-// sound pool names, an absent one keeps the template's and an empty one is silent
+/// sound pool names, an absent one keeps the template's and an empty one is silent
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
 #[serde(default, deny_unknown_fields)]
 pub struct EntitySounds
@@ -586,7 +587,7 @@ pub enum RecipeSpec
     ShapelessTagged(ShapelessTaggedSpec),
 }
 
-// one recipe slot, an item or any member of an item tag
+/// one recipe slot, an item or any member of an item tag
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
 #[serde(default, deny_unknown_fields)]
 pub struct IngredientSpec
@@ -621,7 +622,7 @@ pub struct TagSpec
     pub values: Vec<TagValue>,
 }
 
-// a tag member, either one id or every member of another tag
+/// a tag member, either one id or every member of another tag
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub enum TagRef
 {
@@ -631,7 +632,7 @@ pub enum TagRef
 
 impl TagRef
 {
-    // a leading # names another tag
+    /// a leading # names another tag
     pub fn parse(text: &str) -> Result<TagRef, IdentifierError>
     {
         match text.strip_prefix('#')
@@ -642,7 +643,7 @@ impl TagRef
     }
 }
 
-// an optional entry is skipped quietly when its id or tag does not exist
+/// an optional entry is skipped quietly when its id or tag does not exist
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct TagEntry
 {
@@ -650,7 +651,7 @@ pub struct TagEntry
     pub required: bool,
 }
 
-// a tag file value, "ns:id", "#ns:tag" or { id = "...", required = false }
+/// a tag file value, "ns:id", "#ns:tag" or { id = "...", required = false }
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[serde(untagged)]
 pub enum TagValue
@@ -721,7 +722,8 @@ mod tests
     #[test]
     fn blockSpecSurvivesPostcard()
     {
-        let spec: BlockSpec = BlockSpec {
+        let spec: BlockSpec = BlockSpec
+        {
             template: Some(Identifier::minecraft("stone")),
             hardness: Some(3.0),
             tool: Some(ToolSpec { class: ToolClass::Pickaxe, level: 2 }),
@@ -734,7 +736,7 @@ mod tests
     }
 }
 
-// drops a mod adds to a block or entity, or puts in place of its beta drops with replace
+/// drops a mod adds to a block or entity, or puts in place of its beta drops with replace
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
 #[serde(default, deny_unknown_fields)]
 pub struct LootSpec
@@ -743,8 +745,8 @@ pub struct LootSpec
     pub entries: Vec<LootEntrySpec>,
 }
 
-// one drop rolled on its own: chance from 0 to 1, a count from count to max, player only for entities killed by a
-// player, block_meta only for a block broken with that metadata
+/// one drop rolled on its own: chance from 0 to 1, a count from count to max, player only for entities killed by a
+/// player, block_meta only for a block broken with that metadata
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct LootEntrySpec
@@ -766,7 +768,7 @@ pub struct LootEntrySpec
 
 fn always() -> f32 { 1.0 }
 
-// which beta liquid a mod fluid behaves like for sounds, particles, render pass, fire, slow spreading and entities
+/// which beta liquid a mod fluid behaves like for sounds, particles, render pass, fire, slow spreading and entities
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum FluidStyle
@@ -775,8 +777,8 @@ pub enum FluidStyle
     Lava,
 }
 
-// a mod fluid: its flowing and still blocks use the flowing_fluid and still_fluid templates with this fluid's
-// identifier as their material, and its bucket the fluid_bucket template; unset numbers follow the style
+/// a mod fluid: its flowing and still blocks use the flowing_fluid and still_fluid templates with this fluid's
+/// identifier as their material, and its bucket the fluid_bucket template; unset numbers follow the style
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct FluidSpec
@@ -796,8 +798,8 @@ pub struct FluidSpec
     pub infinite: Option<bool>,
 }
 
-// a status effect: a hud colour and optional icon texture, attribute modifiers added once per level, and every
-// interval ticks a heal for a positive amount or harm for a negative one, also once per level
+/// a status effect: a hud colour and optional icon texture, attribute modifiers added once per level, and every
+/// interval ticks a heal for a positive amount or harm for a negative one, also once per level
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
 #[serde(default, deny_unknown_fields)]
 pub struct EffectSpec
@@ -819,8 +821,8 @@ pub struct EffectModifierSpec
     pub operation: crate::abi::ModifierOperation,
 }
 
-// a mod particle on top of a beta one named as spawnParticle takes it, such as smoke, flame or reddust; colour is
-// 0xRRGGBB, scale multiplies the beta size, lifetime is in ticks, gravity only moves particles that fall
+/// a mod particle on top of a beta one named as spawnParticle takes it, such as smoke, flame or reddust; colour is
+/// 0xRRGGBB, scale multiplies the beta size, lifetime is in ticks, gravity only moves particles that fall
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct ParticleSpec
@@ -836,7 +838,7 @@ pub struct ParticleSpec
     pub gravity: Option<f32>,
 }
 
-// a mod achievement: lang keys or plain text for its title and description, an item icon and an optional parent
+/// a mod achievement: lang keys or plain text for its title and description, an item icon and an optional parent
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct AchievementSpec

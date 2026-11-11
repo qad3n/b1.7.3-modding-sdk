@@ -2,7 +2,7 @@ use crate::{BlockCtx, Entity, EntityInfo, ItemStack, Player, World};
 use mod_protocol::abi::{BlockPos, FaceOverlay, Pose, PoseInput, UseAction};
 use mod_protocol::spec::{BlockMethod, EntityMethod, ItemMethod, TileMethod};
 
-// write the methods you need inside an impl marked #[block_behavior], only those cross from the game into wasm
+/// write the methods you need inside an impl marked #[block_behavior], only those cross from the game into wasm
 pub trait BlockBehavior
 {
     fn onActivated(&self, _ctx: &mut BlockCtx, _player: Player) -> bool { false }
@@ -26,19 +26,19 @@ pub trait BlockBehavior
     fn canProvidePower(&self) -> bool { false }
     fn texture(&self, _face: i32, _meta: i32) -> i32 { 0 }
     fn colorMultiplier(&self, _ctx: &mut BlockCtx) -> u32 { 0xFFFFFF }
-    // needs api 1.12, a face's sprite slot from where the block stands, as Block.getBlockTexture; None keeps texture
+    /// needs api 1.12, a face's sprite slot from where the block stands, as Block.getBlockTexture; None keeps texture
     fn faceTexture(&self, _ctx: &mut BlockCtx, _face: i32) -> Option<i32> { None }
-    // needs api 1.13, the share of the block one tick of the player's digging breaks, 0 for unbreakable; None keeps
-    // beta's hardness and tool speed
+    /// needs api 1.13, the share of the block one tick of the player's digging breaks, 0 for unbreakable; None keeps
+    /// beta's hardness and tool speed
     fn strength(&self, _ctx: &mut BlockCtx, _player: Player) -> Option<f32> { None }
-    // needs api 1.13, a sprite drawn over a face after the block, as a glowing rune
+    /// needs api 1.13, a sprite drawn over a face after the block, as a glowing rune
     fn overlay(&self, _ctx: &mut BlockCtx, _face: i32) -> Option<FaceOverlay> { None }
-    // needs api 1.14, quarter turns of each face's sprite by face index, as a block drawn on its side
+    /// needs api 1.14, quarter turns of each face's sprite by face index, as a block drawn on its side
     fn faceRotations(&self, _ctx: &mut BlockCtx) -> Option<[u8; 6]> { None }
     fn overridden(&self) -> &'static [&'static str] { unmarked(std::any::type_name::<Self>(), "block_behavior") }
 }
 
-// a held item use either passes through or replaces the stack in hand
+/// a held item use either passes through or replaces the stack in hand
 pub enum Use
 {
     Pass,
@@ -59,18 +59,18 @@ pub trait ItemBehavior
     fn strVsBlock(&self, _stack: ItemStack, _block: i32) -> f32 { 1.0 }
     fn canHarvest(&self, _block: i32) -> bool { false }
     fn onCrafted(&self, _stack: ItemStack, _player: Player) {}
-    // needs api 1.20, how many ticks the item can be held in use, 0 for an item never held; onRightClick starts the
-    // use with Player::setItemInUse
+    /// needs api 1.20, how many ticks the item can be held in use, 0 for an item never held; onRightClick starts the
+    /// use with Player::setItemInUse
     fn useDuration(&self, _stack: ItemStack) -> i32 { 0 }
-    // needs api 1.20, how the player holds it in use, a bow also narrows the view while it draws
+    /// needs api 1.20, how the player holds it in use, a bow also narrows the view while it draws
     fn useAction(&self, _stack: ItemStack) -> UseAction { UseAction::None }
-    // needs api 1.20, every tick it is held in use, left ticks to go
+    /// needs api 1.20, every tick it is held in use, left ticks to go
     fn onUsingTick(&self, _world: World, _player: Player, _stack: ItemStack, _left: i32) {}
-    // needs api 1.20, the player let go with left ticks to go, as ItemBow.onPlayerStoppedUsing
+    /// needs api 1.20, the player let go with left ticks to go, as ItemBow.onPlayerStoppedUsing
     fn onStoppedUsing(&self, _world: World, _player: Player, _stack: ItemStack, _left: i32) -> Use { Use::Pass }
-    // needs api 1.20, the use ran its whole duration, as Item.onEaten
+    /// needs api 1.20, the use ran its whole duration, as Item.onEaten
     fn onUseFinish(&self, _world: World, _player: Player, _stack: ItemStack) -> Use { Use::Pass }
-    // needs api 1.23, the item sheet slot shown while held in use for used ticks, None keeps the usual icon
+    /// needs api 1.23, the item sheet slot shown while held in use for used ticks, None keeps the usual icon
     fn useIcon(&self, _stack: ItemStack, _used: i32) -> Option<i32> { None }
     fn overridden(&self) -> &'static [&'static str] { unmarked(std::any::type_name::<Self>(), "item_behavior") }
 }
@@ -80,13 +80,13 @@ pub trait EntityBehavior
     fn onTick(&self, _entity: Entity, _info: &EntityInfo) {}
     fn onLivingUpdate(&self, _entity: Entity, _info: &EntityInfo) {}
     fn onInteract(&self, _entity: Entity, _player: Player) -> bool { false }
-    // None cancels the hit, Some changes the damage
+    /// None cancels the hit, Some changes the damage
     fn onHurt(&self, _entity: Entity, _source: Option<i32>, amount: i32) -> Option<i32> { Some(amount) }
     fn onDeath(&self, _entity: Entity, _source: Option<i32>) {}
     fn canSpawn(&self, _entity: Entity, _info: &EntityInfo) -> bool { true }
-    // client only, the draw program for this frame of the entity's spec model
+    /// client only, the draw program for this frame of the entity's spec model
     fn pose(&self, _input: &PoseInput) -> Pose { Pose::default() }
-    // implementing this replaces the template's AI, the entity only does what this does
+    /// implementing this replaces the template's AI, the entity only does what this does
     fn onAi(&self, _entity: Entity, _info: &EntityInfo) {}
     fn overridden(&self) -> &'static [&'static str] { unmarked(std::any::type_name::<Self>(), "entity_behavior") }
 }
@@ -95,7 +95,7 @@ pub trait TileBehavior
 {
     fn onTick(&self, _ctx: &mut BlockCtx) {}
     fn onRemoved(&self, _ctx: &mut BlockCtx) {}
-    // needs api 1.20, the ops that draw the tile's registered model this frame, in block space from its lower corner
+    /// needs api 1.20, the ops that draw the tile's registered model this frame, in block space from its lower corner
     fn pose(&self, _ctx: &mut BlockCtx, _partial: f32, _ticks: i32) -> Pose { Pose::default() }
     fn overridden(&self) -> &'static [&'static str] { unmarked(std::any::type_name::<Self>(), "tile_behavior") }
 }

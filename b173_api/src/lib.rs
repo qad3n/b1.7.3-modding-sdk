@@ -14,7 +14,8 @@ pub use b173_api_macros::{block_behavior, entity_behavior, item_behavior, mod_ma
 pub use behavior::{BlockBehavior, EntityBehavior, ItemBehavior, TileBehavior, Use};
 pub use config::{Config, Setting, configValue};
 pub use mod_protocol::Identifier;
-pub use mod_protocol::abi::{
+pub use mod_protocol::abi::
+{
     BiomeSpec, BipedPart, BlockInfo, BlockPos, ChunkInfo, ConfigScope, DimensionSpec, EntityField, EntityInfo,
     EventKind, FaceOverlay, Located, ModelOp, ModifierOperation, MusicSpec, Permission, PlayerLayer, Pose, PoseInput,
     Priority, RayHit, RecipeShape, RecipeView, RegistryKind, SpawnEntry, StackData, StackRef, StateData,
@@ -22,13 +23,16 @@ pub use mod_protocol::abi::{
 };
 use mod_protocol::abi::{EntityInfo as RawEntity, HostCall, HostReply};
 pub use mod_protocol::handshake::ChannelDirection as Direction;
-pub use mod_protocol::spec::{
+use mod_protocol::identifier::IdentifierError;
+pub use mod_protocol::spec::
+{
     AchievementSpec, ArmorSlot, ArmorSpec, BedFaces, BlockModelSpec, BlockModifySpec, BlockSpec, BlockStatesSpec,
     CreatureKind, Cuboid, DropSpec, EffectModifierSpec, EffectSpec, EntityModelSpec, EntitySounds, EntitySpec,
     FaceTextures, Flammability, FluidSpec, FluidStyle, FoodSpec, ItemSpec, ItemToolSpec, LootEntrySpec, LootSpec,
     ModelBox, ModelPart, ParticleSpec, PropertySpec, SpawnModifySpec, SpawnSpec, StateVariantSpec, SteeringSpec,
     TagEntry, TagRef, TileEntitySpec, ToolClass, ToolSpec,
 };
+use mod_protocol::wire::WireError;
 pub use register::*;
 pub use serde;
 use std::cell::{Cell, RefCell};
@@ -54,6 +58,16 @@ impl From<String> for Error
 impl From<&str> for Error
 {
     fn from(text: &str) -> Error { Error(text.to_owned()) }
+}
+
+impl From<IdentifierError> for Error
+{
+    fn from(error: IdentifierError) -> Error { Error(error.to_string()) }
+}
+
+impl From<WireError> for Error
+{
+    fn from(error: WireError) -> Error { Error(error.to_string()) }
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -158,7 +172,8 @@ pub(crate) fn expectEntities(reply: HostReply) -> Vec<RawEntity>
     }
 }
 
-thread_local! {
+thread_local!
+{
     static MOD_ID: RefCell<String> = const { RefCell::new(String::new()) };
     // numeric ids change when a world or server remaps, the epoch invalidates cached lookups
     static EPOCH: Cell<u32> = const { Cell::new(0) };
@@ -171,10 +186,7 @@ pub(crate) fn setModId(id: &str) { MOD_ID.with(|slot| *slot.borrow_mut() = id.to
 
 pub(crate) fn bumpEpoch() { EPOCH.with(|epoch| epoch.set(epoch.get() + 1)); }
 
-pub(crate) fn ownId(name: &str) -> Result<Identifier>
-{
-    Identifier::parseIn(name, &modId()).map_err(|error| Error(error.to_string()))
-}
+pub(crate) fn ownId(name: &str) -> Result<Identifier> { Ok(Identifier::parseIn(name, &modId())?) }
 
 pub fn resolve(registry: RegistryKind, id: &Identifier) -> Result<i32>
 {
@@ -184,12 +196,13 @@ pub fn resolve(registry: RegistryKind, id: &Identifier) -> Result<i32>
     {
         return Ok(numeric);
     }
+
     let numeric: i32 = expectInt(rt::call(HostCall::Resolve { registry, id: id.clone() }))?;
     RESOLVED.with(|cache| cache.borrow_mut().insert((registry, id.clone()), (epoch, numeric)));
     Ok(numeric)
 }
 
-// needs api 1.7, how many uses the item has before it breaks, zero when it does not wear
+/// needs api 1.7, how many uses the item has before it breaks, zero when it does not wear
 pub fn maxDamage(item: &ItemRef) -> i32
 {
     let Ok(numeric) = item.id()
@@ -197,6 +210,7 @@ pub fn maxDamage(item: &ItemRef) -> i32
     {
         return 0;
     };
+
     expectInt(rt::call(HostCall::MaxDamage { item: numeric })).unwrap_or(0)
 }
 
@@ -209,7 +223,7 @@ pub fn nameOf(registry: RegistryKind, numeric: i32) -> Option<Identifier>
     }
 }
 
-// an item named by identifier, resolved to its numeric id when it crosses into the game
+/// an item named by identifier, resolved to its numeric id when it crosses into the game
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum ItemRef
 {
@@ -244,6 +258,7 @@ impl ItemRef
         {
             return false;
         };
+
         match self
         {
             ItemRef::Named(id) => *id == other,
@@ -270,8 +285,8 @@ impl From<&ItemRef> for ItemRef
     fn from(item: &ItemRef) -> ItemRef { item.clone() }
 }
 
-// a biome source's answer for one chunk, one biome index per column with x fastest; grass and leaves take the
-// vanilla colorizer's colour from the biome's temperature and rainfall
+/// a biome source's answer for one chunk, one biome index per column with x fastest; grass and leaves take the
+/// vanilla colorizer's colour from the biome's temperature and rainfall
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct ChunkBiomes
 {

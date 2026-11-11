@@ -2,8 +2,8 @@ use crate::Identifier;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-// spells b173MOD in the mapSeed of the client Packet1Login, vanilla servers ignore the field
-pub const LOADER_MAGIC: i64 = 0x6231_3733_4D4F_4400;
+/// spells b173MOD in the mapSeed of the client Packet1Login, vanilla servers ignore the field
+pub const LOADER_MAGIC: i64 = 0x623137334D4F4400;
 pub const LOADER_PROTOCOL: i8 = 1;
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
@@ -53,14 +53,14 @@ pub struct Hello
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug, Default)]
 pub struct RegistrySnapshot
 {
-    // registry name to identifier to numeric id
+    /// registry name to identifier to numeric id
     pub registries: BTreeMap<String, BTreeMap<Identifier, i32>>,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
 pub struct ConfigSync
 {
-    // mod id to the toml text of its server scope values
+    /// mod id to the toml text of its server scope values
     pub values: BTreeMap<String, String>,
 }
 
@@ -79,13 +79,13 @@ pub enum Control
     Registry(RegistrySnapshot),
     Config(ConfigSync),
     Data(DataSync),
-    // the data hash differed, the client asks for the full table
+    /// the data hash differed, the client asks for the full table
     DataRequest,
     Task(String, Vec<u8>),
     Ack(String),
-    // the client could not apply the registry, each line names one unknown required entry
+    /// the client could not apply the registry, each line names one unknown required entry
     Refused(Vec<String>),
-    // channel indices in the order of the channel list, both sides map them before play
+    /// channel indices in the order of the channel list, both sides map them before play
     Channels(Vec<Identifier>),
     Done,
 }

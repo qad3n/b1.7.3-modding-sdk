@@ -6,6 +6,6 @@ pub mod wire;
 
 pub use identifier::Identifier;
 
-// mods declare api = "1.x" and load on any 1.y with y >= x
+/// mods declare api = "1.x" and load on any 1.y with y >= x
 pub const API_MAJOR: u32 = 1;
 pub const API_MINOR: u32 = 26;

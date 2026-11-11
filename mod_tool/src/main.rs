@@ -22,6 +22,7 @@ fn parseArgs() -> Result<Args>
     {
         args.remove(0);
     }
+
     let mut path: PathBuf = std::env::current_dir().context("no working directory")?;
     if let Some(index) = args.iter().position(|arg| arg == "--path")
     {
@@ -29,10 +30,12 @@ fn parseArgs() -> Result<Args>
         path = PathBuf::from(value);
         args.drain(index..=index + 1);
     }
+
     if args.is_empty()
     {
         bail!(USAGE);
     }
+
     let command: String = args.remove(0);
     Ok(Args { m_command: command, m_rest: args, m_path: path })
 }
@@ -47,6 +50,7 @@ fn main() -> Result<()>
             let id: &str = args.m_rest.first().context("cargo b173 new <id>")?;
             scaffold::create(&args.m_path, id)
         }
+
         "check" =>
         {
             let problems: Vec<String> = check::run(&args.m_path)?;
@@ -54,19 +58,23 @@ fn main() -> Result<()>
             {
                 eprintln!("{problem}");
             }
+
             if !problems.is_empty()
             {
                 bail!("{} problems", problems.len());
             }
+
             println!("mod is valid");
             Ok(())
         }
+
         "build" =>
         {
             let file: PathBuf = package::build(&args.m_path)?;
             println!("{}", file.display());
             Ok(())
         }
+
         "run" =>
         {
             let server: bool = match args.m_rest.first().map(String::as_str)
@@ -77,6 +85,7 @@ fn main() -> Result<()>
             };
             package::run(&args.m_path, server)
         }
+
         other => bail!("unknown command {other}\n{USAGE}"),
     }
 }

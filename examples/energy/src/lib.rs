@@ -1,7 +1,7 @@
 use b173_api::prelude::*;
 use energy_api::{Amount, Changed, methods};
 
-const CAPACITY: i64 = 10_000;
+const CAPACITY: i64 = 10000;
 const TOTAL_KEY: &str = "network_total";
 
 #[derive(Serialize, Deserialize, Default)]
@@ -14,10 +14,13 @@ fn adjust(world: World, pos: BlockPos, delta: i64) -> Result<Amount>
 {
     let mut battery: Battery = world.tileData(pos);
     let before: i64 = battery.stored;
+
     battery.stored = (battery.stored + delta).clamp(0, CAPACITY);
     world.setTileData(pos, &battery)?;
+
     let total: i64 = worldData::<i64>(TOTAL_KEY) + battery.stored - before;
     setWorldData(TOTAL_KEY, &total);
+
     let changed: Changed =
         Changed { world: world.dimension, x: pos.x, y: pos.y, z: pos.z, stored: Amount(battery.stored) };
     services::postEvent(energy_api::CHANGED_EVENT, &changed)?;
@@ -47,6 +50,7 @@ impl Lookup for BatteryLookup
     fn call(&self, world: i32, pos: BlockPos, _side: i32, method: &str, args: &[u8]) -> Result<Vec<u8>>
     {
         let world: World = World { dimension: world };
+
         match method
         {
             methods::STORED => Ok(bytes(&Amount(world.tileData::<Battery>(pos).stored))),
@@ -69,6 +73,7 @@ impl BlockBehavior for BatteryBlock
             let battery: Battery = ctx.tileData();
             player.chat(&format!("battery holds {} of {CAPACITY}", battery.stored));
         }
+
         true
     }
 }
@@ -92,10 +97,13 @@ fn register(ctx: &mut RegisterCtx) -> Result<()>
     ctx.events().define(energy_api::CHANGED_EVENT)?;
     ctx.services().provide(energy_api::SERVICE, energy_api::VERSION, Network)?;
     ctx.services().lookup(energy_api::LOOKUP, "battery", BatteryLookup)?;
-    ctx.services().onInterMod(|from, kind, data| {
+
+    ctx.services().onInterMod(|from, kind, data|
+    {
         let text: String = fromBytes(data).unwrap_or_default();
         log(&format!("{from} sent {kind}: {text}"));
     });
+
     ctx.recipes()
         .shaped("battery", ItemStack::of("energy:battery", 1))
         .pattern(["IRI", "IRI", "III"])

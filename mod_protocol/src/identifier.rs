@@ -32,10 +32,12 @@ impl fmt::Display for IdentifierError
         match self
         {
             IdentifierError::MissingSeparator(text) => write!(formatter, "identifier '{text}' has no namespace"),
+
             IdentifierError::BadNamespace(text) =>
             {
                 write!(formatter, "namespace '{text}' must match [a-z0-9_]{{1,64}}")
             }
+
             IdentifierError::BadPath(text) => write!(formatter, "path '{text}' must match [a-z0-9_./-]{{1,256}}"),
         }
     }
@@ -43,7 +45,7 @@ impl fmt::Display for IdentifierError
 
 impl std::error::Error for IdentifierError {}
 
-// shared namespaces such as c for common tags may be one letter, mod ids need two
+/// shared namespaces such as c for common tags may be one letter, mod ids need two
 pub fn isValidNamespace(namespace: &str) -> bool
 {
     (1..=limits::NAMESPACE_MAX).contains(&namespace.len())
@@ -52,7 +54,7 @@ pub fn isValidNamespace(namespace: &str) -> bool
 
 pub fn isValidModId(id: &str) -> bool { id.len() >= limits::MOD_ID_MIN && isValidNamespace(id) }
 
-fn isValidPath(path: &str) -> bool
+fn validPath(path: &str) -> bool
 {
     (1..=limits::PATH_MAX).contains(&path.len())
         && path
@@ -68,10 +70,11 @@ impl Identifier
         {
             return Err(IdentifierError::BadNamespace(namespace.to_owned()));
         }
-        if !isValidPath(path)
+        if !validPath(path)
         {
             return Err(IdentifierError::BadPath(path.to_owned()));
         }
+
         Ok(Identifier { m_namespace: namespace.to_owned(), m_path: path.to_owned() })
     }
 
@@ -89,7 +92,7 @@ impl Identifier
         }
     }
 
-    // a bare path resolves into the given namespace, as mods write their own content
+    /// a bare path resolves into the given namespace, as mods write their own content
     pub fn parseIn(text: &str, namespace: &str) -> Result<Identifier, IdentifierError>
     {
         if text.contains(':')

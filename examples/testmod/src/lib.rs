@@ -17,11 +17,13 @@ fn hudColor() -> u32
     let chosen: String = Config.get(HUD_COLOR_OPTION);
     HUD_COLORS.iter().find(|(name, _)| *name == chosen).map_or(HUD_COLORS[0].1, |(_, color)| *color)
 }
+
 const REALM: &str = "testmod:test_realm";
 const MACHINE_SLOTS: i32 = 2;
 const HUD_KEY: i32 = 37;
 
-thread_local! {
+thread_local!
+{
     static HUD_VISIBLE: Cell<bool> = const { Cell::new(true) };
     static CHUNKS_POPULATED: Cell<u32> = const { Cell::new(0) };
 }
@@ -70,9 +72,12 @@ impl BlockBehavior for ChargedOre
         {
             return true;
         }
+
         let charge: u8 = ctx.meta().wrapping_add(1) & 15;
         ctx.setMeta(charge);
+
         let _ = ctx.sendTracking(CHARGE, &ChargeSync { pos: ctx.pos(), charge });
+
         player.chat(&format!("charge {charge}"));
         true
     }
@@ -103,6 +108,7 @@ impl BlockBehavior for Machine
         {
             let _ = player.openScreen(MACHINE_SCREEN, Some(ctx.pos()), Vec::new());
         }
+
         true
     }
 
@@ -123,11 +129,13 @@ impl TileBehavior for MachineTile
         {
             return;
         }
+
         let mut state: MachineState = ctx.tileData();
         state.ticks += 1;
         if state.ticks.is_multiple_of(20)
         {
             state.energy += 1;
+
             let world: World = ctx.world();
             if let Some(fuel) = world.tileSlot(ctx.pos(), 0)
                 && fuel.count > 0
@@ -135,6 +143,7 @@ impl TileBehavior for MachineTile
                 let _ = world.setTileSlot(ctx.pos(), 0, Some(ItemStack { count: fuel.count - 1, ..fuel }));
                 let _ = world.setTileSlot(ctx.pos(), 1, Some(ItemStack::of("testmod:spark", 1)));
             }
+
             let _ = ctx.setTileData(&state);
         }
     }
@@ -166,6 +175,7 @@ impl ItemBehavior for Spark
             let sparks: u32 = world.chunkAttachment::<u32>(chunkX, chunkZ) + 1;
             let _ = world.setChunkAttachment(chunkX, chunkZ, &sparks);
         }
+
         let remaining: i32 = stack.count - 1;
         Use::Done((remaining > 0).then_some(ItemStack { count: remaining, ..stack }))
     }
@@ -196,10 +206,13 @@ impl BlockBehavior for Dial
         {
             return false;
         };
+
         let power: usize = state.properties.get("power").and_then(|power| power.parse().ok()).unwrap_or(0);
         let next: &str = DIAL_POWER[(power + 1) % DIAL_POWER.len()];
         state.properties.insert("power".to_owned(), next.to_owned());
+
         let _ = ctx.setState(state);
+
         player.chat(&format!("dial power {next}"));
         true
     }
@@ -222,8 +235,10 @@ impl EntityBehavior for Glider
     {
         let mut memory: GliderMemory = entity.data();
         memory.hops += 1;
+
         let _ = entity.setData(&memory);
         let _ = entity.setMotion([0.0, 0.8, 0.0]);
+
         player.chat(&format!("the glider hopped {} times", memory.hops));
         true
     }
@@ -272,6 +287,7 @@ fn energyReport(world: World, pos: BlockPos) -> String
     {
         return "energy mod not installed".to_owned();
     }
+
     let total: Result<energy_api::Amount> =
         services::callService(energy_api::SERVICE, energy_api::VERSION, energy_api::methods::TOTAL, &());
     let stored: Result<Option<energy_api::Amount>> =
@@ -311,10 +327,12 @@ fn registerContent(ctx: &mut RegisterCtx) -> Result<()>
     ctx.blocks().register(
         "pedestal",
         BlockSpecBuilder::template(vanilla::block::COBBLESTONE).hardness(1.0).texture("minecraft:terrain/16").model(
-            BlockModelSpec {
+            BlockModelSpec
+            {
                 cuboids: vec![
                     Cuboid { from: [0.0, 0.0, 0.0], to: [16.0, 4.0, 16.0], ..Cuboid::default() },
-                    Cuboid {
+                    Cuboid
+                    {
                         from: [5.0, 4.0, 5.0],
                         to: [11.0, 14.0, 11.0],
                         texture: Some("testmod:block/machine".to_owned()),
@@ -334,15 +352,18 @@ fn registerContent(ctx: &mut RegisterCtx) -> Result<()>
     )?;
     ctx.blocks().states(
         "dial",
-        BlockStatesSpec {
+        BlockStatesSpec
+        {
             properties: vec![
-                PropertySpec {
+                PropertySpec
+                {
                     name: "facing".to_owned(),
                     values: ["north", "east", "south", "west"].map(str::to_owned).to_vec(),
                 },
                 PropertySpec { name: "power".to_owned(), values: DIAL_POWER.map(str::to_owned).to_vec() },
             ],
-            variants: vec![StateVariantSpec {
+            variants: vec![StateVariantSpec
+            {
                 when: [("power".to_owned(), "5".to_owned())].into(),
                 texture: Some("testmod:block/charged_ore".to_owned()),
                 textures: None,
@@ -350,8 +371,10 @@ fn registerContent(ctx: &mut RegisterCtx) -> Result<()>
             ..BlockStatesSpec::default()
         },
     )?;
+
     // a vanilla block changed through the modify phase, other mods changing the same field are reported
-    ctx.blocks().modify(BlockModifySpec {
+    ctx.blocks().modify(BlockModifySpec
+    {
         target: Identifier::minecraft("glowstone"),
         hardness: Some(0.6),
         resistance: None,
@@ -361,6 +384,7 @@ fn registerContent(ctx: &mut RegisterCtx) -> Result<()>
         flammability: None,
         tool: None,
     })?;
+
     ctx.items().register(
         "spark",
         ItemSpecBuilder::new()
@@ -377,16 +401,20 @@ fn registerContent(ctx: &mut RegisterCtx) -> Result<()>
     ctx.items().register("spark_snack", ItemSpecBuilder::new().texture("minecraft:items/10").food(5))?;
     ctx.entities().register(
         "glider",
-        EntitySpec {
+        EntitySpec
+        {
             template: Identifier::parse("minecraft:chicken").ok(),
             texture: Some("testmod:entity/glider".to_owned()),
             health: Some(6),
-            spawn: Some(SpawnSpec {
+            spawn: Some(SpawnSpec
+            {
                 kind: CreatureKind::Creature,
                 weight: 4,
                 biomes: vec![Identifier::minecraft("plains")],
             }),
-            drops: Some(vec![DropSpec {
+
+            drops: Some(vec![DropSpec
+            {
                 item: Identifier::parse("testmod:spark").map_err(|error| Error(error.to_string()))?,
                 count: vec![0, 2],
                 meta: 0,
@@ -396,6 +424,7 @@ fn registerContent(ctx: &mut RegisterCtx) -> Result<()>
         },
         Some(std::rc::Rc::new(Glider)),
     )?;
+
     let spark: ItemRef = ctx.items().get("spark")?;
     ctx.recipes()
         .shaped("machine", ItemStack::of("testmod:machine", 1))
@@ -419,7 +448,8 @@ fn registerWorld(ctx: &mut RegisterCtx) -> Result<()>
 {
     ctx.dimensions().biome(
         "realm_plains",
-        BiomeSpec {
+        BiomeSpec
+        {
             name: "Realm Plains".to_owned(),
             color: 0x55AA55,
             temperature: 0.7,
@@ -429,9 +459,11 @@ fn registerWorld(ctx: &mut RegisterCtx) -> Result<()>
             weight: 1,
         },
     )?;
+
     let realm: Dimension = ctx.dimensions().register(
         "test_realm",
-        DimensionSpec {
+        DimensionSpec
+        {
             beds: false,
             music: None,
             name: "Test Realm".to_owned(),
@@ -446,12 +478,15 @@ fn registerWorld(ctx: &mut RegisterCtx) -> Result<()>
             generator: None,
         },
     )?;
+
     realm.generator(|chunk|
     {
         let world: World = World { dimension: chunk.world };
+
         if (chunk.x + chunk.z) % 3 == 0
         {
             let base: BlockPos = BlockPos::new(chunk.x * 16 + 8, 40, chunk.z * 16 + 8);
+
             if let Ok(pedestal) = b173_api::Blocks.id("pedestal")
             {
                 for height in 0..4
@@ -461,6 +496,7 @@ fn registerWorld(ctx: &mut RegisterCtx) -> Result<()>
             }
         }
     })?;
+
     Ok(())
 }
 
@@ -468,51 +504,66 @@ fn registerEvents(ctx: &mut RegisterCtx) -> Result<()>
 {
     ctx.events().define(PULSE)?;
     ctx.events().on::<Setup>(Priority::Normal, |_| log("setup ran"))?;
-    ctx.events().on::<LoadComplete>(Priority::Normal, |_| {
+
+    ctx.events().on::<LoadComplete>(Priority::Normal, |_|
+    {
         let ores: Vec<Identifier> = tagValues(RegistryKind::Block, "c:ores/charged");
         let names: Vec<String> = ores.iter().map(ToString::to_string).collect();
         log(&format!("load complete, charged ores [{}]", names.join(", ")));
         services::sendInterMod("energy", "hello", &"testmod says hi".to_owned());
     })?;
-    ctx.events().on::<LivingDeath>(Priority::Normal, |event| {
+
+    ctx.events().on::<LivingDeath>(Priority::Normal, |event|
+    {
         if event.entityKind().is_some_and(|kind| kind.path() == "creeper")
             && event.world().is_some_and(|world| world.chance(0.25))
         {
             event.addDrop(ItemStack::of("testmod:spark", 1));
         }
     })?;
-    ctx.events().on::<BlockHarvestDrops>(Priority::Low, |event| {
+
+    ctx.events().on::<BlockHarvestDrops>(Priority::Low, |event|
+    {
         if let EventData::Drops { block, .. } = event.data()
             && b173_api::Blocks.id("charged_ore").is_ok_and(|id| id == *block)
         {
             event.addDrop(ItemStack::of("testmod:data_gem", 1));
         }
     })?;
-    ctx.events().on::<BlockBreak>(Priority::High, |event| {
+
+    ctx.events().on::<BlockBreak>(Priority::High, |event|
+    {
         let protected: bool = event.pos().is_some_and(|pos| pos.y == 0);
         if protected
         {
             event.cancel();
+
             if let Some(player) = event.player()
             {
                 player.chat("the bottom layer is protected by testmod");
             }
         }
     })?;
-    ctx.events().on::<LivingAttack>(Priority::Normal, |event| {
+
+    ctx.events().on::<LivingAttack>(Priority::Normal, |event|
+    {
         if event.entityKind().is_some_and(|kind| kind.path() == "glider")
         {
             event.setAmount(1);
         }
     })?;
-    ctx.events().on::<PlayerBreakSpeed>(Priority::Normal, |event| {
+
+    ctx.events().on::<PlayerBreakSpeed>(Priority::Normal, |event|
+    {
         if let EventData::BreakSpeed { speed, .. } = event.data()
         {
             let boosted: f32 = speed * 1.1;
             event.setSpeed(boosted);
         }
     })?;
-    ctx.events().on::<PlayerChat>(Priority::Normal, |event| {
+
+    ctx.events().on::<PlayerChat>(Priority::Normal, |event|
+    {
         if let EventData::Chat { message, .. } = event.data()
             && message.contains(":spark:")
         {
@@ -520,34 +571,46 @@ fn registerEvents(ctx: &mut RegisterCtx) -> Result<()>
             event.setMessage(&replaced);
         }
     })?;
+
     ctx.events()
         .on::<ChunkPopulate>(Priority::Monitor, |_| CHUNKS_POPULATED.with(|count| count.set(count.get() + 1)))?;
-    ctx.events().on::<PlayerLogin>(Priority::Normal, |event| {
+
+    ctx.events().on::<PlayerLogin>(Priority::Normal, |event|
+    {
         if let Some(player) = event.player()
         {
             let mut visits: Visits = player.data("visits");
             visits.count += 1;
+
             let _ = player.setData("visits", &visits);
+
             player.chat(&format!("welcome back, visit {}", visits.count));
         }
     })?;
-    ctx.events().on::<TickPost>(Priority::Normal, |_| {
+
+    ctx.events().on::<TickPost>(Priority::Normal, |_|
+    {
         let mut ticks: u64 = worldData("ticks");
         ticks += 1;
         setWorldData("ticks", &ticks);
     })?;
-    ctx.events().on::<ItemCrafted>(Priority::Monitor, |event| {
+
+    ctx.events().on::<ItemCrafted>(Priority::Monitor, |event|
+    {
         if let Some(stack) = event.stack()
         {
             log(&format!("crafted {:?} x{}", stack.item.name(), stack.count));
         }
     })?;
-    ctx.events().onCustom(PULSE, Priority::Normal, |event| {
+
+    ctx.events().onCustom(PULSE, Priority::Normal, |event|
+    {
         if let Some((_, data)) = event.custom()
         {
             log(&format!("pulse with {} bytes", data.len()));
         }
     })?;
+
     ctx.events().on::<ScreenOpen>(Priority::Monitor, |_| {})?;
     ctx.events().on::<KeyInput>(Priority::Monitor, |_| {})?;
     Ok(())
@@ -555,17 +618,21 @@ fn registerEvents(ctx: &mut RegisterCtx) -> Result<()>
 
 fn registerInterface(ctx: &mut RegisterCtx) -> Result<()>
 {
-    ctx.channels().register::<ChargeSync>(CHARGE, Direction::ToClient, |message, _| {
+    ctx.channels().register::<ChargeSync>(CHARGE, Direction::ToClient, |message, _|
+    {
         World::OVERWORLD.markBlockForRender(message.pos);
         log(&format!("charge {} at {:?}", message.charge, message.pos));
     })?;
-    ctx.channels().register::<Ping>(PING, Direction::ToServer, |message, player| {
+
+    ctx.channels().register::<Ping>(PING, Direction::ToServer, |message, player|
+    {
         // serverbound input is validated before use
         if message.note.len() <= 32
         {
             player.chat(&format!("server got {}", message.note));
         }
     })?;
+
     ctx.screens().register(
         MACHINE_SCREEN,
         ScreenBuilder::new("Test Machine", 176, 166)
@@ -575,7 +642,9 @@ fn registerInterface(ctx: &mut RegisterCtx) -> Result<()>
             .playerInventory(8, 84),
         MachineScreen { m_pressed: 0 },
     )?;
-    ctx.screens().hud(|draw, _partial, width, _height| {
+
+    ctx.screens().hud(|draw, _partial, width, _height|
+    {
         if HUD_VISIBLE.with(Cell::get)
         {
             draw.rect(width - 92, 2, 90, 12, 0x80000000).text(
@@ -586,19 +655,25 @@ fn registerInterface(ctx: &mut RegisterCtx) -> Result<()>
             );
         }
     })?;
-    ctx.keybinds().register("toggle_hud", HUD_KEY, |pressed| {
+
+    ctx.keybinds().register("toggle_hud", HUD_KEY, |pressed|
+    {
         if pressed
         {
             let shown: bool = !HUD_VISIBLE.with(Cell::get);
             HUD_VISIBLE.with(|visible| visible.set(shown));
+
             if let Err(error) = Config.set(HUD_OPTION, shown)
             {
                 log(&error.0);
             }
         }
     })?;
-    ctx.commands().registerWithUsage("testmod", Permission::Op, "<give|realm|home|energy|pulse|data>", |command| {
+
+    ctx.commands().registerWithUsage("testmod", Permission::Op, "<give|realm|home|energy|pulse|data>", |command|
+    {
         let player: Player = command.player().ok_or("players only")?;
+
         match command.arg(0)
         {
             Some("give") =>
@@ -607,6 +682,7 @@ fn registerInterface(ctx: &mut RegisterCtx) -> Result<()>
                 player.give(ItemStack::of("testmod:machine", 1))?;
                 command.reply("gave sparks and a machine");
             }
+
             Some("realm") =>
             {
                 let realm: i32 = resolve(
@@ -615,24 +691,30 @@ fn registerInterface(ctx: &mut RegisterCtx) -> Result<()>
                 )?;
                 player.teleport(realm, [0.5, 45.0, 0.5])?;
             }
+
             Some("home") => player.teleport(0, [0.5, 80.0, 0.5])?,
             Some("energy") => command.reply(&energyReport(command.world(), BlockPos::new(0, 63, 0))),
+
             Some("pulse") =>
             {
                 let canceled: bool = services::postEvent(PULSE, &42u32)?;
                 let (power, radius): (i64, f64) = (Config.getInt("pulse.power"), Config.getFloat("pulse.radius"));
                 command.reply(&format!("pulse power {power} radius {radius} canceled {canceled}"));
             }
+
             Some("data") =>
             {
                 let ticks: u64 = worldData("ticks");
                 let visits: Visits = player.data("visits");
                 command.reply(&format!("world ticks {ticks}, your visits {}", visits.count));
             }
+
             _ => command.reply("usage: /testmod <give|realm|home|energy|pulse|data>"),
         }
+
         Ok(())
     })?;
+
     ctx.services().onInterMod(|from, kind, _| log(&format!("message {kind} from {from}")));
     Ok(())
 }
@@ -650,12 +732,15 @@ fn register(ctx: &mut RegisterCtx) -> Result<()>
         Setting::text("greeting", "hello").comment("chat greeting"),
     ])?;
     HUD_VISIBLE.with(|visible| visible.set(ctx.config().getBool(HUD_OPTION)));
-    ctx.config().onChange(|key| {
+
+    ctx.config().onChange(|key|
+    {
         if key == HUD_OPTION
         {
             HUD_VISIBLE.with(|visible| visible.set(Config.getBool(HUD_OPTION)));
         }
     });
+
     registerContent(ctx)?;
     registerWorld(ctx)?;
     registerEvents(ctx)?;

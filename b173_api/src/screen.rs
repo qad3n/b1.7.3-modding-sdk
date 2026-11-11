@@ -12,7 +12,7 @@ mod gui
     pub const SLOT_SHADOW: u32 = 0xFF373737;
 }
 
-// an immediate draw list, rebuilt each frame by the screen or hud that owns it
+/// an immediate draw list, rebuilt each frame by the screen or hud that owns it
 #[derive(Default)]
 pub struct Draw
 {
@@ -39,7 +39,7 @@ impl Draw
         self
     }
 
-    // FontRenderer.drawString without the shadow, as container titles draw
+    /// FontRenderer.drawString without the shadow, as container titles draw
     pub fn plain(&mut self, x: i32, y: i32, text: &str, color: u32) -> &mut Self
     {
         self.m_list.ops.push(DrawOp::Text { x, y, text: text.to_owned(), color, shadow: false, centered: false });
@@ -58,7 +58,7 @@ impl Draw
         self
     }
 
-    // the uv region [u, v, width, height] of a texture of size [width, height] stretched over the rectangle
+    /// the uv region [u, v, width, height] of a texture of size [width, height] stretched over the rectangle
     pub fn region(&mut self, texture: &str, rect: [i32; 4], uv: [f32; 4], size: [f32; 2]) -> &mut Self
     {
         let [x, y, w, h] = rect;
@@ -72,7 +72,7 @@ impl Draw
         self
     }
 
-    // needs api 1.3, color is argb so the alpha byte fades the whole image
+    /// needs api 1.3, color is argb so the alpha byte fades the whole image
     pub fn tinted(&mut self, texture: &str, x: i32, y: i32, w: i32, h: i32, color: u32) -> &mut Self
     {
         self.m_list.ops.push(DrawOp::TintedImage { texture: texture.to_owned(), x, y, w, h, color });
@@ -85,6 +85,7 @@ impl Draw
         {
             self.m_list.ops.push(DrawOp::Item { x, y, stack });
         }
+
         self
     }
 
@@ -94,7 +95,7 @@ impl Draw
         self
     }
 
-    // a container background as the b1.7.3 gui sheets paint it, rounded corners included, for any size
+    /// a container background as the b1.7.3 gui sheets paint it, rounded corners included, for any size
     pub fn panel(&mut self, x: i32, y: i32, w: i32, h: i32) -> &mut Self
     {
         let rects: [([i32; 4], u32); 19] = [
@@ -118,14 +119,16 @@ impl Draw
             ([2, h - 2, 1, 1], gui::EDGE),
             ([w - 2, h - 2, 1, 1], gui::EDGE),
         ];
+
         for ([left, top, width, height], color) in rects
         {
             self.rect(x + left, y + top, width, height, color);
         }
+
         self
     }
 
-    // the sunken frame of a vanilla slot around an item area of size pixels with its corner at x y
+    /// the sunken frame of a vanilla slot around an item area of size pixels with its corner at x y
     pub fn slot(&mut self, x: i32, y: i32, size: i32) -> &mut Self
     {
         self.rect(x, y, size, size, gui::SLOT);
@@ -145,7 +148,7 @@ impl Draw
     }
 }
 
-// a client screen, slots of a container screen sync through vanilla packets and are drawn by the host
+/// a client screen, slots of a container screen sync through vanilla packets and are drawn by the host
 pub trait Screen
 {
     fn init(&mut self, _width: i32, _height: i32, _pos: Option<mod_protocol::abi::BlockPos>, _data: &[u8]) {}
@@ -158,19 +161,19 @@ pub trait Screen
     fn close(&mut self) {}
 }
 
-// a panel drawn over a vanilla container screen, as a toggleable equipment list beside the inventory
+/// a panel drawn over a vanilla container screen, as a toggleable equipment list beside the inventory
 pub trait Overlay
 {
     fn draw(&mut self, draw: &mut Draw, size: [i32; 2], mouse: [i32; 2]);
-    // true takes the click away from the vanilla screen
+    /// true takes the click away from the vanilla screen
     fn mouse(&mut self, _x: i32, _y: i32, _button: i32) -> bool { false }
-    // true takes the key away from the vanilla screen, hovered is the stack in the vanilla slot under the mouse
+    /// true takes the key away from the vanilla screen, hovered is the stack in the vanilla slot under the mouse
     fn key(&mut self, _character: char, _key: i32, _hovered: Option<ItemStack>) -> bool { false }
-    // the mouse wheel, delta positive when rolled away from the player, true takes it away from the vanilla screen
+    /// the mouse wheel, delta positive when rolled away from the player, true takes it away from the vanilla screen
     fn scroll(&mut self, _x: i32, _y: i32, _delta: i32) -> bool { false }
-    // needs api 1.5, true when the panel covers the point so the vanilla slot under it shows no highlight or tooltip
+    /// needs api 1.5, true when the panel covers the point so the vanilla slot under it shows no highlight or tooltip
     fn covered(&mut self, _x: i32, _y: i32) -> bool { false }
-    // needs api 1.6, true while the panel fills the container so every other overlay on the screen hides
+    /// needs api 1.6, true while the panel fills the container so every other overlay on the screen hides
     fn exclusive(&mut self) -> bool { false }
 }
 
@@ -184,19 +187,23 @@ pub(crate) fn runOverlay(overlay: &mut dyn Overlay, op: mod_protocol::abi::Overl
             overlay.draw(&mut draw, size, mouse);
             mod_protocol::abi::GuestReply::Draw(draw.m_list)
         }
+
         mod_protocol::abi::OverlayOp::Mouse { x, y, button } =>
         {
             mod_protocol::abi::GuestReply::Bool(overlay.mouse(x, y, button))
         }
+
         mod_protocol::abi::OverlayOp::Key { character, key, hovered } =>
         {
             let character: char = char::from_u32(character).unwrap_or('\0');
             mod_protocol::abi::GuestReply::Bool(overlay.key(character, key, hovered.map(ItemStack::fromRaw)))
         }
+
         mod_protocol::abi::OverlayOp::Scroll { x, y, delta } =>
         {
             mod_protocol::abi::GuestReply::Bool(overlay.scroll(x, y, delta))
         }
+
         mod_protocol::abi::OverlayOp::Cover { x, y } => mod_protocol::abi::GuestReply::Bool(overlay.covered(x, y)),
         mod_protocol::abi::OverlayOp::Exclusive => mod_protocol::abi::GuestReply::Bool(overlay.exclusive()),
     }
@@ -207,12 +214,14 @@ pub(crate) fn run(screen: &mut dyn Screen, op: ScreenOp) -> Option<DrawList>
     match op
     {
         ScreenOp::Init { width, height, pos, data } => screen.init(width, height, pos, &data),
+
         ScreenOp::Draw { mouse, partial } =>
         {
             let mut draw: Draw = Draw::default();
             screen.draw(&mut draw, mouse, partial);
             return Some(draw.m_list);
         }
+
         ScreenOp::Button { id } => screen.button(id),
         ScreenOp::Mouse { x, y, button } => screen.mouse(x, y, button),
         ScreenOp::Key { character, key } => screen.key(char::from_u32(character).unwrap_or('\0'), key),
@@ -220,5 +229,6 @@ pub(crate) fn run(screen: &mut dyn Screen, op: ScreenOp) -> Option<DrawList>
         ScreenOp::Close => screen.close(),
         ScreenOp::Release { x, y, button } => screen.release(x, y, button),
     }
+
     None
 }

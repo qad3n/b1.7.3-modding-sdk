@@ -8,6 +8,7 @@ fn write(path: &Path, text: &str) -> Result<()>
     {
         std::fs::create_dir_all(parent)?;
     }
+
     std::fs::write(path, text)?;
     Ok(())
 }
@@ -22,17 +23,19 @@ fn sdkDependency() -> String
     }
 }
 
-pub fn create(parent: &Path, id: &str) -> Result<()>
+pub(crate) fn create(parent: &Path, id: &str) -> Result<()>
 {
     if !isValidModId(id)
     {
         bail!("mod id '{id}' must match [a-z0-9_]{{2,64}}");
     }
+
     let root: PathBuf = parent.join(id);
     if root.exists()
     {
         bail!("{} already exists", root.display());
     }
+
     write(
         &root.join("Cargo.toml"),
         &format!(
