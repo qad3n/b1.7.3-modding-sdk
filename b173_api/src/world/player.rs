@@ -1,8 +1,12 @@
-use super::{Entity, World, encode, stored};
-use crate::rt::call;
-use crate::{ItemStack, Result, expectBool, expectEntities, expectStack, expectUnit};
+use super::{Entity, World, encode};
+use crate::rt::{call, fire};
+use crate::
+{
+    ItemStack, Result, expectBool, expectEntities, expectFloat, expectInt, expectStack, expectText, expectUnit,
+    fetchData,
+};
 use mod_protocol::Identifier;
-use mod_protocol::abi::{BlockPos, EntityField, EntityInfo, HostCall, HostReply, StackData, Target};
+use mod_protocol::abi::{BlockPos, EntityField, EntityInfo, HostCall, StackData, Target};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
@@ -15,15 +19,11 @@ pub struct Player
 /// the name a stack shows in its own language, vanilla items included
 pub fn displayName(stack: &ItemStack) -> String
 {
-    match stack.raw().map(|stack| call(HostCall::DisplayName { stack }))
-    {
-        Ok(HostReply::Text(name)) => name,
-        _ => String::new(),
-    }
+    stack.raw().and_then(|stack| expectText(call(HostCall::DisplayName { stack }))).unwrap_or_default()
 }
 
 /// the time of every loaded world
-pub fn setWorldTime(time: i64) { let _ = call(HostCall::SetWorldTime { time }); }
+pub fn setWorldTime(time: i64) { fire(HostCall::SetWorldTime { time }); }
 
 impl Player
 {
@@ -35,10 +35,7 @@ impl Player
         expectStack(call(HostCall::OpenSlot { player: self.id, slot })).ok().flatten().map(ItemStack::fromRaw)
     }
 
-    pub fn chat(self, message: &str)
-    {
-        let _ = call(HostCall::Chat { player: Some(self.id), message: message.to_owned() });
-    }
+    pub fn chat(self, message: &str) { fire(HostCall::Chat { player: Some(self.id), message: message.to_owned() }); }
 
     pub fn give(self, stack: ItemStack) -> Result<()>
     {
@@ -67,11 +64,7 @@ impl Player
     /// needs api 1.14, how fast it digs a block with what it holds, as EntityPlayer.getCurrentPlayerStrVsBlock
     pub fn digSpeed(self, block: i32) -> f32
     {
-        match call(HostCall::DigSpeed { player: self.id, block })
-        {
-            HostReply::Float(speed) => speed,
-            _ => 1.0,
-        }
+        expectFloat(call(HostCall::DigSpeed { player: self.id, block })).unwrap_or(1.0)
     }
 
     pub fn held(self) -> Option<ItemStack>
@@ -113,11 +106,7 @@ impl Player
     /// needs api 1.25
     pub fn stat(self, stat: &str) -> i32
     {
-        match call(HostCall::StatValue { player: self.id, stat: stat.to_owned() })
-        {
-            HostReply::Int(value) => value,
-            _ => 0,
-        }
+        expectInt(call(HostCall::StatValue { player: self.id, stat: stat.to_owned() })).unwrap_or(0)
     }
 
     /// needs api 1.7, wears the held tool as a use would and breaks it past its last use
@@ -137,7 +126,7 @@ impl Player
         expectUnit(call(HostCall::OpenScreen { player: self.id, screen, pos, data }))
     }
 
-    pub fn closeScreen(self) { let _ = call(HostCall::CloseScreen { player: self.id }); }
+    pub fn closeScreen(self) { fire(HostCall::CloseScreen { player: self.id }); }
 
     pub fn cursor(self) -> Option<ItemStack>
     {
@@ -163,7 +152,7 @@ impl Player
 
     pub fn data<T: DeserializeOwned + Default>(self, key: &str) -> T
     {
-        stored(call(HostCall::PlayerData { player: self.id, key: key.to_owned() }))
+        fetchData(call(HostCall::PlayerData { player: self.id, key: key.to_owned() }))
     }
 
     pub fn setData<T: Serialize>(self, key: &str, value: &T) -> Result<()>
@@ -189,7 +178,7 @@ pub fn allPlayers() -> Vec<Player>
     expectEntities(call(HostCall::Players { world: None })).into_iter().map(|info| Player { id: info.id }).collect()
 }
 
-pub fn broadcast(message: &str) { let _ = call(HostCall::Chat { player: None, message: message.to_owned() }); }
+pub fn broadcast(message: &str) { fire(HostCall::Chat { player: None, message: message.to_owned() }); }
 
 pub fn send<T: Serialize>(channel: &str, target: Target, message: &T) -> Result<()>
 {

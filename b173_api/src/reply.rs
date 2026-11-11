@@ -1,5 +1,7 @@
 use crate::{Error, Located, Result, StackData, StateData, StructureStart};
+use mod_protocol::Identifier;
 use mod_protocol::abi::{EntityInfo, HostReply};
+use serde::de::DeserializeOwned;
 
 // host replies the SDK expects, anything else becomes an Error carrying the host's reason
 fn unexpected(reply: HostReply) -> Error
@@ -99,5 +101,62 @@ pub(crate) fn expectEntities(reply: HostReply) -> Vec<EntityInfo>
     {
         HostReply::Entities(entities) => entities,
         _ => Vec::new(),
+    }
+}
+
+pub(crate) fn expectText(reply: HostReply) -> Result<String>
+{
+    match reply
+    {
+        HostReply::Text(text) => Ok(text),
+        other => Err(unexpected(other)),
+    }
+}
+
+pub(crate) fn expectLong(reply: HostReply) -> Result<i64>
+{
+    match reply
+    {
+        HostReply::Long(value) => Ok(value),
+        other => Err(unexpected(other)),
+    }
+}
+
+pub(crate) fn expectFloat(reply: HostReply) -> Result<f32>
+{
+    match reply
+    {
+        HostReply::Float(value) => Ok(value),
+        other => Err(unexpected(other)),
+    }
+}
+
+pub(crate) fn expectId(reply: HostReply) -> Option<Identifier>
+{
+    match reply
+    {
+        HostReply::Id(id) => id,
+        _ => None,
+    }
+}
+
+// saved mod data, the default when nothing was stored, and a warning plus the default when it no longer decodes
+pub(crate) fn fetchData<T: DeserializeOwned + Default>(reply: HostReply) -> T
+{
+    let bytes: Vec<u8> = expectBytes(reply).unwrap_or_default();
+    if bytes.is_empty()
+    {
+        return T::default();
+    }
+
+    match crate::world::decode(&bytes)
+    {
+        Ok(value) => value,
+
+        Err(error) =>
+        {
+            crate::warn(&format!("stored data no longer decodes, using the default: {error}"));
+            T::default()
+        }
     }
 }

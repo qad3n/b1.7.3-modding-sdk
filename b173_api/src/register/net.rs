@@ -53,7 +53,10 @@ impl Events
         }))
     }
 
-    pub fn define(&self, event: &str) -> Result<()> { expectUnit(call(HostCall::DefineEvent { id: ownId(event)? })) }
+    pub fn define(&self, event: &str) -> Result<()>
+    {
+        expectUnit(call(HostCall::DefineEvent { id: ownId(event)? }))
+    }
 }
 
 pub struct Commands;

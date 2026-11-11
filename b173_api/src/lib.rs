@@ -15,6 +15,7 @@ pub use b173_api_macros::{block_behavior, entity_behavior, item_behavior, mod_ma
 pub use behavior::{BlockBehavior, EntityBehavior, ItemBehavior, TileBehavior, Use};
 pub use config::{Config, Setting, configValue};
 pub use mod_protocol::Identifier;
+use mod_protocol::abi::HostCall;
 pub use mod_protocol::abi::
 {
     BiomeSpec, BipedPart, BlockInfo, BlockPos, ChunkInfo, ConfigScope, DimensionSpec, EntityField, EntityInfo,
@@ -22,7 +23,6 @@ pub use mod_protocol::abi::
     Priority, RayHit, RecipeShape, RecipeView, RegistryKind, SpawnEntry, StackData, StackRef, StateData,
     StructurePiece, StructureSpec, StructureStart, Target, UseAction,
 };
-use mod_protocol::abi::{HostCall, HostReply};
 pub use mod_protocol::handshake::ChannelDirection as Direction;
 use mod_protocol::identifier::IdentifierError;
 pub use mod_protocol::spec::
@@ -37,8 +37,8 @@ use mod_protocol::wire::WireError;
 pub use register::*;
 pub(crate) use reply::
 {
-    expectBool, expectBytes, expectEntities, expectEntity, expectInt, expectLocated, expectStack, expectStarts,
-    expectState, expectUnit,
+    expectBool, expectBytes, expectEntities, expectEntity, expectFloat, expectId, expectInt, expectLocated, expectLong,
+    expectStack, expectStarts, expectState, expectText, expectUnit, fetchData,
 };
 pub use serde;
 use std::cell::{Cell, RefCell};
@@ -122,11 +122,7 @@ pub fn maxDamage(item: &ItemRef) -> i32
 
 pub fn nameOf(registry: RegistryKind, numeric: i32) -> Option<Identifier>
 {
-    match rt::call(HostCall::NameOf { registry, numeric })
-    {
-        HostReply::Id(id) => id,
-        _ => None,
-    }
+    expectId(rt::call(HostCall::NameOf { registry, numeric }))
 }
 
 /// an item named by identifier, resolved to its numeric id when it crosses into the game

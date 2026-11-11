@@ -1,6 +1,6 @@
 use crate::rt::call;
-use crate::{Error, Result, dispatch, expectUnit};
-use mod_protocol::abi::{ConfigEntry, ConfigKind, ConfigOption, ConfigScope, HostCall, HostReply};
+use crate::{Error, Result, dispatch, expectText, expectUnit};
+use mod_protocol::abi::{ConfigEntry, ConfigKind, ConfigOption, ConfigScope, HostCall};
 use std::fmt::Display;
 use std::ops::RangeInclusive;
 use std::rc::Rc;
@@ -132,9 +132,5 @@ impl Config
 
 pub fn configValue(key: &str) -> String
 {
-    match call(HostCall::ConfigValue { key: key.to_owned() })
-    {
-        HostReply::Text(text) => text,
-        _ => String::new(),
-    }
+    expectText(call(HostCall::ConfigValue { key: key.to_owned() })).unwrap_or_default()
 }

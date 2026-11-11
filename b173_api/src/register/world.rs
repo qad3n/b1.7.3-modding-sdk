@@ -193,7 +193,10 @@ pub struct SpawnQuery
 }
 
 /// a weighted spawn list entry, vanilla names such as minecraft:zombie or identifiers, bare names in this mod
-pub fn spawnEntry(entity: &str, weight: i32) -> Result<SpawnEntry> { Ok(SpawnEntry { entity: ownId(entity)?, weight }) }
+pub fn spawnEntry(entity: &str, weight: i32) -> Result<SpawnEntry>
+{
+    Ok(SpawnEntry { entity: ownId(entity)?, weight })
+}
 
 fn addGenerator(dimension: Identifier, handler: impl Fn(ChunkInfo) + 'static) -> Result<()>
 {

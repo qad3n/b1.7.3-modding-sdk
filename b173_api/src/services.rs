@@ -1,4 +1,4 @@
-use crate::rt::call;
+use crate::rt::{call, fire};
 use crate::world::{decode, encode};
 use crate::{Error, Result, expectBool, expectBytes};
 use mod_protocol::Identifier;
@@ -64,7 +64,7 @@ pub fn lookup<A: Serialize, R: DeserializeOwned>(
 
 pub fn sendInterMod<T: Serialize>(to: &str, kind: &str, data: &T)
 {
-    let _ = call(HostCall::SendInterMod { to: to.to_owned(), kind: kind.to_owned(), data: encode(data) });
+    fire(HostCall::SendInterMod { to: to.to_owned(), kind: kind.to_owned(), data: encode(data) });
 }
 
 pub fn postEvent<T: Serialize>(event: &str, data: &T) -> Result<bool>

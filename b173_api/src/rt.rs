@@ -72,6 +72,18 @@ pub fn call(request: HostCall) -> HostReply
     wire::decode(&reply).unwrap_or_else(|error| HostReply::Error(format!("bad host reply: {error}")))
 }
 
+// a call whose only answer is success, a failure is logged since the caller has no result to check
+pub(crate) fn fire(request: HostCall)
+{
+    match call(request)
+    {
+        HostReply::Unit =>
+        {}
+        HostReply::Error(reason) => log(LogLevel::Warn, &reason),
+        other => log(LogLevel::Warn, &format!("unexpected host reply {other:?}")),
+    }
+}
+
 pub fn log(level: LogLevel, message: &str)
 {
     let level: u32 = match level

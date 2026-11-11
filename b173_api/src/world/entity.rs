@@ -1,6 +1,6 @@
-use super::{World, encode, stored};
-use crate::rt::call;
-use crate::{ItemStack, Result, expectBool, expectStack, expectUnit};
+use super::{World, encode};
+use crate::rt::{call, fire};
+use crate::{ItemStack, Result, expectBool, expectInt, expectStack, expectUnit, fetchData};
 use mod_protocol::Identifier;
 use mod_protocol::abi::{BlockPos, EntityField, EntityInfo, HostCall, HostReply, ModifierOperation};
 use serde::Serialize;
@@ -92,11 +92,9 @@ impl Entity
     pub fn effectLevel(self, effect: &str) -> Option<i32>
     {
         let effect: Identifier = Identifier::parse(effect).ok()?;
-        match call(HostCall::EffectLevel { world: self.world.dimension, id: self.id, effect })
-        {
-            HostReply::Int(level) if level >= 0 => Some(level),
-            _ => None,
-        }
+        expectInt(call(HostCall::EffectLevel { world: self.world.dimension, id: self.id, effect }))
+            .ok()
+            .filter(|level| *level >= 0)
     }
 
     /// needs api 1.17, kind names a vanilla damage type such as minecraft:fall
@@ -106,7 +104,7 @@ impl Entity
         expectBool(call(HostCall::DamageEntityAs { world: self.world.dimension, id: self.id, source, amount, kind }))
     }
 
-    pub fn kill(self) { let _ = call(HostCall::KillEntity { world: self.world.dimension, id: self.id }); }
+    pub fn kill(self) { fire(HostCall::KillEntity { world: self.world.dimension, id: self.id }); }
 
     /// needs api 1.8, the stack a dropped item carries, None for any other entity
     pub fn itemStack(self) -> Option<ItemStack>
@@ -120,7 +118,7 @@ impl Entity
     /// bytes the server mirrors to every client that sees the entity, saved with it, one slot per mod so mods never clash
     pub fn synced<T: DeserializeOwned + Default>(self) -> T
     {
-        stored(call(HostCall::SyncedData { world: self.world.dimension, id: self.id }))
+        fetchData(call(HostCall::SyncedData { world: self.world.dimension, id: self.id }))
     }
 
     pub fn setSynced<T: Serialize>(self, value: &T) -> Result<()>
@@ -152,17 +150,17 @@ impl Entity
 
     pub fn setField(self, field: EntityField, value: f64)
     {
-        let _ = call(HostCall::SetEntityField { world: self.world.dimension, id: self.id, field, value });
+        fire(HostCall::SetEntityField { world: self.world.dimension, id: self.id, field, value });
     }
 
     pub fn walkTo(self, pos: BlockPos, speed: f32)
     {
-        let _ = call(HostCall::MoveTowards { world: self.world.dimension, id: self.id, pos, speed });
+        fire(HostCall::MoveTowards { world: self.world.dimension, id: self.id, pos, speed });
     }
 
     pub fn data<T: DeserializeOwned + Default>(self) -> T
     {
-        stored(call(HostCall::EntityData { world: self.world.dimension, id: self.id }))
+        fetchData(call(HostCall::EntityData { world: self.world.dimension, id: self.id }))
     }
 
     pub fn setData<T: Serialize>(self, value: &T) -> Result<()>

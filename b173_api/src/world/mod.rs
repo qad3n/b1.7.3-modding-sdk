@@ -1,9 +1,9 @@
-use crate::rt::call;
+use crate::rt::{call, fire};
 use crate::terrain::structure::StructureBox;
 use crate::
 {
-    Error, ItemStack, Result, expectBool, expectBytes, expectEntities, expectEntity, expectInt, expectLocated,
-    expectStack, expectStarts, expectUnit,
+    Error, ItemStack, Result, expectBool, expectEntities, expectEntity, expectId, expectInt, expectLocated, expectLong,
+    expectStack, expectStarts, expectText, expectUnit, fetchData,
 };
 use mod_protocol::Identifier;
 use mod_protocol::abi::
@@ -26,12 +26,6 @@ pub fn encode<T: Serialize>(value: &T) -> Vec<u8> { mod_protocol::wire::encode(v
 
 pub fn decode<T: DeserializeOwned>(bytes: &[u8]) -> Result<T> { Ok(mod_protocol::wire::decode(bytes)?) }
 
-// saved mod data, the default when nothing was stored or it no longer decodes
-fn stored<T: DeserializeOwned + Default>(reply: HostReply) -> T
-{
-    expectBytes(reply).ok().filter(|bytes| !bytes.is_empty()).and_then(|bytes| decode(&bytes).ok()).unwrap_or_default()
-}
-
 /// a loaded world, named by its dimension id
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct World
@@ -48,12 +42,7 @@ impl World
     pub fn insertItem(self, pos: BlockPos, face: i32, stack: ItemStack, simulate: bool) -> Result<i32>
     {
         let stack: mod_protocol::abi::StackData = stack.raw()?;
-        match call(HostCall::InsertItem { world: self.dimension, pos, face, stack, simulate })
-        {
-            HostReply::Int(left) => Ok(left),
-            HostReply::Error(error) => Err(Error(error)),
-            other => Err(Error(format!("unexpected reply {other:?}"))),
-        }
+        expectInt(call(HostCall::InsertItem { world: self.dimension, pos, face, stack, simulate }))
     }
 
     /// needs api 1.26, simulate leaves the items where they are
@@ -79,11 +68,7 @@ impl World
 
     pub fn entitiesAlong(self, from: [f64; 3], to: [f64; 3], radius: f64, exclude: Option<i32>) -> Vec<EntityInfo>
     {
-        match call(HostCall::EntitiesAlong { world: self.dimension, from, to, radius, exclude })
-        {
-            HostReply::Entities(found) => found,
-            _ => Vec::new(),
-        }
+        expectEntities(call(HostCall::EntitiesAlong { world: self.dimension, from, to, radius, exclude }))
     }
 
     pub fn rayTrace(self, from: [f64; 3], to: [f64; 3], liquids: bool) -> Option<RayHit>
@@ -98,11 +83,7 @@ impl World
     /// needs api 1.8, the rgb a vanilla map draws the block in, 0 for air
     pub fn mapColor(block: i32) -> u32
     {
-        match call(HostCall::BlockMapColor { block })
-        {
-            HostReply::Int(color) => color as u32,
-            _ => 0,
-        }
+        expectInt(call(HostCall::BlockMapColor { block })).map_or(0, |color| color as u32)
     }
 
     pub fn blockInfo(block: i32) -> BlockInfo
@@ -191,10 +172,7 @@ impl World
         expectUnit(call(HostCall::ScheduleTick { world: self.dimension, pos, block, delay }))
     }
 
-    pub fn markBlockForRender(self, pos: BlockPos)
-    {
-        let _ = call(HostCall::MarkForRender { world: self.dimension, pos });
-    }
+    pub fn markBlockForRender(self, pos: BlockPos) { fire(HostCall::MarkForRender { world: self.dimension, pos }); }
 
     pub fn light(self, pos: BlockPos) -> i32
     {
@@ -207,16 +185,9 @@ impl World
     }
 
     /// the time this dimension's sky shows on this side, None follows the world time
-    pub fn setSkyTime(self, time: Option<i64>) { let _ = call(HostCall::SetSkyTime { world: self.dimension, time }); }
+    pub fn setSkyTime(self, time: Option<i64>) { fire(HostCall::SetSkyTime { world: self.dimension, time }); }
 
-    pub fn time(self) -> i64
-    {
-        match call(HostCall::WorldTime { world: self.dimension })
-        {
-            HostReply::Long(time) => time,
-            _ => 0,
-        }
-    }
+    pub fn time(self) -> i64 { expectLong(call(HostCall::WorldTime { world: self.dimension })).unwrap_or(0) }
 
     /// draws from the world random so a mod stays in step with vanilla randomness on the authority
     pub fn random(self, bound: i32) -> i32
@@ -249,14 +220,7 @@ impl World
     }
 
     /// needs api 1.7, the seed the world was made with
-    pub fn seed(self) -> i64
-    {
-        match call(HostCall::WorldSeed { world: self.dimension })
-        {
-            HostReply::Long(seed) => seed,
-            _ => 0,
-        }
-    }
+    pub fn seed(self) -> i64 { expectLong(call(HostCall::WorldSeed { world: self.dimension })).unwrap_or(0) }
 
     /// needs api 1.10, records a structure this mod built here so every mod can find it, on the owning side only
     pub fn addStructure(self, start: StructureStart) -> Result<()>
@@ -323,12 +287,12 @@ impl World
 
     pub fn playSound(self, pos: [f64; 3], sound: &str, volume: f32, pitch: f32)
     {
-        let _ = call(HostCall::PlaySound { world: self.dimension, pos, sound: sound.to_owned(), volume, pitch });
+        fire(HostCall::PlaySound { world: self.dimension, pos, sound: sound.to_owned(), volume, pitch });
     }
 
     pub fn particle(self, name: &str, pos: [f64; 3], motion: [f64; 3])
     {
-        let _ = call(HostCall::Particle { world: self.dimension, name: name.to_owned(), pos, motion });
+        fire(HostCall::Particle { world: self.dimension, name: name.to_owned(), pos, motion });
     }
 
     pub fn explode(self, pos: [f64; 3], power: f32) -> Result<()>
@@ -339,7 +303,7 @@ impl World
     /// the mod data of a tile entity, any serde type, stored in the world save
     pub fn tileData<T: DeserializeOwned + Default>(self, pos: BlockPos) -> T
     {
-        stored(call(HostCall::TileData { world: self.dimension, pos }))
+        fetchData(call(HostCall::TileData { world: self.dimension, pos }))
     }
 
     pub fn setTileData<T: Serialize>(self, pos: BlockPos, value: &T) -> Result<()>
@@ -350,7 +314,7 @@ impl World
     /// this mod's own data on any tile entity, a vanilla chest or another mod's machine, saved with it
     pub fn tileAttachment<T: DeserializeOwned + Default>(self, pos: BlockPos) -> T
     {
-        stored(call(HostCall::TileAttachment { world: self.dimension, pos }))
+        fetchData(call(HostCall::TileAttachment { world: self.dimension, pos }))
     }
 
     pub fn setTileAttachment<T: Serialize>(self, pos: BlockPos, value: &T) -> Result<()>
@@ -361,7 +325,7 @@ impl World
     /// this mod's own data on a chunk, saved with it
     pub fn chunkAttachment<T: DeserializeOwned + Default>(self, chunkX: i32, chunkZ: i32) -> T
     {
-        stored(call(HostCall::ChunkAttachment { world: self.dimension, chunk_x: chunkX, chunk_z: chunkZ }))
+        fetchData(call(HostCall::ChunkAttachment { world: self.dimension, chunk_x: chunkX, chunk_z: chunkZ }))
     }
 
     pub fn setChunkAttachment<T: Serialize>(self, chunkX: i32, chunkZ: i32, value: &T) -> Result<()>
@@ -394,7 +358,7 @@ pub fn stackComponent<T: DeserializeOwned + Default>(at: StackRef, component: &s
         return T::default();
     };
 
-    stored(call(HostCall::StackComponent { at, component }))
+    fetchData(call(HostCall::StackComponent { at, component }))
 }
 
 /// an empty value removes the component, stacks merge only when their components match
@@ -406,7 +370,7 @@ pub fn setStackComponent<T: Serialize>(at: StackRef, component: &str, value: &T)
 
 pub fn worldData<T: DeserializeOwned + Default>(key: &str) -> T
 {
-    stored(call(HostCall::WorldData { key: key.to_owned() }))
+    fetchData(call(HostCall::WorldData { key: key.to_owned() }))
 }
 
 /// needs api 1.8, the pixels of a texture drawn at runtime, argb rows from the top left; Draw images and model ops
@@ -419,7 +383,7 @@ pub fn setDynamicTexture(name: &str, width: u32, height: u32, pixels: Vec<u32>) 
 
 pub fn setWorldData<T: Serialize>(key: &str, value: &T)
 {
-    let _ = call(HostCall::SetWorldData { key: key.to_owned(), data: encode(value) });
+    fire(HostCall::SetWorldData { key: key.to_owned(), data: encode(value) });
 }
 
 /// every stack a creative item list shows, subtypes included, in numeric id order, each a full stack
@@ -498,29 +462,19 @@ pub fn isLoaded(modid: &str) -> bool
 /// needs api 1.4, the name a mod's manifest gives, Minecraft for the vanilla namespace and empty when not loaded
 pub fn modName(modid: &str) -> String
 {
-    match call(HostCall::ModName { modid: modid.to_owned() })
-    {
-        HostReply::Text(text) => text,
-        _ => String::new(),
-    }
+    expectText(call(HostCall::ModName { modid: modid.to_owned() })).unwrap_or_default()
 }
 
 pub fn translate(key: &str) -> String
 {
-    match call(HostCall::Translate { key: key.to_owned() })
-    {
-        HostReply::Text(text) => text,
-        _ => key.to_owned(),
-    }
+    expectText(call(HostCall::Translate { key: key.to_owned() })).unwrap_or_else(|_| key.to_owned())
 }
 
 fn colorizer(foliage: bool, temperature: f64, rainfall: f64) -> u32
 {
-    match call(HostCall::Colorizer { foliage, temperature, rainfall })
-    {
-        HostReply::Int(color) => color as u32 & 0xFFFFFF,
-        _ => 0xFFFFFF,
-    }
+    const WHITE: u32 = 0xFFFFFF;
+
+    expectInt(call(HostCall::Colorizer { foliage, temperature, rainfall })).map_or(WHITE, |color| color as u32 & WHITE)
 }
 
 /// needs api 1.7, ColorizerGrass at a temperature and rainfall clamped to 0 to 1
@@ -530,11 +484,4 @@ pub fn grassColor(temperature: f64, rainfall: f64) -> u32 { colorizer(false, tem
 pub fn foliageColor(temperature: f64, rainfall: f64) -> u32 { colorizer(true, temperature, rainfall) }
 
 /// needs api 1.17, the damage type of the hit an attack, hurt or onHurt call is handling
-pub fn damageType() -> Option<Identifier>
-{
-    match call(HostCall::DamageType)
-    {
-        HostReply::Id(kind) => kind,
-        _ => None,
-    }
-}
+pub fn damageType() -> Option<Identifier> { expectId(call(HostCall::DamageType)) }
