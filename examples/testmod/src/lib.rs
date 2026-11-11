@@ -8,6 +8,8 @@ const CHARGE: &str = "charge";
 const PING: &str = "ping";
 const MACHINE_SCREEN: &str = "machine";
 const PULSE: &str = "testmod:pulse";
+// how many sparks /testmod give hands out, change it with /gamerule testmod:give_sparks
+const SPARK_RULE: &str = "give_sparks";
 const HUD_OPTION: &str = "hud.visible";
 const HUD_COLOR_OPTION: &str = "hud.color";
 const HUD_COLORS: [(&str, u32); 3] = [("yellow", 0xFFFF55), ("white", 0xFFFFFF), ("green", 0x55FF55)];
@@ -301,6 +303,11 @@ fn energyReport(world: World, pos: BlockPos) -> String
 
 fn registerContent(ctx: &mut RegisterCtx) -> Result<()>
 {
+    ctx.gameRules().register(
+        SPARK_RULE,
+        GameRuleSpec { default: GameRuleValue::Int(16), category: GameRuleCategory::Misc, min: 0, max: 64 },
+    )?;
+
     ctx.blocks().register(
         "charged_ore",
         BlockSpecBuilder::template(vanilla::block::DIAMOND_ORE)
@@ -678,7 +685,13 @@ fn registerInterface(ctx: &mut RegisterCtx) -> Result<()>
         {
             Some("give") =>
             {
-                player.give(ItemStack::of("testmod:spark", 16))?;
+                let GameRuleValue::Int(sparks) = gameRule(&format!("testmod:{SPARK_RULE}"))?
+                else
+                {
+                    return Err(Error(format!("testmod:{SPARK_RULE} is not a number")));
+                };
+
+                player.give(ItemStack::of("testmod:spark", sparks))?;
                 player.give(ItemStack::of("testmod:machine", 1))?;
                 command.reply("gave sparks and a machine");
             }
