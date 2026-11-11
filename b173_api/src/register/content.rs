@@ -2,11 +2,11 @@ use crate::behavior::{self, EffectBehavior};
 use crate::rt::call;
 use crate::{Result, dispatch, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
-use mod_protocol::abi::{HostCall, HostReply, RegistryKind};
+use mod_protocol::abi::{HostCall, HostReply, LootTarget, RegistryKind};
 use mod_protocol::spec::
 {
-    AchievementSpec, AttributeSpec, Behavior, EffectMethod, EffectSpec, EnergySpec, FluidSpec, GameRuleSpec, LootSpec,
-    ParticleSpec, TagEntry,
+    AchievementSpec, AttributeSpec, Behavior, EffectMethod, EffectSpec, EnergySpec, FluidSpec, GameRuleSpec,
+    LootPoolSpec, LootSpec, ParticleSpec, TagEntry, WeightedLootSpec,
 };
 use std::rc::Rc;
 
@@ -108,6 +108,80 @@ impl Loot
     pub fn chest(&self, table: &str, spec: LootSpec) -> Result<()>
     {
         expectUnit(call(HostCall::SetChestLoot { table: ownIdentifier(table)?, spec }))
+    }
+
+    /// needs api 1.40, a weighted pool for a block, entity or chest table of any mod, each roll picking one entry
+    pub fn pool(&self, target: LootTarget, id: &str, pool: LootPoolSpec) -> Result<()>
+    {
+        expectUnit(call(HostCall::AddLootPool { target, id: ownIdentifier(id)?, pool }))
+    }
+}
+
+/// needs api 1.40, a weighted loot pool built up entry by entry
+pub struct PoolBuilder
+{
+    pub m_spec: LootPoolSpec,
+}
+
+impl PoolBuilder
+{
+    /// rolled from rolls to most times
+    pub fn new(rolls: i32, most: i32) -> Self
+    {
+        Self { m_spec: LootPoolSpec { rolls, max_rolls: Some(most), entries: Vec::new() } }
+    }
+
+    /// an item picked with weight, from count to most of it
+    pub fn entry(mut self, item: &str, weight: i32, count: i32, most: i32) -> Result<Self>
+    {
+        let item: Identifier = ownIdentifier(item)?;
+        self.m_spec.entries.push(WeightedLootSpec
+        {
+            item: Some(item),
+            meta: 0,
+            count,
+            max: Some(most),
+            weight,
+            player: false,
+            block_meta: None,
+        });
+        Ok(self)
+    }
+
+    /// a pick that drops nothing
+    pub fn nothing(mut self, weight: i32) -> Self
+    {
+        self.m_spec.entries.push(WeightedLootSpec
+        {
+            item: None,
+            meta: 0,
+            count: 1,
+            max: None,
+            weight,
+            player: false,
+            block_meta: None,
+        });
+        self
+    }
+
+    /// the entry added last only takes part when a player made the kill
+    pub fn byPlayer(mut self) -> Self
+    {
+        if let Some(last) = self.m_spec.entries.last_mut()
+        {
+            last.player = true;
+        }
+        self
+    }
+
+    /// the entry added last only takes part for a block broken with this metadata
+    pub fn blockMeta(mut self, meta: i32) -> Self
+    {
+        if let Some(last) = self.m_spec.entries.last_mut()
+        {
+            last.block_meta = Some(meta);
+        }
+        self
     }
 }
 

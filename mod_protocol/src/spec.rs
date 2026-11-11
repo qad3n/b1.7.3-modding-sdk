@@ -988,3 +988,150 @@ pub struct MachineSlotSpec
     #[serde(default = "always")]
     pub chance: f32,
 }
+
+fn anyDamage() -> i32 { -1 }
+
+fn consumed() -> bool { true }
+
+/// api 1.40: a loot pool rolled rolls times, or a count from rolls to max_rolls, each roll picking exactly one entry
+/// by weight as modern loot pools do, for block, entity and chest loot alike
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct LootPoolSpec
+{
+    #[serde(default = "one")]
+    pub rolls: i32,
+    #[serde(default)]
+    pub max_rolls: Option<i32>,
+    pub entries: Vec<WeightedLootSpec>,
+}
+
+/// api 1.40: an entry a pool picks with its weight out of the pool's total, no item makes the pick drop nothing;
+/// an entry whose condition fails, player for an entity no player killed or block_meta for a block of other
+/// metadata, leaves the pick for that roll, the same item may be listed twice
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct WeightedLootSpec
+{
+    #[serde(default)]
+    pub item: Option<Identifier>,
+    #[serde(default)]
+    pub meta: i32,
+    #[serde(default = "one")]
+    pub count: i32,
+    #[serde(default)]
+    pub max: Option<i32>,
+    #[serde(default = "one")]
+    pub weight: i32,
+    #[serde(default)]
+    pub player: bool,
+    #[serde(default)]
+    pub block_meta: Option<i32>,
+}
+
+/// api 1.40: a job a machine runs, which the machine looks up by its inputs instead of keeping its own table, so any
+/// mod adds jobs to any machine; duration in ticks, or with duration_from_fuel the machine fuel value of the stack
+/// filling the first input; energy the job draws and energy it gives, both optional
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct MachineJobSpec
+{
+    pub inputs: Vec<JobInputSpec>,
+    pub outputs: Vec<JobOutputSpec>,
+    pub fluid_inputs: Vec<JobFluidSpec>,
+    pub fluid_outputs: Vec<JobFluidSpec>,
+    pub duration: i32,
+    pub duration_from_fuel: bool,
+    pub energy_in: Option<JobEnergySpec>,
+    pub energy_out: Option<JobEnergySpec>,
+    pub notes: Vec<String>,
+}
+
+/// api 1.40: an item or any item of a tag, meta -1 takes any damage; an input not consumed stays where it is and
+/// gains wear damage each job, as a tool or catalyst
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct JobInputSpec
+{
+    #[serde(default)]
+    pub item: Option<Identifier>,
+    #[serde(default)]
+    pub tag: Option<Identifier>,
+    #[serde(default = "anyDamage")]
+    pub meta: i32,
+    #[serde(default = "one")]
+    pub count: i32,
+    #[serde(default = "consumed")]
+    pub consumed: bool,
+    #[serde(default)]
+    pub wear: i32,
+}
+
+/// api 1.40: an output item with a chance from 0 to 1, or with from_input the stack that matched that input, its
+/// damage set to damage when given, so a repair hands back the same item mended
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct JobOutputSpec
+{
+    #[serde(default)]
+    pub item: Option<Identifier>,
+    #[serde(default)]
+    pub meta: i32,
+    #[serde(default = "one")]
+    pub count: i32,
+    #[serde(default = "always")]
+    pub chance: f32,
+    #[serde(default)]
+    pub from_input: Option<u32>,
+    #[serde(default)]
+    pub damage: Option<i32>,
+}
+
+/// api 1.40: millibuckets of a fluid or, for an input, of any fluid of a fluid tag
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct JobFluidSpec
+{
+    #[serde(default)]
+    pub fluid: Option<Identifier>,
+    #[serde(default)]
+    pub tag: Option<Identifier>,
+    pub amount: i32,
+}
+
+/// api 1.40: energy of a kind a job draws or gives, each tick or in total over its duration
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct JobEnergySpec
+{
+    pub kind: Identifier,
+    pub amount: i64,
+    #[serde(default)]
+    pub per_tick: bool,
+}
+
+/// api 1.40: what an item or any item of a tag is worth to one machine, in the unit that machine defines (burn
+/// ticks, amplifier, fuel quality); for that machine it stands over the furnace fuel registry
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct MachineFuelSpec
+{
+    #[serde(default)]
+    pub item: Option<Identifier>,
+    #[serde(default)]
+    pub tag: Option<Identifier>,
+    #[serde(default = "anyDamage")]
+    pub meta: i32,
+    pub value: i32,
+}
+
+/// api 1.40: a slot every player wears one item in beside the vanilla inventory, taking items of tag, saved with the
+/// player and synced to every client; icon is the sprite an empty slot shows
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct AccessorySlotSpec
+{
+    pub tag: Identifier,
+    #[serde(default)]
+    pub icon: Option<String>,
+}

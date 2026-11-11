@@ -99,6 +99,22 @@ impl Machines
         MachineRecipeBuilder { m_machine: ownIdentifier(machine), m_spec: MachineRecipeSpec::default(), m_error: None }
     }
 
+    /// needs api 1.40, a job the machine runs and finds with matchJob, duration in ticks
+    pub fn job(&self, machine: &str, duration: i32) -> crate::JobBuilder { crate::JobBuilder::new(machine, duration) }
+
+    /// needs api 1.40, what an item is worth to a machine in its own unit (burn ticks, amplifier, quality), standing
+    /// over the furnace fuels for that machine only, found with machineFuel
+    pub fn fuel(&self, machine: &str, item: &str, value: i32) -> Result<()>
+    {
+        crate::jobs::addFuel(machine, Some(ownIdentifier(item)?), None, value)
+    }
+
+    /// needs api 1.40, a fuel value for every item of a tag
+    pub fn fuelTag(&self, machine: &str, tag: &str, value: i32) -> Result<()>
+    {
+        crate::jobs::addFuel(machine, None, Some(ownIdentifier(tag.trim_start_matches('#'))?), value)
+    }
+
     /// needs api 1.35, an item that runs a machine, minecraft:crafting and minecraft:smelting included
     pub fn workstation(&self, machine: &str, item: &str) -> Result<()>
     {

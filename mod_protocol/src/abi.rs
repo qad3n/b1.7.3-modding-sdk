@@ -1518,6 +1518,8 @@ pub enum RegistryKind
     Recipe,
     Biome,
     Dimension,
+    /// api 1.40, fluid tags only
+    Fluid,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
@@ -3155,6 +3157,127 @@ pub enum HostCall
         block: i32,
         meta: i32,
     },
+
+    /// api 1.40: a weighted pool added to a block's, entity's or chest table's loot, rolled after its plain entries
+    AddLootPool
+    {
+        target: LootTarget,
+        id: Identifier,
+        pool: crate::spec::LootPoolSpec,
+    },
+
+    /// api 1.40: a job for a machine of any mod by its full name, registration only
+    AddMachineJob
+    {
+        machine: Identifier,
+        job: crate::spec::MachineJobSpec,
+    },
+
+    /// api 1.40: a fuel for a machine of any mod by its full name, registration only
+    AddMachineFuel
+    {
+        machine: Identifier,
+        fuel: crate::spec::MachineFuelSpec,
+    },
+
+    /// api 1.40: the first job of a machine, in load order, whose inputs all match distinct given stacks and whose
+    /// fluid inputs the given fluids cover, answered with Job
+    MatchMachineJob
+    {
+        machine: Identifier,
+        inputs: Vec<Option<StackData>>,
+        fluids: Vec<FluidStack>,
+    },
+
+    /// api 1.40: a stack's fuel value for a machine, from the machine's own entries or with furnace from beta's and
+    /// mods' furnace fuels when it has none, 0 when it is no fuel there, answered with Int
+    MachineFuel
+    {
+        machine: Identifier,
+        stack: StackData,
+        furnace: bool,
+    },
+
+    /// api 1.40: an accessory slot named <modid>:<name>, registration only
+    RegisterAccessorySlot
+    {
+        name: Identifier,
+        spec: crate::spec::AccessorySlotSpec,
+    },
+
+    /// api 1.40: every accessory slot in registration order with what the entity wears there, answered with
+    /// Accessories, readable on clients too
+    Accessories
+    {
+        world: i32,
+        entity: i32,
+    },
+
+    /// api 1.40: puts a stack in an entity's accessory slot or empties it, authority only, refused for a stack the
+    /// slot's tag does not take or of more than one item
+    SetAccessory
+    {
+        world: i32,
+        entity: i32,
+        slot: Identifier,
+        stack: Option<StackData>,
+    },
+
+    /// api 1.40: SlotAccessory clicked by a player, the cursor stack and the slot swap when the slot takes the cursor
+    /// stack, authority only, answered with Bool
+    SwapAccessory
+    {
+        player: i32,
+        slot: Identifier,
+    },
+}
+
+/// api 1.40: whose loot a pool joins
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum LootTarget
+{
+    Block,
+    Entity,
+    Chest,
+}
+
+/// api 1.40: a machine job matched to the stacks a machine holds, slots giving the index of the stack each job input
+/// took, outputs with their items resolved to this session's numeric ids
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub struct JobMatch
+{
+    /// the job's place among its machine's jobs, stable until the content reloads
+    pub index: u32,
+    pub slots: Vec<u32>,
+    pub inputs: Vec<crate::spec::JobInputSpec>,
+    pub outputs: Vec<JobOutput>,
+    /// fluid inputs name the given fluid that covered them, a tag input included
+    pub fluid_inputs: Vec<FluidStack>,
+    pub fluid_outputs: Vec<FluidStack>,
+    /// a job timed by fuel has the machine fuel value of the stack that filled its first input here
+    pub duration: i32,
+    pub energy_in: Option<crate::spec::JobEnergySpec>,
+    pub energy_out: Option<crate::spec::JobEnergySpec>,
+}
+
+/// api 1.40: one output of a matched job, the stack it gives, or count of the input it hands back with its damage set
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub struct JobOutput
+{
+    pub stack: Option<StackData>,
+    pub count: i32,
+    pub chance: f32,
+    pub from_input: Option<u32>,
+    pub damage: Option<i32>,
+}
+
+/// api 1.40: an accessory slot and the stack worn in it
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub struct Worn
+{
+    pub slot: Identifier,
+    pub icon: Option<String>,
+    pub stack: Option<StackData>,
 }
 
 /// api 1.32: the value of a game rule, in data files written as {bool = true} or {int = 3}
@@ -3400,6 +3523,10 @@ pub enum HostReply
         size: u32,
         pixels: Vec<u32>,
     },
+    /// api 1.40
+    Job(Option<JobMatch>),
+    /// api 1.40
+    Accessories(Vec<Worn>),
 }
 
 /// api 1.35: a machine category as a recipe viewer shows it

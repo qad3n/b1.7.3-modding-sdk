@@ -17,7 +17,8 @@ mod world;
 pub use blocks::{BlockSpecBuilder, Blocks};
 pub use content::
 {
-    Achievements, Attributes, Effects, Energies, Fluids, GameRules, Loot, Particles, Tags, tagValues, tagsOf,
+    Achievements, Attributes, Effects, Energies, Fluids, GameRules, Loot, Particles, PoolBuilder, Tags, tagValues,
+    tagsOf,
 };
 pub use entities::{Entities, TileEntities};
 pub use items::{ItemSpecBuilder, Items};
@@ -90,6 +91,9 @@ impl RegisterCtx
 
     /// needs api 1.35
     pub fn machines(&mut self) -> Machines { Machines }
+
+    /// needs api 1.40
+    pub fn accessories(&mut self) -> crate::Accessories { crate::Accessories }
 
     pub fn worldgen(&mut self) -> Worldgen { Worldgen }
 

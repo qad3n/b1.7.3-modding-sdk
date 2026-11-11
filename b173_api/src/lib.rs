@@ -1,11 +1,13 @@
 #[macro_use]
 mod macros;
 
+mod accessories;
 mod behavior;
 mod config;
 mod dispatch;
-mod machines;
 pub mod events;
+mod jobs;
+mod machines;
 pub mod math;
 mod names;
 mod register;
@@ -18,32 +20,36 @@ pub mod terrain;
 pub mod vanilla;
 pub mod world;
 
+pub use accessories::{Accessories, WornStack};
 pub use b173_api_macros::{block_behavior, effect_behavior, entity_behavior, item_behavior, mod_main, tile_behavior};
 pub use behavior::{BlockBehavior, EffectBehavior, EntityBehavior, ItemBehavior, TileBehavior, Use};
 pub use config::{Config, Setting, configValue};
+pub use jobs::{JobBuilder, machineFuel, matchJob};
+pub use machines::{machineRecipe, machineRecipes};
 pub use mod_protocol::Identifier;
 use mod_protocol::abi::HostCall;
 pub use mod_protocol::abi::
 {
     BiomeSpec, BipedPart, BlockInfo, BlockPos, ChunkInfo, ConfigScope, DimensionSpec, EnergyDemand, EntityField,
-    EntityInfo, EventKind, FaceOverlay, FluidBlock, FluidStack, GameRuleValue, ItemInfo, ItemModelSpec, Located,
-    LootDrop, LootSource, LootView, MachineRecipeView, MachineSlot, MachineView, ModelOp, ModifierOperation, MusicSpec,
-    Permission, PlayerLayer, Pose, PoseInput, Priority, RayHit, RecipeShape, RecipeView, RegistryKind, SpawnEntry,
-    StackData, StackRef, StateData, StructurePiece, StructureSpec, StructureStart, Target, UseAction, capability,
+    EntityInfo, EventKind, FaceOverlay, FluidBlock, FluidStack, GameRuleValue, ItemInfo, ItemModelSpec, JobMatch,
+    JobOutput, Located, LootDrop, LootSource, LootTarget, LootView, MachineRecipeView, MachineSlot, MachineView,
+    ModelOp, ModifierOperation, MusicSpec, Permission, PlayerLayer, Pose, PoseInput, Priority, RayHit, RecipeShape,
+    RecipeView, RegistryKind, SpawnEntry, StackData, StackRef, StateData, StructurePiece, StructureSpec,
+    StructureStart, Target, UseAction, Worn, capability,
 };
 pub use mod_protocol::handshake::ChannelDirection as Direction;
 use mod_protocol::identifier::IdentifierError;
 pub use mod_protocol::spec::
 {
-    AchievementSpec, ArmorSlot, ArmorSpec, AttributeSpec, BedFaces, BlockModelSpec, BlockModifySpec, BlockSpec,
-    BlockStatesSpec, CreatureKind, Cuboid, DropSpec, EffectModifierSpec, EffectSpec, EnergySpec, EntityModelSpec,
-    EntitySounds, EntitySpec, FaceTextures, Flammability, FluidSpec, FluidStyle, FoodSpec, GameRuleCategory,
-    GameRuleSpec, IngredientSpec, ItemSpec, ItemToolSpec, LootEntrySpec, LootSpec, MachineRecipeSpec, MachineSlotSpec,
-    MachineSpec, ModelBox, ModelPart, ParticleSpec, PropertySpec, SpawnModifySpec, SpawnSpec, StateVariantSpec,
-    SteeringSpec, TagEntry, TagRef, TileEntitySpec, ToolClass, ToolSpec,
+    AccessorySlotSpec, AchievementSpec, ArmorSlot, ArmorSpec, AttributeSpec, BedFaces, BlockModelSpec, BlockModifySpec,
+    BlockSpec, BlockStatesSpec, CreatureKind, Cuboid, DropSpec, EffectModifierSpec, EffectSpec, EnergySpec,
+    EntityModelSpec, EntitySounds, EntitySpec, FaceTextures, Flammability, FluidSpec, FluidStyle, FoodSpec,
+    GameRuleCategory, GameRuleSpec, IngredientSpec, ItemSpec, ItemToolSpec, JobEnergySpec, JobFluidSpec, JobInputSpec,
+    JobOutputSpec, LootEntrySpec, LootPoolSpec, LootSpec, MachineFuelSpec, MachineJobSpec, MachineRecipeSpec,
+    MachineSlotSpec, MachineSpec, ModelBox, ModelPart, ParticleSpec, PropertySpec, SpawnModifySpec, SpawnSpec,
+    StateVariantSpec, SteeringSpec, TagEntry, TagRef, TileEntitySpec, ToolClass, ToolSpec, WeightedLootSpec,
 };
 use mod_protocol::wire::WireError;
-pub use machines::{machineRecipe, machineRecipes};
 pub use names::{blockIs, blockTagged, nameOf, named, tagMembers, tagged};
 pub use register::*;
 pub(crate) use reply::
