@@ -95,3 +95,14 @@ impl StateHandle
         world.setBlockQuiet(pos, block, meta)
     }
 }
+
+impl World
+{
+    /// needs api 1.39, rewrites one property of the block at a spot and keeps the others, a block with no named state
+    /// there fails
+    pub fn setProperty(self, pos: BlockPos, property: &str, value: impl ToString) -> Result<bool>
+    {
+        let state: Rc<StateData> = self.stateAt(pos).ok_or("no block state to change")?;
+        self.setBlockState(pos, StateData::clone(&state).with(property, value))
+    }
+}
