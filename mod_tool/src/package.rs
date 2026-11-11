@@ -72,7 +72,7 @@ pub(crate) fn build(root: &Path) -> Result<PathBuf>
     let outDir: PathBuf = root.join("target");
     std::fs::create_dir_all(&outDir)?;
 
-    let output: PathBuf = outDir.join(format!("{}-{}.b173mod", head.id, head.version));
+    let output: PathBuf = outDir.join(format!("{}-{}.bmod", head.id, head.version));
     let mut writer: zip::ZipWriter<std::fs::File> = zip::ZipWriter::new(std::fs::File::create(&output)?);
     let options: zip::write::SimpleFileOptions =
         zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
