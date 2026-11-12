@@ -25,6 +25,7 @@ pub mod kind
     pub struct Tile;
     pub struct Screen;
     pub struct Registry;
+    pub struct Component;
 }
 
 /// a registered entry by name, returned by every register call and taken wherever a name is asked for; it holds
@@ -51,6 +52,7 @@ pub type AchievementRef = Ref<kind::Achievement>;
 pub type EntityRef = Ref<kind::Entity>;
 pub type TileRef = Ref<kind::Tile>;
 pub type ScreenRef = Ref<kind::Screen>;
+pub type ComponentRef = Ref<kind::Component>;
 
 impl<K> Ref<K>
 {

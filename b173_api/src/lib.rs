@@ -35,9 +35,9 @@ pub use mod_protocol::Identifier;
 use mod_protocol::abi::HostCall;
 pub use mod_protocol::abi::
 {
-    BiomeSpec, BipedPart, BlockInfo, BlockPos, ChunkInfo, ConfigScope, ContainerSwap, DimensionSpec, EnergyDemand,
-    EntityField, EntityInfo, EventKind, FaceOverlay, FeatureInfo, FluidBlock, FluidStack, GameRuleValue, ItemInfo,
-    ItemModelSpec, JobMatch, JobOutput, Located, LootContext, LootDrop, LootSource, LootTarget, LootView,
+    AttachmentHolder, BiomeSpec, BipedPart, BlockInfo, BlockPos, ChunkInfo, ConfigScope, ContainerSwap, DimensionSpec,
+    EnergyDemand, EntityField, EntityInfo, EventKind, FaceOverlay, FeatureInfo, FluidBlock, FluidStack, GameRuleValue,
+    ItemInfo, ItemModelSpec, JobMatch, JobOutput, Located, LootContext, LootDrop, LootSource, LootTarget, LootView,
     MachineRecipeView, MachineSlot, MachineView, ModelOp, ModifierOperation, MusicSpec, Permission, PlayerLayer, Pose,
     PoseInput, Priority, RayHit, RecipeShape, RecipeView, RegistryKind, SpawnEntry, StackData, StackRef, StateData,
     StructurePiece, StructureSpec, StructureStart, Target, UseAction, Worn, capability,
@@ -61,8 +61,8 @@ use mod_protocol::wire::WireError;
 pub use names::{BlockRef, blockIs, blockTagged, nameOf, nameWith, named, tagMembers, tagged};
 pub use refs::
 {
-    AchievementRef, AttributeRef, DamageRef, EffectRef, EnergyRef, EntityRef, FeatureRef, FluidRef, GameRuleRef,
-    IntoName, LootRuleRef, MachineRef, ParticleRef, Ref, ScreenRef, SlotRef, SoundRef, TileRef, kind,
+    AchievementRef, AttributeRef, ComponentRef, DamageRef, EffectRef, EnergyRef, EntityRef, FeatureRef, FluidRef,
+    GameRuleRef, IntoName, LootRuleRef, MachineRef, ParticleRef, Ref, ScreenRef, SlotRef, SoundRef, TileRef, kind,
 };
 pub use register::*;
 pub(crate) use reply::

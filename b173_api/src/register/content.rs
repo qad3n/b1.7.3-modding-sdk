@@ -35,6 +35,30 @@ pub struct Energies;
 
 pub struct DamageTypes;
 
+pub struct Components;
+
+pub struct Attachments;
+
+impl Components
+{
+    /// needs api 1.51, an item stack component type named <modid>:<name>; synced values reach clients with every
+    /// stack the server sends, so tooltips and models can read them
+    pub fn register(&self, name: &str, synced: bool) -> Result<crate::refs::ComponentRef>
+    {
+        registered(name, |id| HostCall::RegisterComponent { name: id.to_string(), synced })
+    }
+}
+
+impl Attachments
+{
+    /// needs api 1.51, this mod's attachments of the holder kind reach the clients that see the holder, on every
+    /// change and when they first see it; world data reaches every client
+    pub fn sync(&self, holder: mod_protocol::abi::AttachmentHolder) -> Result<()>
+    {
+        expectUnit(call(HostCall::SyncAttachments { holder }))
+    }
+}
+
 impl DamageTypes
 {
     /// needs api 1.48, a damage type named <modid>:<name> for Entity::damageAs; its behaviour comes from damage type

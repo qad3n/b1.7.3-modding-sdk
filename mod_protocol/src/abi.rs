@@ -3546,6 +3546,30 @@ pub enum HostCall
     {
         spec: crate::spec::MachineModifySpec,
     },
+
+    /// api 1.51: an item stack component type; synced values ride along whenever the server sends the stack,
+    /// registration only
+    RegisterComponent
+    {
+        name: String,
+        synced: bool,
+    },
+
+    /// api 1.51: this mod's attachments of one holder kind reach the clients that see the holder, on every change and
+    /// when they first see it, registration only
+    SyncAttachments
+    {
+        holder: AttachmentHolder,
+    },
+}
+
+/// api 1.51: what a mod attachment hangs on
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+pub enum AttachmentHolder
+{
+    Tile,
+    Chunk,
+    World,
 }
 
 /// api 1.49: the registry a data map attaches values to
