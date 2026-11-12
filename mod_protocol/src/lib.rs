@@ -1,4 +1,6 @@
 pub mod abi;
+#[cfg(feature = "data")]
+pub mod data;
 pub mod handshake;
 pub mod identifier;
 pub mod spec;

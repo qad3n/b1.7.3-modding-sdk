@@ -21,10 +21,10 @@ pub fn containedFluid(stack: &ItemStack) -> Option<FluidStack>
 }
 
 /// needs api 1.44, the full container one item of an empty stack becomes with fluid and the millibuckets it takes
-pub fn fill(empty: &ItemStack, fluid: &str) -> Option<(ItemStack, i32)>
+pub fn fill(empty: &ItemStack, fluid: impl crate::IntoName) -> Option<(ItemStack, i32)>
 {
     let stack: StackData = empty.raw().ok()?;
-    let fluid: Identifier = ownIdentifier(fluid).ok()?;
+    let fluid: Identifier = fluid.intoName().ok()?;
     let filled: ContainerSwap = swap(HostCall::FillContainer { stack, fluid })?;
     Some((ItemStack::fromRaw(filled.stack?), filled.fluid.amount))
 }

@@ -12,6 +12,7 @@ mod jobs;
 mod machines;
 pub mod math;
 mod names;
+mod refs;
 mod register;
 mod reply;
 pub mod rt;
@@ -57,6 +58,11 @@ pub use mod_protocol::spec::
 };
 use mod_protocol::wire::WireError;
 pub use names::{BlockRef, blockIs, blockTagged, nameOf, nameWith, named, tagMembers, tagged};
+pub use refs::
+{
+    AchievementRef, AttributeRef, DamageRef, EffectRef, EnergyRef, EntityRef, FeatureRef, FluidRef, GameRuleRef,
+    IntoName, LootRuleRef, MachineRef, ParticleRef, Ref, ScreenRef, SlotRef, SoundRef, TileRef, kind,
+};
 pub use register::*;
 pub(crate) use reply::
 {

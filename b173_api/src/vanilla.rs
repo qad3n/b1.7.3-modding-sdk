@@ -40,3 +40,36 @@ pub mod entity
     pub const SKELETON: &str = "minecraft:skeleton";
     pub const SPIDER: &str = "minecraft:spider";
 }
+
+/// block materials a block builder's material takes, mod fluids add <modid>:<fluid>
+pub mod material
+{
+    pub const ROCK: &str = "rock";
+    pub const WOOD: &str = "wood";
+    pub const IRON: &str = "iron";
+    pub const GROUND: &str = "ground";
+    pub const GRASS: &str = "grass";
+    pub const SAND: &str = "sand";
+    pub const GLASS: &str = "glass";
+    pub const CLOTH: &str = "cloth";
+    pub const LEAVES: &str = "leaves";
+    pub const PLANTS: &str = "plants";
+    pub const CIRCUITS: &str = "circuits";
+    pub const ICE: &str = "ice";
+    pub const SNOW: &str = "snow";
+    pub const TNT: &str = "tnt";
+}
+
+/// step sounds a block builder's sound takes
+pub mod step_sound
+{
+    pub const STONE: &str = "stone";
+    pub const WOOD: &str = "wood";
+    pub const GRAVEL: &str = "gravel";
+    pub const GRASS: &str = "grass";
+    pub const METAL: &str = "metal";
+    pub const GLASS: &str = "glass";
+    pub const CLOTH: &str = "cloth";
+    pub const SAND: &str = "sand";
+    pub const POWDER: &str = "powder";
+}

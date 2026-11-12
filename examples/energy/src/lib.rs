@@ -81,17 +81,12 @@ impl BlockBehavior for BatteryBlock
 #[mod_main]
 fn register(ctx: &mut RegisterCtx) -> Result<()>
 {
-    ctx.tileEntities().register(
-        "battery",
-        TileEntitySpec { inventory: 0, ticks: false, sync: true, behavior: None },
-        None,
-    )?;
     ctx.blocks().register(
         "battery",
         BlockSpecBuilder::template(vanilla::block::IRON_BLOCK)
             .hardness(3.0)
             .texture("energy:block/battery")
-            .tileEntity("battery")
+            .tile(Tile::plain().synced())
             .behavior(BatteryBlock),
     )?;
     ctx.events().define(energy_api::CHANGED_EVENT)?;

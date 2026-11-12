@@ -1,5 +1,5 @@
 use crate::rt::call;
-use crate::{Error, ItemStack, Result, expectUnit, ownIdentifier};
+use crate::{Error, IntoName, ItemStack, Result, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
 use mod_protocol::abi::{FluidStack, HostCall, HostReply, JobMatch, StackData};
 use mod_protocol::spec::
@@ -41,9 +41,9 @@ impl JobBuilder
         }
     }
 
-    fn named(&mut self, name: &str) -> Option<Identifier>
+    fn named(&mut self, name: impl IntoName) -> Option<Identifier>
     {
-        match ownIdentifier(name)
+        match name.intoName()
         {
             Ok(id) => Some(id),
             Err(error) =>
@@ -55,7 +55,7 @@ impl JobBuilder
     }
 
     /// count of an item the job uses up, any damage
-    pub fn input(mut self, item: &str, count: i32) -> Self
+    pub fn input(mut self, item: impl IntoName, count: i32) -> Self
     {
         let item: Option<Identifier> = self.named(item);
         self.m_spec.inputs.push(input(item, None, count, true, 0));
@@ -80,7 +80,7 @@ impl JobBuilder
     }
 
     /// an item the job needs but leaves in place, taking wear damage each job
-    pub fn keep(mut self, item: &str, wear: i32) -> Self
+    pub fn keep(mut self, item: impl IntoName, wear: i32) -> Self
     {
         let item: Option<Identifier> = self.named(item);
         self.m_spec.inputs.push(input(item, None, 1, false, wear));
@@ -97,10 +97,10 @@ impl JobBuilder
         self
     }
 
-    pub fn output(self, item: &str, count: i32) -> Self { self.chance(item, count, 1.0) }
+    pub fn output(self, item: impl IntoName, count: i32) -> Self { self.chance(item, count, 1.0) }
 
     /// an output given with a chance from 0 to 1
-    pub fn chance(mut self, item: &str, count: i32, chance: f32) -> Self
+    pub fn chance(mut self, item: impl IntoName, count: i32, chance: f32) -> Self
     {
         let item: Option<Identifier> = self.named(item);
         self.m_spec.outputs.push(JobOutputSpec { item, meta: 0, count, chance, from_input: None, damage: None });
@@ -130,7 +130,7 @@ impl JobBuilder
         self
     }
 
-    pub fn fluidInput(mut self, fluid: &str, amount: i32) -> Self
+    pub fn fluidInput(mut self, fluid: impl IntoName, amount: i32) -> Self
     {
         let fluid: Option<Identifier> = self.named(fluid);
         self.m_spec.fluid_inputs.push(JobFluidSpec { fluid, tag: None, amount });
@@ -145,27 +145,27 @@ impl JobBuilder
         self
     }
 
-    pub fn fluidOutput(mut self, fluid: &str, amount: i32) -> Self
+    pub fn fluidOutput(mut self, fluid: impl IntoName, amount: i32) -> Self
     {
         let fluid: Option<Identifier> = self.named(fluid);
         self.m_spec.fluid_outputs.push(JobFluidSpec { fluid, tag: None, amount });
         self
     }
 
-    fn power(&mut self, kind: &str, amount: i64, perTick: bool) -> Option<JobEnergySpec>
+    fn power(&mut self, kind: impl IntoName, amount: i64, perTick: bool) -> Option<JobEnergySpec>
     {
         Some(JobEnergySpec { kind: self.named(kind)?, amount, per_tick: perTick })
     }
 
     /// energy of a kind the job draws, each tick or in total
-    pub fn energyIn(mut self, kind: &str, amount: i64, perTick: bool) -> Self
+    pub fn energyIn(mut self, kind: impl IntoName, amount: i64, perTick: bool) -> Self
     {
         self.m_spec.energy_in = self.power(kind, amount, perTick);
         self
     }
 
     /// energy of a kind the job gives, as an engine or generator does
-    pub fn energyOut(mut self, kind: &str, amount: i64, perTick: bool) -> Self
+    pub fn energyOut(mut self, kind: impl IntoName, amount: i64, perTick: bool) -> Self
     {
         self.m_spec.energy_out = self.power(kind, amount, perTick);
         self

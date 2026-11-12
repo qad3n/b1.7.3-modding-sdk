@@ -1,12 +1,14 @@
+use super::builders::{Property, Tile, Variant};
 use crate::behavior::{self, BlockBehavior, ItemBehavior};
+use crate::refs::IntoName;
 use crate::rt::call;
 use crate::{ItemRef, Result, dispatch, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
 use mod_protocol::abi::{HostCall, ItemModelSpec, RegistryKind};
 use mod_protocol::spec::
 {
-    Behavior, BlockMethod, BlockModifySpec, BlockSpec, BlockStatesSpec, ItemMethod, ItemSpec, SpawnModifySpec,
-    ToolClass, ToolSpec,
+    Behavior, BlockMethod, BlockModifySpec, BlockSpec, BlockStatesSpec, ItemMethod, ItemSpec, LootSpec,
+    SpawnModifySpec, StateModelSpec, ToolClass, ToolSpec,
 };
 use std::rc::Rc;
 
@@ -14,10 +16,47 @@ pub struct Blocks;
 
 impl Blocks
 {
+    /// the block with everything its builder declared: tile entity, states, models and drops, in the order the
+    /// loader needs them
     pub fn register(&self, name: &str, spec: BlockSpecBuilder) -> Result<ItemRef>
     {
         let id: Identifier = ownIdentifier(name)?;
-        expectUnit(call(HostCall::RegisterBlock { name: id.to_string(), spec: spec.m_spec }))?;
+        let BlockSpecBuilder { m_spec: mut block, m_extras: extras } = spec;
+
+        if let Some(tile) = &extras.m_tile
+        {
+            let tileSpec: mod_protocol::spec::TileEntitySpec = tile.spec();
+            expectUnit(call(HostCall::RegisterTileEntity { name: id.to_string(), spec: tileSpec }))?;
+            block.tile_entity = Some(id.clone());
+
+            if let Some(model) = tile.m_model.clone()
+            {
+                expectUnit(call(HostCall::TileModel { tile: id.clone(), model }))?;
+            }
+        }
+
+        expectUnit(call(HostCall::RegisterBlock { name: id.to_string(), spec: block }))?;
+
+        if !extras.m_states.properties.is_empty()
+        {
+            expectUnit(call(HostCall::RegisterBlockStates { block: id.clone(), spec: extras.m_states }))?;
+        }
+
+        if let Some(model) = extras.m_stateModel
+        {
+            expectUnit(call(HostCall::SetStateModel { block: id.clone(), model }))?;
+        }
+
+        if let Some(model) = extras.m_itemModel
+        {
+            expectUnit(call(HostCall::BlockItemModel { block: id.clone(), model }))?;
+        }
+
+        if let Some(loot) = extras.m_loot
+        {
+            expectUnit(call(HostCall::SetLoot { registry: RegistryKind::Block, target: id.clone(), spec: loot }))?;
+        }
+
         Ok(ItemRef::Named(id))
     }
 
@@ -53,12 +92,25 @@ impl Blocks
         expectUnit(call(HostCall::ModifySpawns { spec }))
     }
 
+    #[deprecated(note = "keep the ItemRef register returns, or name the block where a call takes a BlockRef")]
     pub fn id(&self, name: &str) -> Result<i32> { crate::resolve(RegistryKind::Block, &ownIdentifier(name)?) }
 }
 
 pub struct BlockSpecBuilder
 {
     pub m_spec: BlockSpec,
+    m_extras: Extras,
+}
+
+// what a block declares beside its spec, sent as separate calls by register
+#[derive(Default)]
+struct Extras
+{
+    m_tile: Option<Tile>,
+    m_states: BlockStatesSpec,
+    m_stateModel: Option<StateModelSpec>,
+    m_itemModel: Option<ItemModelSpec>,
+    m_loot: Option<LootSpec>,
 }
 
 impl BlockSpecBuilder
@@ -72,6 +124,7 @@ impl BlockSpecBuilder
                 template: super::named(Identifier::parse(template), "template"),
                 ..BlockSpec::default()
             },
+            m_extras: Extras::default(),
         }
     }
 
@@ -109,9 +162,59 @@ impl BlockSpecBuilder
         self
     }
 
-    pub fn tileEntity(mut self, tile: &str) -> Self
+    /// binds a tile entity registered elsewhere, or shared with other blocks
+    pub fn tileEntity(mut self, tile: impl IntoName) -> Self
     {
-        self.m_spec.tile_entity = super::named(ownIdentifier(tile), "tile entity");
+        self.m_spec.tile_entity = super::named(tile.intoName(), "tile entity");
+        self
+    }
+
+    /// a tile entity of the block's own name, registered with it
+    pub fn tile(mut self, tile: Tile) -> Self
+    {
+        self.m_extras.m_tile = Some(tile);
+        self
+    }
+
+    /// a named state property, saved by name so values may change between versions
+    pub fn property(mut self, property: Property) -> Self
+    {
+        self.m_extras.m_states.properties.push(property.m_spec);
+        self
+    }
+
+    /// the state a placed block starts in, by default every property's first value
+    pub fn defaultState(mut self, property: &str, value: &str) -> Self
+    {
+        self.m_extras.m_states.default.insert(property.to_owned(), value.to_owned());
+        self
+    }
+
+    /// textures for the states that match the variant
+    pub fn variant(mut self, variant: Variant) -> Self
+    {
+        self.m_extras.m_states.variants.push(variant.m_spec);
+        self
+    }
+
+    /// cuboids picked by named state
+    pub fn stateModel(mut self, model: StateModelSpec) -> Self
+    {
+        self.m_extras.m_stateModel = Some(model);
+        self
+    }
+
+    /// the block's item drawn in 3d from model cuboids and its tile's model
+    pub fn itemModel(mut self, model: ItemModelSpec) -> Self
+    {
+        self.m_extras.m_itemModel = Some(model);
+        self
+    }
+
+    /// drops added to the block's own, replace drops what beta or other mods added before
+    pub fn loot(mut self, loot: LootSpec) -> Self
+    {
+        self.m_extras.m_loot = Some(loot);
         self
     }
 

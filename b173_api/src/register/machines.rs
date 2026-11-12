@@ -1,3 +1,4 @@
+use crate::refs::MachineRef;
 use crate::rt::call;
 use crate::{Error, ItemStack, Result, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
@@ -85,12 +86,12 @@ impl Machines
 {
     /// needs api 1.35, a machine named <modid>:<name> recipe viewers show as a category, run by the workstation
     /// items with the first as its icon, titled by that item's name when no title is given
-    pub fn register(&self, name: &str, title: Option<&str>, workstations: &[&str]) -> Result<()>
+    pub fn register(&self, name: &str, title: Option<&str>, workstations: &[&str]) -> Result<MachineRef>
     {
         let workstations: Vec<Identifier> =
             workstations.iter().map(|item| ownIdentifier(item)).collect::<Result<_>>()?;
         let spec: MachineSpec = MachineSpec { title: title.map(str::to_owned), workstations };
-        expectUnit(call(HostCall::RegisterMachine { name: ownIdentifier(name)?, spec }))
+        super::content::registered(name, |id| HostCall::RegisterMachine { name: id.clone(), spec })
     }
 
     /// needs api 1.35, a recipe for a machine of this mod by name or of any mod by its full name

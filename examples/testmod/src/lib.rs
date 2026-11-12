@@ -303,10 +303,7 @@ fn energyReport(world: World, pos: BlockPos) -> String
 
 fn registerContent(ctx: &mut RegisterCtx) -> Result<()>
 {
-    ctx.gameRules().register(
-        SPARK_RULE,
-        GameRuleSpec { default: GameRuleValue::Int(16), category: GameRuleCategory::Misc, min: 0, max: 64 },
-    )?;
+    ctx.gameRules().register(SPARK_RULE, GameRule::number(16).range(0, 64))?;
 
     ctx.blocks().register(
         "charged_ore",
@@ -317,18 +314,13 @@ fn registerContent(ctx: &mut RegisterCtx) -> Result<()>
             .tag("c:ores/charged")
             .behavior(ChargedOre),
     )?;
-    ctx.tileEntities().register(
-        "machine",
-        TileEntitySpec { inventory: MACHINE_SLOTS, ticks: true, sync: true, behavior: None },
-        Some(std::rc::Rc::new(MachineTile)),
-    )?;
     ctx.blocks().register(
         "machine",
         BlockSpecBuilder::template(vanilla::block::IRON_BLOCK)
             .hardness(4.0)
             .texture("testmod:block/machine")
-            .tileEntity("machine")
-            .sound("metal")
+            .tile(Tile::new(MachineTile).inventory(MACHINE_SLOTS).ticks().synced())
+            .sound(vanilla::step_sound::METAL)
             .behavior(Machine),
     )?;
     ctx.blocks().register(
@@ -355,28 +347,10 @@ fn registerContent(ctx: &mut RegisterCtx) -> Result<()>
         BlockSpecBuilder::template(vanilla::block::IRON_BLOCK)
             .hardness(2.0)
             .texture("testmod:block/machine")
+            .property(Property::values("facing", &["north", "east", "south", "west"]))
+            .property(Property::values("power", &DIAL_POWER))
+            .variant(Variant::when(&[("power", "5")]).texture("testmod:block/charged_ore"))
             .behavior(Dial),
-    )?;
-    ctx.blocks().states(
-        "dial",
-        BlockStatesSpec
-        {
-            properties: vec![
-                PropertySpec
-                {
-                    name: "facing".to_owned(),
-                    values: ["north", "east", "south", "west"].map(str::to_owned).to_vec(),
-                },
-                PropertySpec { name: "power".to_owned(), values: DIAL_POWER.map(str::to_owned).to_vec() },
-            ],
-            variants: vec![StateVariantSpec
-            {
-                when: [("power".to_owned(), "5".to_owned())].into(),
-                texture: Some("testmod:block/charged_ore".to_owned()),
-                textures: None,
-            }],
-            ..BlockStatesSpec::default()
-        },
     )?;
 
     // a vanilla block changed through the modify phase, other mods changing the same field are reported
@@ -494,12 +468,9 @@ fn registerWorld(ctx: &mut RegisterCtx) -> Result<()>
         {
             let base: BlockPos = BlockPos::new(chunk.x * 16 + 8, 40, chunk.z * 16 + 8);
 
-            if let Ok(pedestal) = b173_api::Blocks.id("pedestal")
+            for height in 0..4
             {
-                for height in 0..4
-                {
-                    let _ = world.setBlockQuiet(base.offset(0, height, 0), pedestal, 0);
-                }
+                let _ = world.setBlockQuiet(base.offset(0, height, 0), "testmod:pedestal", 0);
             }
         }
     })?;
@@ -532,7 +503,7 @@ fn registerEvents(ctx: &mut RegisterCtx) -> Result<()>
     ctx.events().on::<BlockHarvestDrops>(Priority::Low, |event|
     {
         if let EventData::Drops { block, .. } = event.data()
-            && b173_api::Blocks.id("charged_ore").is_ok_and(|id| id == *block)
+            && b173_api::blockIs(*block, "testmod:charged_ore")
         {
             event.addDrop(ItemStack::of("testmod:data_gem", 1));
         }
@@ -685,7 +656,7 @@ fn registerInterface(ctx: &mut RegisterCtx) -> Result<()>
         {
             Some("give") =>
             {
-                let GameRuleValue::Int(sparks) = gameRule(&format!("testmod:{SPARK_RULE}"))?
+                let GameRuleValue::Int(sparks) = gameRule(format!("testmod:{SPARK_RULE}"))?
                 else
                 {
                     return Err(Error(format!("testmod:{SPARK_RULE} is not a number")));

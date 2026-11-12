@@ -1,13 +1,7 @@
 use anyhow::{Context, Result};
-use mod_protocol::Identifier;
+use mod_protocol::data;
 use mod_protocol::identifier::isValidModId;
-use mod_protocol::spec::
-{
-    AchievementSpec, AttributeSpec, BlockModifySpec, BlockSpec, BlockStatesSpec, EffectSpec, FluidSpec, GameRuleSpec,
-    ItemSpec, LootSpec, ParticleSpec, RecipeSpec, SpawnModifySpec, TagSpec, WorldgenSpec,
-};
 use serde::Deserialize;
-use serde::de::DeserializeOwned;
 use std::path::{Path, PathBuf};
 
 #[derive(Deserialize)]
@@ -55,12 +49,6 @@ pub(crate) fn files(root: &Path, under: &str) -> Vec<PathBuf>
     found
 }
 
-fn parse<T: DeserializeOwned>(path: &Path) -> std::result::Result<T, String>
-{
-    let text: String = std::fs::read_to_string(path).map_err(|error| error.to_string())?;
-    toml::from_str(&text).map_err(|error| error.to_string())
-}
-
 // the same rules the loader applies when it reads data/, reported all at once
 pub(crate) fn run(root: &Path) -> Result<Vec<String>>
 {
@@ -83,59 +71,13 @@ pub(crate) fn run(root: &Path) -> Result<Vec<String>>
     {
         problems.push(format!("api '{}' must be 1.x for this loader", head.api));
     }
-    // data/<namespace>/<kind>/<path>
-    let depth: usize = 4;
-
     for path in files(root, "data")
     {
         let relative: String = path.strip_prefix(root).unwrap_or(&path).to_string_lossy().replace('\\', "/");
-        let parts: Vec<&str> = relative.trim_end_matches(".toml").splitn(depth, '/').collect();
-        let [_, namespace, kind, name] = parts.as_slice()
-        else
-        {
-            problems.push(format!("{relative}: expected data/<namespace>/<kind>/<path>.toml"));
-            continue;
-        };
-        if *kind != "tags" && *namespace != head.id
-        {
-            problems.push(format!("{relative}: namespace {namespace} is not the mod id {}", head.id));
-        }
-
-        if let Err(error) = Identifier::new(namespace, name)
-        {
-            problems.push(format!("{relative}: {error}"));
-        }
-
-        let result: std::result::Result<(), String> = match *kind
-        {
-            "blocks" => parse::<BlockSpec>(&path).map(drop),
-            "items" => parse::<ItemSpec>(&path).map(drop),
-            "recipes" => parse::<RecipeSpec>(&path).map(drop),
-            "worldgen" => parse::<WorldgenSpec>(&path).map(drop),
-            "states" => parse::<BlockStatesSpec>(&path).map(drop),
-            "modify" => match name.split_once('/')
-            {
-                Some(("blocks", _)) => parse::<BlockModifySpec>(&path).map(drop),
-                Some(("spawns", _)) => parse::<SpawnModifySpec>(&path).map(drop),
-                _ => Err("modify files go in modify/blocks/ or modify/spawns/".to_owned()),
-            },
-            "loot" => parse::<LootSpec>(&path).map(drop),
-            "fluids" => parse::<FluidSpec>(&path).map(drop),
-            "effects" => parse::<EffectSpec>(&path).map(drop),
-            "attributes" => parse::<AttributeSpec>(&path).map(drop),
-            "gamerules" => parse::<GameRuleSpec>(&path).map(drop),
-            "particles" => parse::<ParticleSpec>(&path).map(drop),
-            "achievements" => parse::<AchievementSpec>(&path).map(drop),
-            "tags" => parse::<TagSpec>(&path).and_then(|spec|
-            {
-                spec.values.iter().try_for_each(|value| value.entry().map(drop).map_err(|error| error.to_string()))
-            }),
-            other => Err(format!("unknown data kind {other}")),
-        };
-        if let Err(reason) = result
-        {
-            problems.push(format!("{relative}: {reason}"));
-        }
+        let checked: std::result::Result<(), String> = std::fs::read_to_string(&path)
+            .map_err(|error| format!("{relative}: {error}"))
+            .and_then(|text| data::parse(&head.id, &relative, &text).map(drop));
+        problems.extend(checked.err());
     }
 
     if let Ok(text) = std::fs::read_to_string(root.join(mod_assets::RECIPE_FILE))

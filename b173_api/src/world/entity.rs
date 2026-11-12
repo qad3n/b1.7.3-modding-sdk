@@ -1,6 +1,6 @@
 use super::{World, encode};
 use crate::rt::{call, fire};
-use crate::{ItemStack, Result, expectBool, expectDouble, expectInt, expectStack, expectUnit, fetchData};
+use crate::{IntoName, ItemStack, Result, expectBool, expectDouble, expectInt, expectStack, expectUnit, fetchData};
 use mod_protocol::Identifier;
 use mod_protocol::abi::{BlockPos, EntityField, EntityInfo, HostCall, HostReply, ModifierOperation};
 use serde::Serialize;
@@ -67,13 +67,19 @@ impl Entity
 
     /// needs api 1.18, vanilla attributes are minecraft:max_health, movement_speed, attack_damage, armor,
     /// knockback_resistance and swim_speed, api 1.27 adds any a mod registers
-    pub fn setModifier(self, attribute: &str, modifier: &str, amount: f64, operation: ModifierOperation) -> Result<()>
+    pub fn setModifier(
+        self,
+        attribute: impl IntoName,
+        modifier: &str,
+        amount: f64,
+        operation: ModifierOperation,
+    ) -> Result<()>
     {
         expectUnit(call(HostCall::SetModifier
         {
             world: self.world.dimension,
             id: self.id,
-            attribute: Identifier::parse(attribute)?,
+            attribute: attribute.vanillaName()?,
             modifier: Identifier::parse(modifier)?,
             amount,
             operation,
@@ -81,51 +87,51 @@ impl Entity
     }
 
     /// needs api 1.18
-    pub fn removeModifier(self, attribute: &str, modifier: &str) -> Result<()>
+    pub fn removeModifier(self, attribute: impl IntoName, modifier: &str) -> Result<()>
     {
         expectUnit(call(HostCall::RemoveModifier
         {
             world: self.world.dimension,
             id: self.id,
-            attribute: Identifier::parse(attribute)?,
+            attribute: attribute.vanillaName()?,
             modifier: Identifier::parse(modifier)?,
         }))
     }
 
     /// needs api 1.27, the attribute's registered default with this entity's modifiers applied
-    pub fn attribute(self, attribute: &str) -> Result<f64>
+    pub fn attribute(self, attribute: impl IntoName) -> Result<f64>
     {
-        let attribute: Identifier = Identifier::parse(attribute)?;
+        let attribute: Identifier = attribute.vanillaName()?;
         expectDouble(call(HostCall::AttributeValue { world: self.world.dimension, id: self.id, attribute }))
     }
 
     /// needs api 1.22, level 0 is the first level
-    pub fn addEffect(self, effect: &str, level: i32, ticks: i32) -> Result<()>
+    pub fn addEffect(self, effect: impl IntoName, level: i32, ticks: i32) -> Result<()>
     {
-        let effect: Identifier = Identifier::parse(effect)?;
+        let effect: Identifier = effect.vanillaName()?;
         expectUnit(call(HostCall::AddEffect { world: self.world.dimension, id: self.id, effect, level, ticks }))
     }
 
     /// needs api 1.22
-    pub fn removeEffect(self, effect: &str) -> Result<()>
+    pub fn removeEffect(self, effect: impl IntoName) -> Result<()>
     {
-        let effect: Identifier = Identifier::parse(effect)?;
+        let effect: Identifier = effect.vanillaName()?;
         expectUnit(call(HostCall::RemoveEffect { world: self.world.dimension, id: self.id, effect }))
     }
 
     /// needs api 1.22, None when the entity does not have the effect
-    pub fn effectLevel(self, effect: &str) -> Option<i32>
+    pub fn effectLevel(self, effect: impl IntoName) -> Option<i32>
     {
-        let effect: Identifier = Identifier::parse(effect).ok()?;
+        let effect: Identifier = effect.vanillaName().ok()?;
         expectInt(call(HostCall::EffectLevel { world: self.world.dimension, id: self.id, effect }))
             .ok()
             .filter(|level| *level >= 0)
     }
 
     /// needs api 1.17, kind names a vanilla damage type such as minecraft:fall
-    pub fn damageAs(self, amount: i32, source: Option<i32>, kind: &str) -> Result<bool>
+    pub fn damageAs(self, amount: i32, source: Option<i32>, kind: impl IntoName) -> Result<bool>
     {
-        let kind: Identifier = Identifier::parse(kind)?;
+        let kind: Identifier = kind.vanillaName()?;
         expectBool(call(HostCall::DamageEntityAs { world: self.world.dimension, id: self.id, source, amount, kind }))
     }
 

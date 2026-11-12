@@ -2,8 +2,8 @@ use super::{Entity, World, encode};
 use crate::rt::{call, fire};
 use crate::
 {
-    ItemStack, Result, expectBool, expectEntities, expectFloat, expectInt, expectStack, expectText, expectUnit,
-    fetchData,
+    IntoName, ItemStack, Result, expectBool, expectEntities, expectFloat, expectInt, expectStack, expectText,
+    expectUnit, fetchData,
 };
 use mod_protocol::Identifier;
 use mod_protocol::abi::{BlockPos, EntityField, EntityInfo, HostCall, StackData, Target};
@@ -85,16 +85,16 @@ impl Player
     }
 
     /// needs api 1.25, true when newly earned; as in beta the parent comes first
-    pub fn unlockAchievement(self, achievement: &str) -> Result<bool>
+    pub fn unlockAchievement(self, achievement: impl IntoName) -> Result<bool>
     {
-        let achievement: Identifier = Identifier::parse(achievement)?;
+        let achievement: Identifier = achievement.vanillaName()?;
         expectBool(call(HostCall::UnlockAchievement { player: self.id, achievement }))
     }
 
     /// needs api 1.25
-    pub fn hasAchievement(self, achievement: &str) -> bool
+    pub fn hasAchievement(self, achievement: impl IntoName) -> bool
     {
-        let Ok(achievement) = Identifier::parse(achievement)
+        let Ok(achievement) = achievement.vanillaName()
         else
         {
             return false;

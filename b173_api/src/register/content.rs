@@ -1,4 +1,9 @@
+use super::builders::Build;
 use crate::behavior::{self, EffectBehavior};
+use crate::refs::
+{
+    AchievementRef, AttributeRef, DamageRef, EffectRef, EnergyRef, FluidRef, GameRuleRef, ParticleRef, Ref,
+};
 use crate::rt::call;
 use crate::{Result, dispatch, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
@@ -34,9 +39,10 @@ impl DamageTypes
 {
     /// needs api 1.48, a damage type named <modid>:<name> for Entity::damageAs; its behaviour comes from damage type
     /// tags such as minecraft:bypasses_armor or minecraft:is_fire
-    pub fn register(&self, name: &str, spec: DamageTypeSpec) -> Result<()>
+    pub fn register(&self, name: &str, spec: impl Build<DamageTypeSpec>) -> Result<DamageRef>
     {
-        expectUnit(call(HostCall::RegisterDamageType { name: ownIdentifier(name)?.to_string(), spec }))
+        let spec: DamageTypeSpec = spec.build()?;
+        registered(name, |id| HostCall::RegisterDamageType { name: id.to_string(), spec })
     }
 }
 
@@ -44,68 +50,80 @@ impl Energies
 {
     /// needs api 1.33, an energy kind named <modid>:<name> and its worth in the loader's shared base unit, so machines
     /// of other mods convert to and from it
-    pub fn register(&self, name: &str, spec: EnergySpec) -> Result<()>
+    pub fn register(&self, name: &str, spec: impl Build<EnergySpec>) -> Result<EnergyRef>
     {
-        expectUnit(call(HostCall::RegisterEnergy { name: ownIdentifier(name)?.to_string(), spec }))
+        let spec: EnergySpec = spec.build()?;
+        registered(name, |id| HostCall::RegisterEnergy { name: id.to_string(), spec })
     }
 }
 
 impl GameRules
 {
     /// read it with world::gameRule and change it with world::setGameRule or /gamerule under <modid>:<name>
-    pub fn register(&self, name: &str, spec: GameRuleSpec) -> Result<()>
+    pub fn register(&self, name: &str, spec: impl Build<GameRuleSpec>) -> Result<GameRuleRef>
     {
-        expectUnit(call(HostCall::RegisterGameRule { name: name.to_owned(), spec }))
+        let spec: GameRuleSpec = spec.build()?;
+        registered(name, |id| HostCall::RegisterGameRule { name: id.to_string(), spec })
     }
 }
 
 impl Attributes
 {
-    /// read it with Entity::attribute and change it with Entity::setModifier under its full name <modid>:<name>
-    pub fn register(&self, name: &str, spec: AttributeSpec) -> Result<()>
+    /// read it with Entity::attribute and change it with Entity::setModifier
+    pub fn register(&self, name: &str, spec: impl Build<AttributeSpec>) -> Result<AttributeRef>
     {
-        expectUnit(call(HostCall::RegisterAttribute { name: name.to_owned(), spec }))
+        let spec: AttributeSpec = spec.build()?;
+        registered(name, |id| HostCall::RegisterAttribute { name: id.to_string(), spec })
     }
 }
 
 impl Achievements
 {
-    pub fn register(&self, name: &str, spec: AchievementSpec) -> Result<()>
+    pub fn register(&self, name: &str, spec: impl Build<AchievementSpec>) -> Result<AchievementRef>
     {
-        expectUnit(call(HostCall::RegisterAchievement { name: name.to_owned(), spec }))
+        let spec: AchievementSpec = spec.build()?;
+        registered(name, |id| HostCall::RegisterAchievement { name: id.to_string(), spec })
     }
 }
 
 impl Particles
 {
-    /// spawn it later with its full name <modid>:<name>
-    pub fn register(&self, name: &str, spec: ParticleSpec) -> Result<()>
+    pub fn register(&self, name: &str, spec: impl Build<ParticleSpec>) -> Result<ParticleRef>
     {
-        expectUnit(call(HostCall::RegisterParticle { name: name.to_owned(), spec }))
+        let spec: ParticleSpec = spec.build()?;
+        registered(name, |id| HostCall::RegisterParticle { name: id.to_string(), spec })
     }
 }
 
 impl Effects
 {
-    pub fn register(&self, name: &str, spec: EffectSpec) -> Result<()>
+    pub fn register(&self, name: &str, spec: impl Build<EffectSpec>) -> Result<EffectRef>
     {
-        expectUnit(call(HostCall::RegisterEffect { name: name.to_owned(), spec }))
+        let spec: EffectSpec = spec.build()?;
+        registered(name, |id| HostCall::RegisterEffect { name: id.to_string(), spec })
     }
 
     /// needs api 1.29, the effect also runs the behavior's onAdded, onTick and onRemoved
-    pub fn registerWith(&self, name: &str, spec: EffectSpec, behavior: Rc<dyn EffectBehavior>) -> Result<()>
+    pub fn registerWith(
+        &self,
+        name: &str,
+        spec: impl Build<EffectSpec>,
+        behavior: Rc<dyn EffectBehavior>,
+    ) -> Result<EffectRef>
     {
+        let spec: EffectSpec = spec.build()?;
         let methods: Vec<EffectMethod> = behavior::methods(behavior.overridden(), &behavior::EFFECT_METHODS);
         let behavior: Behavior<EffectMethod> = Behavior { handle: dispatch::addEffect(behavior), methods };
-        expectUnit(call(HostCall::RegisterEffectBehavior { name: name.to_owned(), spec, behavior }))
+        registered(name, |id| HostCall::RegisterEffectBehavior { name: id.to_string(), spec, behavior })
     }
 }
 
 impl Fluids
 {
-    pub fn register(&self, name: &str, spec: FluidSpec) -> Result<()>
+    pub fn register(&self, name: &str, spec: impl Build<FluidSpec>) -> Result<FluidRef>
     {
-        expectUnit(call(HostCall::RegisterFluid { name: name.to_owned(), spec }))
+        let spec: FluidSpec = spec.build()?;
+        registered(name, |id| HostCall::RegisterFluid { name: id.to_string(), spec })
     }
 
     /// needs api 1.44, full holds amount millibuckets of fluid and drains to empty, none when it is used up; a fluid's
@@ -356,4 +374,12 @@ pub fn registryList(registry: RegistryKind) -> Vec<Identifier>
         HostReply::Ids(ids) => ids,
         _ => Vec::new(),
     }
+}
+
+// sends one registration under this mod's namespace and hands back its handle
+pub(crate) fn registered<K>(name: &str, send: impl FnOnce(&Identifier) -> HostCall) -> Result<Ref<K>>
+{
+    let id: Identifier = ownIdentifier(name)?;
+    expectUnit(call(send(&id)))?;
+    Ok(Ref::new(id))
 }

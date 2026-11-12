@@ -83,18 +83,13 @@ fn register(ctx: &mut RegisterCtx) -> Result<()>
         warn("the energy service is missing, generators will idle");
     }
 
-    ctx.tileEntities().register(
-        "generator",
-        TileEntitySpec { inventory: 0, ticks: true, sync: false, behavior: None },
-        Some(std::rc::Rc::new(GeneratorTile)),
-    )?;
     ctx.blocks().register(
         "generator",
         BlockSpecBuilder::template(vanilla::block::COBBLESTONE)
             .hardness(3.5)
             .texture("machines:block/generator")
             .light(0.4)
-            .tileEntity("generator")
+            .tile(Tile::new(GeneratorTile).ticks())
             .behavior(GeneratorBlock),
     )?;
 

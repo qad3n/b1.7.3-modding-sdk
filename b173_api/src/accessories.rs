@@ -1,6 +1,6 @@
 use crate::rt::call;
 use crate::world::{Entity, Player};
-use crate::{ItemStack, Result, expectBool, expectUnit, ownIdentifier};
+use crate::{IntoName, ItemStack, Result, expectBool, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
 use mod_protocol::abi::{HostCall, HostReply, StackData, Worn};
 use mod_protocol::spec::AccessorySlotSpec;
@@ -11,11 +11,11 @@ pub struct Accessories;
 impl Accessories
 {
     /// a slot named <modid>:<name> taking items of tag, icon the sprite an empty slot shows
-    pub fn register(&self, name: &str, tag: &str, icon: Option<&str>) -> Result<()>
+    pub fn register(&self, name: &str, tag: &str, icon: Option<&str>) -> Result<crate::refs::SlotRef>
     {
         let spec: AccessorySlotSpec =
             AccessorySlotSpec { tag: ownIdentifier(tag.trim_start_matches('#'))?, icon: icon.map(str::to_owned) };
-        expectUnit(call(HostCall::RegisterAccessorySlot { name: ownIdentifier(name)?, spec }))
+        crate::register::registered(name, |id| HostCall::RegisterAccessorySlot { name: id.clone(), spec })
     }
 }
 
@@ -45,11 +45,11 @@ impl Entity
     }
 
     /// needs api 1.40, puts one item the slot's tag takes in an accessory slot, or empties it, authority only
-    pub fn setAccessory(self, slot: &str, stack: Option<ItemStack>) -> Result<()>
+    pub fn setAccessory(self, slot: impl IntoName, stack: Option<ItemStack>) -> Result<()>
     {
         let stack: Option<StackData> = stack.map(|stack| stack.raw()).transpose()?;
         let call: HostCall =
-            HostCall::SetAccessory { world: self.world.dimension, entity: self.id, slot: ownIdentifier(slot)?, stack };
+            HostCall::SetAccessory { world: self.world.dimension, entity: self.id, slot: slot.intoName()?, stack };
         expectUnit(crate::rt::call(call))
     }
 }
@@ -58,9 +58,9 @@ impl Player
 {
     /// needs api 1.40, a click on an accessory slot: the cursor stack and the slot trade places when the slot takes the
     /// cursor stack, authority only, false when it does not
-    pub fn swapAccessory(self, slot: &str) -> bool
+    pub fn swapAccessory(self, slot: impl IntoName) -> bool
     {
-        let Ok(slot) = ownIdentifier(slot)
+        let Ok(slot) = slot.intoName()
         else
         {
             return false;

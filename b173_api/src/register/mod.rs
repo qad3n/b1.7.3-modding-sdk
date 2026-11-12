@@ -4,6 +4,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 
 mod blocks;
+mod builders;
 mod content;
 mod entities;
 mod items;
@@ -15,6 +16,11 @@ mod ui;
 mod world;
 
 pub use blocks::{BlockSpecBuilder, Blocks};
+pub use builders::
+{
+    Achievement, Attribute, Build, DamageType, Effect, Energy, Fluid, GameRule, Particle, Property, Tile, Variant,
+};
+pub(crate) use content::registered;
 pub use content::
 {
     Achievements, Attributes, DamageTypes, Effects, Energies, Fluids, GameRules, Loot, LootQuery, Particles,
