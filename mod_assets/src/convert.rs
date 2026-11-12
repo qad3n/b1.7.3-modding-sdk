@@ -1,4 +1,4 @@
-use crate::recipe::{Copy, Lang, Recipe, Rule, Slice};
+use crate::recipe::{Compose, Copy, Lang, Recipe, Rule, Slice};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fs::File;
@@ -154,6 +154,12 @@ fn convert(recipe: &Recipe, downloads: &[(PathBuf, String)], out: &Path) -> Resu
         count += cut(slice, &mut archives[recipe.download(slice.source.as_deref())?], out)?;
     }
 
+    for compose in &recipe.compose
+    {
+        build(compose, &mut archives[recipe.download(compose.source.as_deref())?], out)?;
+        count += 1;
+    }
+
     let mut lines: Vec<String> = Vec::new();
     for lang in &recipe.lang
     {
@@ -214,11 +220,37 @@ fn cut(slice: &Slice, archive: &mut Archive, out: &Path) -> Result<usize, String
             return Err(format!("{} has no tile {slot} at size {size}", slice.from));
         }
 
-        let tile: Vec<u8> = sheet.crop(column * size, row * size, size);
-        encode(&out.join(format!("{}{name}.png", slice.to)), &tile, size)?;
+        let tile: Vec<u8> = sheet.crop(column * size, row * size, size, size);
+        encode(&out.join(format!("{}{name}.png", slice.to)), &tile, size, size)?;
     }
 
     Ok(slice.tiles.len())
+}
+
+fn build(compose: &Compose, archive: &mut Archive, out: &Path) -> Result<(), String>
+{
+    let [width, height]: [u32; 2] = compose.canvas;
+    let mut canvas: Image = Image::filled(width as usize, height as usize, compose.color()?);
+
+    if let Some(from) = &compose.from
+    {
+        let image: Image = Image::decode(&archive.read(from)?).map_err(|error| format!("{from}: {error}"))?;
+        for part in &compose.parts
+        {
+            let [left, top, partWidth, partHeight]: [usize; 4] = part.rect.map(|value| value as usize);
+            if left + partWidth > image.m_width || top + partHeight > image.m_height
+            {
+                return Err(format!("{from} has no region {:?}", part.rect));
+            }
+
+            let pixels: Vec<u8> = image.crop(left, top, partWidth, partHeight);
+            canvas.paste(&pixels, partWidth, part.at.map(|value| value as usize));
+        }
+    }
+
+    let [outWidth, outHeight]: [u32; 2] = compose.size.unwrap_or(compose.canvas);
+    let scaled: Image = canvas.scale(outWidth as usize, outHeight as usize);
+    encode(&out.join(&compose.to), &scaled.m_pixels, scaled.m_width, scaled.m_height)
 }
 
 fn translate(lang: &Lang, archive: &mut Archive) -> Result<Vec<String>, String>
@@ -356,24 +388,64 @@ impl Image
         Ok(Self { m_width: info.width as usize, m_height: info.height as usize, m_pixels: pixels })
     }
 
-    fn crop(&self, left: usize, top: usize, size: usize) -> Vec<u8>
+    fn filled(width: usize, height: usize, color: [u8; 4]) -> Self
     {
-        let mut tile: Vec<u8> = Vec::with_capacity(size * size * RGBA);
-        for y in top..top + size
+        Self { m_width: width, m_height: height, m_pixels: color.repeat(width * height) }
+    }
+
+    fn crop(&self, left: usize, top: usize, width: usize, height: usize) -> Vec<u8>
+    {
+        let mut tile: Vec<u8> = Vec::with_capacity(width * height * RGBA);
+        for y in top..top + height
         {
             let start: usize = (y * self.m_width + left) * RGBA;
-            tile.extend_from_slice(&self.m_pixels[start..start + size * RGBA]);
+            tile.extend_from_slice(&self.m_pixels[start..start + width * RGBA]);
         }
 
         tile
     }
+
+    // pixels replace what is below them alpha included
+    fn paste(&mut self, pixels: &[u8], width: usize, at: [usize; 2])
+    {
+        let [x, y]: [usize; 2] = at;
+        for (row, line) in pixels.chunks_exact(width * RGBA).enumerate()
+        {
+            let start: usize = ((y + row) * self.m_width + x) * RGBA;
+            self.m_pixels[start..start + line.len()].copy_from_slice(line);
+        }
+    }
+
+    // nearest pixel from each target pixel's center like PIL resize with NEAREST
+    fn scale(self, width: usize, height: usize) -> Self
+    {
+        if width == self.m_width && height == self.m_height
+        {
+            return self;
+        }
+
+        let mut pixels: Vec<u8> = Vec::with_capacity(width * height * RGBA);
+        for y in 0..height
+        {
+            let sourceY: usize = (y * 2 + 1) * self.m_height / (height * 2);
+            for x in 0..width
+            {
+                let sourceX: usize = (x * 2 + 1) * self.m_width / (width * 2);
+                let start: usize = (sourceY * self.m_width + sourceX) * RGBA;
+                pixels.extend_from_slice(&self.m_pixels[start..start + RGBA]);
+            }
+        }
+
+        Self { m_width: width, m_height: height, m_pixels: pixels }
+    }
 }
 
-fn encode(path: &Path, pixels: &[u8], size: usize) -> Result<(), String>
+fn encode(path: &Path, pixels: &[u8], width: usize, height: usize) -> Result<(), String>
 {
     create(path)?;
     let file: File = File::create(path).map_err(|error| format!("{}: {error}", path.display()))?;
-    let mut encoder: png::Encoder<BufWriter<File>> = png::Encoder::new(BufWriter::new(file), size as u32, size as u32);
+    let mut encoder: png::Encoder<BufWriter<File>> =
+        png::Encoder::new(BufWriter::new(file), width as u32, height as u32);
     encoder.set_color(png::ColorType::Rgba);
     encoder.set_depth(png::BitDepth::Eight);
 
