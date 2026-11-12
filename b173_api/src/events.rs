@@ -191,5 +191,5 @@ event_types!
     ItemPickup, ItemToss, EntityJoinWorld, EntityTick, LivingAttack, LivingHurt, LivingDeath, LivingDrops, LivingSpawnCheck,
     PlayerLogin, PlayerLogout, PlayerRespawn, PlayerChangeDimension, PlayerSleep, PlayerChat, PlayerInteract, PlayerBreakSpeed,
     PlayerCanHarvest, ItemCrafted, ItemSmelted, BucketFill, RenderWorldLast, RenderHud, RenderBlockHighlight, ScreenOpen,
-    KeyInput, ClientTick,
+    KeyInput, ClientTick, EntityRemove,
 }

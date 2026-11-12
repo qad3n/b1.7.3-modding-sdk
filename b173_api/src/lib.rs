@@ -6,6 +6,7 @@ mod behavior;
 mod config;
 mod containers;
 mod dispatch;
+mod entity_state;
 pub mod events;
 mod features;
 mod jobs;
@@ -28,6 +29,7 @@ pub use b173_api_macros::{block_behavior, effect_behavior, entity_behavior, item
 pub use behavior::{BlockBehavior, EffectBehavior, EntityBehavior, ItemBehavior, TileBehavior, Use};
 pub use config::{Config, Setting, configValue};
 pub use containers::{containedFluid, drainItem, fill, fluidContainers};
+pub use entity_state::EntityState;
 pub use features::{FeatureBuilder, FeatureCtx, featureList};
 pub use jobs::{JobBuilder, findJob, machineFuel, matchJob};
 pub use machines::{machineRecipe, machineRecipes};

@@ -179,10 +179,12 @@ pub enum EventKind
     KeyInput,
     ClientTick,
     Custom,
+    /// api 1.52: an entity left its world for good or for now, by death, despawn, chunk unload or travel
+    EntityRemove,
 }
 
 /// catalog name of each event kind, the hooks.toml rows use the same names
-pub const EVENT_NAMES: [(EventKind, &str); 55] = [
+pub const EVENT_NAMES: [(EventKind, &str); 56] = [
     (EventKind::Setup, "setup"),
     (EventKind::ClientSetup, "client_setup"),
     (EventKind::ServerSetup, "server_setup"),
@@ -238,6 +240,7 @@ pub const EVENT_NAMES: [(EventKind, &str); 55] = [
     (EventKind::KeyInput, "key_input"),
     (EventKind::ClientTick, "client_tick"),
     (EventKind::Custom, "custom"),
+    (EventKind::EntityRemove, "entity_remove"),
 ];
 
 impl EventKind
@@ -3560,6 +3563,27 @@ pub enum HostCall
     SyncAttachments
     {
         holder: AttachmentHolder,
+    },
+
+    /// api 1.52: a named value this mod keeps on an entity, answered with Bytes, empty when unset; saved values go
+    /// with the entity's save, transient ones end when it leaves its world
+    EntityValue
+    {
+        world: i32,
+        id: i32,
+        key: String,
+        saved: bool,
+    },
+
+    /// api 1.52: sets or, with empty data, clears an entity value; a kept saved value of a player survives death
+    SetEntityValue
+    {
+        world: i32,
+        id: i32,
+        key: String,
+        saved: bool,
+        kept: bool,
+        data: Vec<u8>,
     },
 }
 
