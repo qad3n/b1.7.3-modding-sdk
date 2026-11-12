@@ -870,6 +870,16 @@ pub struct EffectModifierSpec
 }
 
 /// a mod particle on top of a beta one named as spawnParticle takes it, such as smoke, flame or reddust; colour is
+/// api 1.48: a mod damage type, data file data/<modid>/damage_types/<name>.toml; message is a lang key mods may
+/// show for hits of this type, behaviour comes from damage type tags such as minecraft:bypasses_armor
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
+#[serde(deny_unknown_fields)]
+pub struct DamageTypeSpec
+{
+    #[serde(default)]
+    pub message: String,
+}
+
 /// 0xRRGGBB, scale multiplies the beta size, lifetime is in ticks, gravity only moves particles that fall
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[serde(deny_unknown_fields)]

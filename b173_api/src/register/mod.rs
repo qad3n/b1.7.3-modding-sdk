@@ -17,8 +17,8 @@ mod world;
 pub use blocks::{BlockSpecBuilder, Blocks};
 pub use content::
 {
-    Achievements, Attributes, Effects, Energies, Fluids, GameRules, Loot, LootQuery, Particles, PoolBuilder, Tags,
-    tagValues, tagsOf,
+    Achievements, Attributes, DamageTypes, Effects, Energies, Fluids, GameRules, Loot, LootQuery, Particles,
+    PoolBuilder, Tags, registryList, tagValues, tagsOf,
 };
 pub use entities::{Entities, TileEntities};
 pub use items::{ItemSpecBuilder, Items};
@@ -88,6 +88,9 @@ impl RegisterCtx
 
     /// needs api 1.33
     pub fn energy(&mut self) -> Energies { Energies }
+
+    /// needs api 1.48
+    pub fn damageTypes(&mut self) -> DamageTypes { DamageTypes }
 
     /// needs api 1.35
     pub fn machines(&mut self) -> Machines { Machines }

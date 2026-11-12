@@ -1547,6 +1547,21 @@ pub enum RegistryKind
     Dimension,
     /// api 1.40, fluid tags only
     Fluid,
+    /// api 1.48: named registries without numeric ids, listed by RegistryList and tagged under tags/<singular>
+    Effect,
+    Attribute,
+    Particle,
+    Sound,
+    GameRule,
+    Energy,
+    Machine,
+    AccessorySlot,
+    Feature,
+    Structure,
+    LootCondition,
+    DamageType,
+    Achievement,
+    Component,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
@@ -3371,6 +3386,20 @@ pub enum HostCall
     {
         world: i32,
         pos: BlockPos,
+    },
+
+    /// api 1.48: every entry of a registry, vanilla first then mods in name order, answered with Ids
+    RegistryList
+    {
+        registry: RegistryKind,
+    },
+
+    /// api 1.48: a damage type hits can carry, its behaviour comes from damage type tags such as
+    /// minecraft:bypasses_armor, registration only
+    RegisterDamageType
+    {
+        name: String,
+        spec: crate::spec::DamageTypeSpec,
     },
 }
 

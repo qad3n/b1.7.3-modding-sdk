@@ -5,8 +5,8 @@ use mod_protocol::Identifier;
 use mod_protocol::abi::{HostCall, HostReply, LootTarget, RegistryKind};
 use mod_protocol::spec::
 {
-    AchievementSpec, AttributeSpec, Behavior, ConditionalLootSpec, ConditionalPoolSpec, EffectMethod, EffectSpec,
-    EnergySpec, FluidSpec, GameRuleSpec, LootSpec, ParticleSpec, TagEntry,
+    AchievementSpec, AttributeSpec, Behavior, ConditionalLootSpec, ConditionalPoolSpec, DamageTypeSpec, EffectMethod,
+    EffectSpec, EnergySpec, FluidSpec, GameRuleSpec, LootSpec, ParticleSpec, TagEntry,
 };
 use std::rc::Rc;
 
@@ -27,6 +27,18 @@ pub struct Attributes;
 pub struct GameRules;
 
 pub struct Energies;
+
+pub struct DamageTypes;
+
+impl DamageTypes
+{
+    /// needs api 1.48, a damage type named <modid>:<name> for Entity::damageAs; its behaviour comes from damage type
+    /// tags such as minecraft:bypasses_armor or minecraft:is_fire
+    pub fn register(&self, name: &str, spec: DamageTypeSpec) -> Result<()>
+    {
+        expectUnit(call(HostCall::RegisterDamageType { name: ownIdentifier(name)?.to_string(), spec }))
+    }
+}
 
 impl Energies
 {
@@ -330,6 +342,16 @@ pub fn tagValues(registry: RegistryKind, tag: &str) -> Vec<Identifier>
 pub fn tagsOf(registry: RegistryKind, id: &Identifier) -> Vec<Identifier>
 {
     match call(HostCall::TagsOf { registry, id: id.clone() })
+    {
+        HostReply::Ids(ids) => ids,
+        _ => Vec::new(),
+    }
+}
+
+/// needs api 1.48, every entry of a registry, vanilla first then mods in name order
+pub fn registryList(registry: RegistryKind) -> Vec<Identifier>
+{
+    match call(HostCall::RegistryList { registry })
     {
         HostReply::Ids(ids) => ids,
         _ => Vec::new(),
