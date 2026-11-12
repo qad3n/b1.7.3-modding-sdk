@@ -37,6 +37,25 @@ pub struct DamageTypes;
 
 pub struct Components;
 
+pub struct ConfigTasks;
+
+impl ConfigTasks
+{
+    /// needs api 1.54, a step every joining client with this mod runs before play: send runs on the server and gives
+    /// the bytes for the named player, empty to skip; receive runs on the client and refuses the join with an error
+    pub fn register(
+        &self,
+        name: &str,
+        send: impl Fn(&str) -> Vec<u8> + 'static,
+        receive: impl Fn(&[u8]) -> Result<()> + 'static,
+    ) -> Result<()>
+    {
+        let task: dispatch::ConfigTask = dispatch::ConfigTask { m_send: Rc::new(send), m_receive: Rc::new(receive) };
+        let handler: u32 = dispatch::addConfigTask(task);
+        expectUnit(call(HostCall::RegisterConfigTask { name: ownIdentifier(name)?.to_string(), handler }))
+    }
+}
+
 pub struct Attachments;
 
 impl Components

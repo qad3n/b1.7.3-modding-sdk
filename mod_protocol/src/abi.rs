@@ -1312,6 +1312,22 @@ pub enum GuestCall
         handler: Handle,
         context: LootContext,
     },
+
+    /// api 1.54: on the server, what a configuration task sends a joining player, the reply is Bytes and empty skips
+    /// the task for that player
+    ConfigTask
+    {
+        handler: Handle,
+        player: String,
+    },
+
+    /// api 1.54: on the client, what the server's configuration task sent, the reply is Unit to go on or Error to refuse
+    /// the join with a reason
+    ConfigTaskData
+    {
+        handler: Handle,
+        data: Vec<u8>,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
@@ -3600,6 +3616,14 @@ pub enum HostCall
         pos: BlockPos,
         kind: i32,
         data: i32,
+    },
+
+    /// api 1.54: a configuration task named <modid>:<name> every joining client with this mod runs, in load order,
+    /// before play starts, registration only
+    RegisterConfigTask
+    {
+        name: String,
+        handler: Handle,
     },
 }
 

@@ -84,6 +84,18 @@ struct Tables
     m_features: Vec<crate::features::FeatureHandler>,
     m_lootConditions: Vec<LootCondition>,
     m_lootCounts: Vec<LootCount>,
+    m_configTasks: Vec<ConfigTask>,
+}
+
+type TaskSend = Rc<dyn Fn(&str) -> Vec<u8>>;
+type TaskReceive = Rc<dyn Fn(&[u8]) -> crate::Result<()>>;
+
+// what the server sends a joining player and how that player's client takes it
+#[derive(Clone)]
+pub(crate) struct ConfigTask
+{
+    pub(crate) m_send: TaskSend,
+    pub(crate) m_receive: TaskReceive,
 }
 
 thread_local!
@@ -131,6 +143,7 @@ adder!(addWorldRender, m_worldRenders, WorldRenderHandler);
 adder!(addFeature, m_features, crate::features::FeatureHandler);
 adder!(addLootCondition, m_lootConditions, LootCondition);
 adder!(addLootCount, m_lootCounts, LootCount);
+adder!(addConfigTask, m_configTasks, ConfigTask);
 
 pub(crate) fn feature(handle: u32) -> Option<crate::features::FeatureHandler>
 {
@@ -728,5 +741,21 @@ pub(crate) fn handle(call: GuestCall) -> GuestReply
             Some(count) => GuestReply::Int(count(&crate::LootQuery::new(context))),
             None => GuestReply::Error(format!("no loot count rule {handler}")),
         },
+
+        GuestCall::ConfigTask { handler, player } => match get(|tables| tables.m_configTasks.get(handler as usize))
+        {
+            Some(task) => GuestReply::Bytes((task.m_send)(&player)),
+            None => GuestReply::Error(format!("no configuration task {handler}")),
+        },
+
+        GuestCall::ConfigTaskData { handler, data } =>
+        {
+            match get(|tables| tables.m_configTasks.get(handler as usize)).map(|task| (task.m_receive)(&data))
+            {
+                Some(Ok(())) => GuestReply::Unit,
+                Some(Err(error)) => GuestReply::Error(error.0),
+                None => GuestReply::Error(format!("no configuration task {handler}")),
+            }
+        }
     }
 }

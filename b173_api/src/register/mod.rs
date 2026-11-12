@@ -24,8 +24,8 @@ pub use builders::
 pub(crate) use content::registered;
 pub use content::
 {
-    Achievements, Attachments, Attributes, Components, DamageTypes, Effects, Energies, Fluids, GameRules, Loot,
-    LootQuery, Particles, PoolBuilder, Tags, registryList, tagValues, tagsOf,
+    Achievements, Attachments, Attributes, Components, ConfigTasks, DamageTypes, Effects, Energies, Fluids, GameRules,
+    Loot, LootQuery, Particles, PoolBuilder, Tags, registryList, tagValues, tagsOf,
 };
 pub use custom::{DataMap, ModRegistries, ModRegistry};
 pub use entities::{Entities, TileEntities};
@@ -81,6 +81,9 @@ impl RegisterCtx
 
     /// needs api 1.51, which attachments clients see
     pub fn attachments(&mut self) -> Attachments { Attachments }
+
+    /// needs api 1.54, steps joining clients run before play
+    pub fn configTasks(&mut self) -> ConfigTasks { ConfigTasks }
 
     /// needs api 1.19
     pub fn loot(&mut self) -> Loot { Loot }
