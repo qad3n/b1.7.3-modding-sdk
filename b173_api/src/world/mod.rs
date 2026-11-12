@@ -264,6 +264,20 @@ impl World
         expectBool(call(HostCall::SetBlock { world: self.dimension, pos, block, meta, notify: true }))
     }
 
+    /// needs api 1.55, places a structure template of any mod with its first corner at origin, turned a quarter turn
+    /// clockwise rotation times, chests rolled from seed, authority only; true when it changed a block
+    pub fn placeTemplate(
+        self,
+        template: impl crate::IntoName,
+        origin: BlockPos,
+        rotation: i32,
+        seed: i64,
+    ) -> Result<bool>
+    {
+        let template: mod_protocol::Identifier = template.intoName()?;
+        crate::expectBool(call(HostCall::PlaceTemplate { world: self.dimension, template, origin, rotation, seed }))
+    }
+
     /// needs api 1.53, an event the block here hears through BlockBehavior::onBlockEvent on the server and on every
     /// client near it, as pistons and note blocks do, authority only
     pub fn blockEvent(self, pos: BlockPos, kind: i32, data: i32) -> Result<()>

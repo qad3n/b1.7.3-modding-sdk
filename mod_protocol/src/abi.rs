@@ -3625,6 +3625,24 @@ pub enum HostCall
         name: String,
         handler: Handle,
     },
+
+    /// api 1.55: a structure template named <modid>:<name>, registration only
+    RegisterTemplate
+    {
+        name: String,
+        spec: crate::spec::StructureTemplateSpec,
+    },
+
+    /// api 1.55: places a template of any mod with its first layer's first corner at origin, turned a quarter turn
+    /// clockwise rotation times, chests filled with a seed, authority only, answered with Bool
+    PlaceTemplate
+    {
+        world: i32,
+        template: Identifier,
+        origin: BlockPos,
+        rotation: i32,
+        seed: i64,
+    },
 }
 
 /// api 1.51: what a mod attachment hangs on

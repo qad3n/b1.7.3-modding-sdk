@@ -163,6 +163,17 @@ impl Structures
 {
     /// needs api 1.10, a kind of structure this mod builds; the dimension is a bare name for this mod's own or a full
     /// identifier such as minecraft:overworld
+    /// needs api 1.55, a structure template named <modid>:<name> World::placeTemplate places; data files do the same
+    /// under data/<modid>/structure_templates/
+    pub fn template(&self, name: &str, spec: mod_protocol::spec::StructureTemplateSpec) -> Result<()>
+    {
+        crate::expectUnit(crate::rt::call(mod_protocol::abi::HostCall::RegisterTemplate
+        {
+            name: crate::ownIdentifier(name)?.to_string(),
+            spec,
+        }))
+    }
+
     pub fn register(&self, name: &str, label: &str, dimension: &str) -> Result<Structure>
     {
         addStructure(name, label, dimension, None)

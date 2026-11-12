@@ -6,7 +6,7 @@ use crate::spec::
     ConditionalPoolSpec, DamageTypeSpec, EffectSpec, EnergySpec, EntitySpec, FeatureModifySpec, FeatureSpec,
     FluidContainerSpec, FluidSpec, GameRuleSpec, ItemModifySpec, ItemSpec, LoadConditions, LootSpec, MachineFuelSpec,
     MachineJobSpec, MachineModifySpec, MachineRecipeSpec, MachineSpec, ParticleSpec, RecipeModifySpec, RecipeSpec,
-    SpawnModifySpec, TagEntry, TagRef, TagSpec, TagValue, TileEntitySpec, WorldgenSpec,
+    SpawnModifySpec, StructureTemplateSpec, TagEntry, TagRef, TagSpec, TagValue, TileEntitySpec, WorldgenSpec,
 };
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
@@ -80,6 +80,7 @@ pub enum DataFile
     ChestLoot(Identifier, LootSpec),
     Structure(Identifier, StructureSpec),
     Biome(Identifier, BiomeSpec),
+    Template(Identifier, StructureTemplateSpec),
     Tag
     {
         registry: RegistryKind,
@@ -205,6 +206,7 @@ fn file(namespace: &str, kind: &str, path: &str, document: &Document) -> Result<
         "loot_pools" => lootPool(path, document),
         "structures" => Ok(DataFile::Structure(id()?, read(document)?)),
         "biomes" => Ok(DataFile::Biome(id()?, read(document)?)),
+        "structure_templates" => Ok(DataFile::Template(id()?, read(document)?)),
         "loot" => loot(path, document),
         "worldgen" => match path.strip_prefix(FEATURES)
         {

@@ -1473,3 +1473,25 @@ pub struct LoadConditions
     pub tag_empty: BTreeMap<String, Vec<Identifier>>,
     pub tag_filled: BTreeMap<String, Vec<Identifier>>,
 }
+
+/// api 1.55: a block of a structure template palette, properties absent take their defaults
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct TemplateBlock
+{
+    pub block: Identifier,
+    #[serde(default)]
+    pub properties: BTreeMap<String, String>,
+}
+
+/// api 1.55: a structure template, data/<modid>/structure_templates/<name>.toml. layers run bottom up, each a list of
+/// rows along z whose characters run along x; a palette character places its block, a chest character places a chest
+/// filled from that chest loot table, a space leaves the world as it is
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct StructureTemplateSpec
+{
+    pub layers: Vec<Vec<String>>,
+    pub palette: BTreeMap<String, TemplateBlock>,
+    pub chests: BTreeMap<String, Identifier>,
+}
