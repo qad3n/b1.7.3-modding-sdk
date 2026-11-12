@@ -33,16 +33,17 @@ impl Draw
         self
     }
 
+    /// FontRenderer.drawString, no shadow, as container titles draw
     pub fn text(&mut self, x: i32, y: i32, text: &str, color: u32) -> &mut Self
     {
-        self.m_list.ops.push(DrawOp::Text { x, y, text: text.to_owned(), color, shadow: true, centered: false });
+        self.m_list.ops.push(DrawOp::Text { x, y, text: text.to_owned(), color, shadow: false, centered: false });
         self
     }
 
-    /// FontRenderer.drawString without the shadow, as container titles draw
-    pub fn plain(&mut self, x: i32, y: i32, text: &str, color: u32) -> &mut Self
+    /// FontRenderer.drawStringWithShadow, for light text over the world or dark panels
+    pub fn shadowed(&mut self, x: i32, y: i32, text: &str, color: u32) -> &mut Self
     {
-        self.m_list.ops.push(DrawOp::Text { x, y, text: text.to_owned(), color, shadow: false, centered: false });
+        self.m_list.ops.push(DrawOp::Text { x, y, text: text.to_owned(), color, shadow: true, centered: false });
         self
     }
 

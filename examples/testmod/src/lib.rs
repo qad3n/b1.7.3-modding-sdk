@@ -639,7 +639,7 @@ fn registerInterface(ctx: &mut RegisterCtx) -> Result<()>
     {
         if HUD_VISIBLE.with(Cell::get)
         {
-            draw.rect(width - 92, 2, 90, 12, 0x80000000).text(
+            draw.rect(width - 92, 2, 90, 12, 0x80000000).shadowed(
                 width - 90,
                 4,
                 &format!("chunks {}", CHUNKS_POPULATED.with(Cell::get)),
