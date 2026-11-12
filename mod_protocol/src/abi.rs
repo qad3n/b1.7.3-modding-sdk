@@ -2650,9 +2650,8 @@ pub enum HostCall
         ticks: i32,
     },
 
-    /// api 1.13: cuts a terrain texture into a grid of tiles, each blown up to a whole sprite of its own, as Twilight
-    /// Forest's giant blocks show a quarter of a quarter of the vanilla face; call while registering, then ask
-    /// terrainSlot for each tile by name
+    /// api 1.13: cuts a terrain texture into a grid of tiles, each blown up to a whole sprite of its own, as giant blocks
+    /// show one part of a vanilla face on each block; call while registering, then ask terrainSlot for each tile by name
     TerrainTiles
     {
         texture: String,
