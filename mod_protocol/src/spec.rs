@@ -613,7 +613,7 @@ pub struct FuelSpec
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
 pub enum RecipeSpec
 {
     Shaped(ShapedSpec),
@@ -682,6 +682,7 @@ impl TagRef
 
 /// an optional entry is skipped quietly when its id or tag does not exist
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct TagEntry
 {
     pub target: TagRef,
@@ -1197,7 +1198,7 @@ pub struct FeatureSpec
 
 /// api 1.41: what a feature places, custom ones call the mod's own handler with a seeded random
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
 pub enum FeatureKind
 {
     Ore(OreFeatureSpec),
@@ -1224,7 +1225,7 @@ pub struct OreFeatureSpec
 
 /// api 1.41: how a feature draws its height, uniform in min..max or the sum of one draw below each bound plus offset
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
 pub enum HeightSpec
 {
     Uniform
@@ -1384,7 +1385,7 @@ pub struct FluidContainerSpec
 /// api 1.44: which stacks a block gives out, any stack, an item with meta -1 for any damage, any item of a tag, any
 /// item except the members of a tag, a full container of a fluid or of any fluid, an empty container
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
 pub enum ItemFilter
 {
     Any,
@@ -1425,4 +1426,48 @@ pub struct StateCuboid
 pub struct StateModelSpec
 {
     pub cuboids: Vec<StateCuboid>,
+}
+
+/// api 1.50: a change to an item another mod or vanilla owns, data/<modid>/modify/items/<name>.toml
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct ItemModifySpec
+{
+    pub target: Identifier,
+    #[serde(default)]
+    pub max_stack: Option<i32>,
+    #[serde(default)]
+    pub max_damage: Option<i32>,
+}
+
+/// api 1.50: recipes of any mod or vanilla removed by name, data/<modid>/modify/recipes/<name>.toml; a replacement is
+/// the mod's own recipe file beside it
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct RecipeModifySpec
+{
+    pub remove: Vec<Identifier>,
+}
+
+/// api 1.50: jobs of a machine removed by what they make, data/<modid>/modify/machines/<name>.toml
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct MachineModifySpec
+{
+    pub machine: Identifier,
+    #[serde(default)]
+    pub remove_outputs: Vec<Identifier>,
+}
+
+/// api 1.50: a [when] table in any data file; the file loads only when every listed condition holds once all mods
+/// registered. registered, tag_empty and tag_filled are keyed by registry folder such as items or blocks
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct LoadConditions
+{
+    pub loaded: Vec<String>,
+    pub missing: Vec<String>,
+    pub registered: BTreeMap<String, Vec<Identifier>>,
+    pub tag_empty: BTreeMap<String, Vec<Identifier>>,
+    pub tag_filled: BTreeMap<String, Vec<Identifier>>,
 }

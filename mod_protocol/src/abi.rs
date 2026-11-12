@@ -1376,6 +1376,7 @@ pub struct SpawnEntry
 
 /// api 1.10: a kind of structure, every start of it lies in one dimension
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct StructureSpec
 {
     pub name: String,
@@ -1626,6 +1627,7 @@ impl RegistryKind
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, Default)]
+#[serde(deny_unknown_fields)]
 pub struct BiomeSpec
 {
     pub name: String,
@@ -3531,6 +3533,18 @@ pub enum HostCall
     DataMapEntries
     {
         map: Identifier,
+    },
+
+    /// api 1.50: changes chosen fields of any item, other mods changing the same field are reported, registration only
+    ModifyItem
+    {
+        spec: crate::spec::ItemModifySpec,
+    },
+
+    /// api 1.50: drops jobs of any mod's machine by what they make, while mods load
+    ModifyMachine
+    {
+        spec: crate::spec::MachineModifySpec,
     },
 }
 

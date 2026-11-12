@@ -17,6 +17,12 @@ impl Items
         Ok(ItemRef::Named(id))
     }
 
+    /// needs api 1.50, changes chosen fields of any item, other mods changing the same field are reported
+    pub fn modify(&self, spec: mod_protocol::spec::ItemModifySpec) -> Result<()>
+    {
+        expectUnit(call(HostCall::ModifyItem { spec }))
+    }
+
     /// content from data/ files and other mods registers before code runs, so lookups by name work here
     pub fn get(&self, name: &str) -> Result<ItemRef>
     {

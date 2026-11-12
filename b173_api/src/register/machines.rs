@@ -94,6 +94,15 @@ impl Machines
         super::content::registered(name, |id| HostCall::RegisterMachine { name: id.clone(), spec })
     }
 
+    /// needs api 1.50, drops every job of any mod's machine that makes one of the outputs
+    pub fn removeJobs(&self, machine: impl crate::IntoName, outputs: &[&str]) -> Result<()>
+    {
+        let outputs: Vec<Identifier> = outputs.iter().map(|item| ownIdentifier(item)).collect::<Result<_>>()?;
+        let spec: mod_protocol::spec::MachineModifySpec =
+            mod_protocol::spec::MachineModifySpec { machine: machine.intoName()?, remove_outputs: outputs };
+        expectUnit(call(HostCall::ModifyMachine { spec }))
+    }
+
     /// needs api 1.35, a recipe for a machine of this mod by name or of any mod by its full name
     pub fn recipe(&self, machine: &str) -> MachineRecipeBuilder
     {

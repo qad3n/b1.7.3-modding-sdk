@@ -47,14 +47,15 @@ use mod_protocol::identifier::IdentifierError;
 pub use mod_protocol::spec::
 {
     AccessorySlotSpec, AchievementSpec, ArmorSlot, ArmorSpec, AttributeSpec, BedFaces, BlockModelSpec, BlockModifySpec,
-    BlockSpec, BlockStatesSpec, ConditionalLootSpec, ConditionalPoolSpec, CreatureKind, Cuboid, DropSpec,
-    EffectModifierSpec, EffectSpec, EnergySpec, EntityModelSpec, EntitySounds, EntitySpec, FaceTextures, FeatureKind,
-    FeatureSpec, FeatureStep, Flammability, FluidContainerSpec, FluidSpec, FluidStyle, FoodSpec, GameRuleCategory,
-    GameRuleSpec, HeightSpec, IngredientSpec, ItemFilter, ItemSpec, ItemToolSpec, JobEnergySpec, JobFluidSpec,
-    JobInputRule, JobInputSpec, JobOutputSpec, LootEntrySpec, LootPoolSpec, LootSpec, MachineFuelSpec, MachineJobSpec,
-    MachineRecipeSpec, MachineSlotSpec, MachineSpec, ModelBox, ModelPart, ParticleSpec, PropertySpec, SpawnModifySpec,
-    SpawnSpec, StateCuboid, StateModelSpec, StateVariantSpec, SteeringSpec, TagEntry, TagRef, TileEntitySpec,
-    ToolClass, ToolSpec, WeightedLootSpec,
+    BlockSpec, BlockStatesSpec, ConditionalLootSpec, ConditionalPoolSpec, CreatureKind, Cuboid, DamageTypeSpec,
+    DropSpec, EffectModifierSpec, EffectSpec, EnergySpec, EntityModelSpec, EntitySounds, EntitySpec, FaceTextures,
+    FeatureKind, FeatureSpec, FeatureStep, Flammability, FluidContainerSpec, FluidSpec, FluidStyle, FoodSpec,
+    GameRuleCategory, GameRuleSpec, HeightSpec, IngredientSpec, ItemFilter, ItemModifySpec, ItemSpec, ItemToolSpec,
+    JobEnergySpec, JobFluidSpec, JobInputRule, JobInputSpec, JobOutputSpec, LoadConditions, LootEntrySpec,
+    LootPoolSpec, LootSpec, MachineFuelSpec, MachineJobSpec, MachineModifySpec, MachineRecipeSpec, MachineSlotSpec,
+    MachineSpec, ModelBox, ModelPart, ParticleSpec, PropertySpec, RecipeModifySpec, SpawnModifySpec, SpawnSpec,
+    StateCuboid, StateModelSpec, StateVariantSpec, SteeringSpec, TagEntry, TagRef, TileEntitySpec, ToolClass, ToolSpec,
+    WeightedLootSpec,
 };
 use mod_protocol::wire::WireError;
 pub use names::{BlockRef, blockIs, blockTagged, nameOf, nameWith, named, tagMembers, tagged};

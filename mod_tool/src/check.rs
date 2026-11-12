@@ -76,7 +76,7 @@ pub(crate) fn run(root: &Path) -> Result<Vec<String>>
         let relative: String = path.strip_prefix(root).unwrap_or(&path).to_string_lossy().replace('\\', "/");
         let checked: std::result::Result<(), String> = std::fs::read_to_string(&path)
             .map_err(|error| format!("{relative}: {error}"))
-            .and_then(|text| data::parse(&head.id, &relative, &text).map(drop));
+            .and_then(|text| data::parse(Some(&head.id), &relative, &text).map(drop));
         problems.extend(checked.err());
     }
 
