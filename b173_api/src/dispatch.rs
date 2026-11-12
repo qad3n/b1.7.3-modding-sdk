@@ -251,6 +251,8 @@ fn block(handle: u32, call: BlockCall) -> GuestReply
         {
             GuestReply::Float(behavior.brightness(&mut wrap(ctx), base).unwrap_or(-1.0))
         }
+
+        BlockCall::BlockEvent { ctx, kind, data } => unit(|| behavior.onBlockEvent(&mut wrap(ctx), kind, data)),
     }
 }
 

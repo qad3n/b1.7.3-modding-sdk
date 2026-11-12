@@ -264,6 +264,13 @@ impl World
         expectBool(call(HostCall::SetBlock { world: self.dimension, pos, block, meta, notify: true }))
     }
 
+    /// needs api 1.53, an event the block here hears through BlockBehavior::onBlockEvent on the server and on every
+    /// client near it, as pistons and note blocks do, authority only
+    pub fn blockEvent(self, pos: BlockPos, kind: i32, data: i32) -> Result<()>
+    {
+        expectUnit(call(HostCall::BlockEvent { world: self.dimension, pos, kind, data }))
+    }
+
     pub fn setBlockQuiet(self, pos: BlockPos, block: impl Into<crate::BlockRef>, meta: i32) -> Result<bool>
     {
         let block: i32 = block.into().id()?;

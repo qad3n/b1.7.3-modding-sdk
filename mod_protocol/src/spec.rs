@@ -158,6 +158,8 @@ pub enum BlockMethod
     Brightness,
     /// api 1.45
     StateTexture,
+    /// api 1.53, World::blockEvent on this block, the way pistons and note blocks hear their events
+    BlockEvent,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash, Debug)]

@@ -42,6 +42,8 @@ pub trait BlockBehavior
     fn connections(&self, _ctx: &mut BlockCtx) -> u8 { 0 }
     /// needs api 1.33, how bright the block draws given the light where it stands, as a machine lit up by work
     fn brightness(&self, _ctx: &mut BlockCtx, _base: f32) -> Option<f32> { None }
+    /// needs api 1.53, an event World::blockEvent sent to this block, on the server and on every client near it
+    fn onBlockEvent(&self, _ctx: &mut BlockCtx, _kind: i32, _data: i32) {}
     fn overridden(&self) -> &'static [&'static str] { unmarked(std::any::type_name::<Self>(), "block_behavior") }
 }
 
@@ -136,7 +138,7 @@ pub trait EffectBehavior
     fn overridden(&self) -> &'static [&'static str] { unmarked(std::any::type_name::<Self>(), "effect_behavior") }
 }
 
-pub(crate) const BLOCK_METHODS: [(&str, BlockMethod); 28] = [
+pub(crate) const BLOCK_METHODS: [(&str, BlockMethod); 29] = [
     ("onActivated", BlockMethod::Activated),
     ("onClicked", BlockMethod::Clicked),
     ("onAdded", BlockMethod::Added),
@@ -165,6 +167,7 @@ pub(crate) const BLOCK_METHODS: [(&str, BlockMethod); 28] = [
     ("connections", BlockMethod::Connections),
     ("brightness", BlockMethod::Brightness),
     ("textureFor", BlockMethod::StateTexture),
+    ("onBlockEvent", BlockMethod::BlockEvent),
 ];
 
 pub(crate) const ITEM_METHODS: [(&str, ItemMethod); 16] = [

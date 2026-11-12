@@ -761,6 +761,12 @@ pub enum BlockCall
     {
         face: i32, state: StateData
     },
+
+    /// api 1.53: an event sent with World::blockEvent reached the block on this side
+    BlockEvent
+    {
+        ctx: BlockCtx, kind: i32, data: i32
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
@@ -3584,6 +3590,16 @@ pub enum HostCall
         saved: bool,
         kept: bool,
         data: Vec<u8>,
+    },
+
+    /// api 1.53: a block event as pistons and note blocks send, run on the block here and on every client near it,
+    /// authority only
+    BlockEvent
+    {
+        world: i32,
+        pos: BlockPos,
+        kind: i32,
+        data: i32,
     },
 }
 
