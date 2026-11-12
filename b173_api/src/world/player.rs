@@ -103,16 +103,16 @@ impl Player
         expectBool(call(HostCall::HasAchievement { player: self.id, achievement })).unwrap_or(false)
     }
 
-    /// needs api 1.25, stats are named such as <modid>:bosses_killed or mined/<block id>
-    pub fn addStat(self, stat: &str, amount: i32) -> Result<()>
+    /// needs api 1.25, stats are named such as <modid>:bosses_killed or mined/<block id>, or a StatRef from api 1.56
+    pub fn addStat(self, stat: impl std::fmt::Display, amount: i32) -> Result<()>
     {
-        expectUnit(call(HostCall::AddStat { player: self.id, stat: stat.to_owned(), amount }))
+        expectUnit(call(HostCall::AddStat { player: self.id, stat: stat.to_string(), amount }))
     }
 
     /// needs api 1.25
-    pub fn stat(self, stat: &str) -> i32
+    pub fn stat(self, stat: impl std::fmt::Display) -> i32
     {
-        expectInt(call(HostCall::StatValue { player: self.id, stat: stat.to_owned() })).unwrap_or(0)
+        expectInt(call(HostCall::StatValue { player: self.id, stat: stat.to_string() })).unwrap_or(0)
     }
 
     /// needs api 1.7, wears the held tool as a use would and breaks it past its last use

@@ -7,7 +7,7 @@ use mod_protocol::spec::
 {
     AchievementSpec, AttributeSpec, Behavior, DamageTypeSpec, EffectModifierSpec, EffectSpec, EnergySpec,
     EntityModelSpec, FaceTextures, FluidSpec, FluidStyle, GameRuleCategory, GameRuleSpec, ParticleSpec, PropertySpec,
-    StateVariantSpec, TileEntitySpec, TileMethod,
+    StatFormat, StatSpec, StateVariantSpec, TileEntitySpec, TileMethod,
 };
 use std::collections::BTreeMap;
 use std::rc::Rc;
@@ -202,6 +202,37 @@ impl Achievement
 }
 
 build!(Achievement => AchievementSpec);
+
+/// a mod stat: its lang key or title and how the stats screen prints its value
+pub struct Stat
+{
+    m_spec: StatSpec,
+    m_problem: Option<Error>,
+}
+
+impl Stat
+{
+    pub fn new(title: &str) -> Self
+    {
+        Stat { m_spec: StatSpec { title: title.to_owned(), format: StatFormat::Number }, m_problem: None }
+    }
+
+    /// the value counts ticks, shown as beta shows time played
+    pub fn time(mut self) -> Self
+    {
+        self.m_spec.format = StatFormat::Time;
+        self
+    }
+
+    /// the value counts centimetres, shown as beta shows distance walked
+    pub fn distance(mut self) -> Self
+    {
+        self.m_spec.format = StatFormat::Distance;
+        self
+    }
+}
+
+build!(Stat => StatSpec);
 
 /// a mod attribute living entities carry, with its default and range
 pub struct Attribute

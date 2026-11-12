@@ -6,7 +6,8 @@ use crate::spec::
     ConditionalPoolSpec, DamageTypeSpec, EffectSpec, EnergySpec, EntitySpec, FeatureModifySpec, FeatureSpec,
     FluidContainerSpec, FluidSpec, GameRuleSpec, ItemModifySpec, ItemSpec, LoadConditions, LootSpec, MachineFuelSpec,
     MachineJobSpec, MachineModifySpec, MachineRecipeSpec, MachineSpec, ParticleSpec, RecipeModifySpec, RecipeSpec,
-    SpawnModifySpec, StructureTemplateSpec, TagEntry, TagRef, TagSpec, TagValue, TileEntitySpec, WorldgenSpec,
+    SpawnModifySpec, StatSpec, StructureTemplateSpec, TagEntry, TagRef, TagSpec, TagValue, TileEntitySpec,
+    WorldgenSpec,
 };
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
@@ -30,6 +31,7 @@ pub enum DataFile
     Recipe(Identifier, RecipeSpec),
     States(Identifier, BlockStatesSpec),
     Achievement(Identifier, AchievementSpec),
+    Stat(Identifier, StatSpec),
     Particle(Identifier, ParticleSpec),
     Effect(Identifier, EffectSpec),
     Attribute(Identifier, AttributeSpec),
@@ -188,6 +190,7 @@ fn file(namespace: &str, kind: &str, path: &str, document: &Document) -> Result<
         "recipes" => Ok(DataFile::Recipe(id()?, read(document)?)),
         "states" => Ok(DataFile::States(id()?, read(document)?)),
         "achievements" => Ok(DataFile::Achievement(id()?, read(document)?)),
+        "stats" => Ok(DataFile::Stat(id()?, read(document)?)),
         "particles" => Ok(DataFile::Particle(id()?, read(document)?)),
         "effects" => Ok(DataFile::Effect(id()?, read(document)?)),
         "attributes" => Ok(DataFile::Attribute(id()?, read(document)?)),

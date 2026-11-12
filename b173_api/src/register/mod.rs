@@ -19,13 +19,13 @@ mod world;
 pub use blocks::{BlockSpecBuilder, Blocks};
 pub use builders::
 {
-    Achievement, Attribute, Build, DamageType, Effect, Energy, Fluid, GameRule, Particle, Property, Tile, Variant,
+    Achievement, Attribute, Build, DamageType, Effect, Energy, Fluid, GameRule, Particle, Property, Stat, Tile, Variant,
 };
 pub(crate) use content::registered;
 pub use content::
 {
     Achievements, Attachments, Attributes, Components, ConfigTasks, DamageTypes, Effects, Energies, Fluids, GameRules,
-    Loot, LootQuery, Particles, PoolBuilder, Tags, registryList, tagValues, tagsOf,
+    Loot, LootQuery, Particles, PoolBuilder, Stats, Tags, registryList, tagValues, tagsOf,
 };
 pub use custom::{DataMap, ModRegistries, ModRegistry};
 pub use entities::{Entities, TileEntities};
@@ -99,6 +99,9 @@ impl RegisterCtx
 
     /// needs api 1.25
     pub fn achievements(&mut self) -> Achievements { Achievements }
+
+    /// needs api 1.56
+    pub fn stats(&mut self) -> Stats { Stats }
 
     /// needs api 1.27
     pub fn attributes(&mut self) -> Attributes { Attributes }

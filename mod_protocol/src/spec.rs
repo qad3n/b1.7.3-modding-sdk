@@ -911,6 +911,27 @@ pub struct AchievementSpec
     pub parent: Option<Identifier>,
 }
 
+/// api 1.56: how the stats screen prints a stat's value as beta does, time counts ticks and distance centimetres
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum StatFormat
+{
+    #[default]
+    Number,
+    Time,
+    Distance,
+}
+
+/// api 1.56: a mod stat, a lang key or plain text for its title and how its value reads
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct StatSpec
+{
+    pub title: String,
+    #[serde(default)]
+    pub format: StatFormat,
+}
+
 /// api 1.27: a number every living entity carries, modifiers change it and the value stays within min and max
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Debug)]
 #[serde(default, deny_unknown_fields)]

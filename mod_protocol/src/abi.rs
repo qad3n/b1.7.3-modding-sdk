@@ -1588,6 +1588,8 @@ pub enum RegistryKind
     DamageType,
     Achievement,
     Component,
+    /// api 1.56
+    Stat,
 }
 
 /// a registry kind with its data and tag folder name and the singular form paths and logs also accept
@@ -1600,7 +1602,7 @@ pub struct KindRow
 
 impl RegistryKind
 {
-    pub const ROWS: [KindRow; 22] = [
+    pub const ROWS: [KindRow; 23] = [
         KindRow { kind: RegistryKind::Block, plural: "blocks", singular: "block" },
         KindRow { kind: RegistryKind::Item, plural: "items", singular: "item" },
         KindRow { kind: RegistryKind::Entity, plural: "entities", singular: "entity" },
@@ -1623,6 +1625,7 @@ impl RegistryKind
         KindRow { kind: RegistryKind::DamageType, plural: "damage_types", singular: "damage_type" },
         KindRow { kind: RegistryKind::Achievement, plural: "achievements", singular: "achievement" },
         KindRow { kind: RegistryKind::Component, plural: "components", singular: "component" },
+        KindRow { kind: RegistryKind::Stat, plural: "stats", singular: "stat" },
     ];
 
     pub fn byFolder(folder: &str) -> Option<RegistryKind>
@@ -2824,7 +2827,7 @@ pub enum HostCall
     },
 
     /// api 1.25: a named stat such as <modid>:bosses_killed; mod blocks and items also count mined/<id>,
-    /// crafted/<id>, used/<id> and broken/<id> on their own
+    /// crafted/<id>, used/<id> and broken/<id> on their own; api 1.56 registers an unregistered name with defaults
     AddStat
     {
         player: i32,
@@ -3641,6 +3644,13 @@ pub enum HostCall
         origin: BlockPos,
         rotation: i32,
         seed: i64,
+    },
+
+    /// api 1.56: a stat named <modid>:<name> the stats screen lists with its title and format, registration only
+    RegisterStat
+    {
+        name: String,
+        spec: crate::spec::StatSpec,
     },
 }
 

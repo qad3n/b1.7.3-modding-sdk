@@ -21,6 +21,7 @@ pub mod kind
     pub struct LootRule;
     pub struct DamageType;
     pub struct Achievement;
+    pub struct Stat;
     pub struct Entity;
     pub struct Tile;
     pub struct Screen;
@@ -49,6 +50,7 @@ pub type FeatureRef = Ref<kind::Feature>;
 pub type LootRuleRef = Ref<kind::LootRule>;
 pub type DamageRef = Ref<kind::DamageType>;
 pub type AchievementRef = Ref<kind::Achievement>;
+pub type StatRef = Ref<kind::Stat>;
 pub type EntityRef = Ref<kind::Entity>;
 pub type TileRef = Ref<kind::Tile>;
 pub type ScreenRef = Ref<kind::Screen>;

@@ -2,7 +2,7 @@ use super::builders::Build;
 use crate::behavior::{self, EffectBehavior};
 use crate::refs::
 {
-    AchievementRef, AttributeRef, DamageRef, EffectRef, EnergyRef, FluidRef, GameRuleRef, ParticleRef, Ref,
+    AchievementRef, AttributeRef, DamageRef, EffectRef, EnergyRef, FluidRef, GameRuleRef, ParticleRef, Ref, StatRef,
 };
 use crate::rt::call;
 use crate::{Result, dispatch, expectUnit, ownIdentifier};
@@ -11,7 +11,7 @@ use mod_protocol::abi::{HostCall, HostReply, LootTarget, RegistryKind};
 use mod_protocol::spec::
 {
     AchievementSpec, AttributeSpec, Behavior, ConditionalLootSpec, ConditionalPoolSpec, DamageTypeSpec, EffectMethod,
-    EffectSpec, EnergySpec, FluidSpec, GameRuleSpec, LootSpec, ParticleSpec, TagEntry,
+    EffectSpec, EnergySpec, FluidSpec, GameRuleSpec, LootSpec, ParticleSpec, StatSpec, TagEntry,
 };
 use std::rc::Rc;
 
@@ -26,6 +26,8 @@ pub struct Effects;
 pub struct Particles;
 
 pub struct Achievements;
+
+pub struct Stats;
 
 pub struct Attributes;
 
@@ -126,6 +128,16 @@ impl Achievements
     {
         let spec: AchievementSpec = spec.build()?;
         registered(name, |id| HostCall::RegisterAchievement { name: id.to_string(), spec })
+    }
+}
+
+impl Stats
+{
+    /// count it with Player::addStat, the stats screen lists it under the mod stats with its title
+    pub fn register(&self, name: &str, spec: impl Build<StatSpec>) -> Result<StatRef>
+    {
+        let spec: StatSpec = spec.build()?;
+        registered(name, |id| HostCall::RegisterStat { name: id.to_string(), spec })
     }
 }
 

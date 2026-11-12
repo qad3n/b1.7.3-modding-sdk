@@ -56,15 +56,16 @@ pub use mod_protocol::spec::
     JobEnergySpec, JobFluidSpec, JobInputRule, JobInputSpec, JobOutputSpec, LoadConditions, LootEntrySpec,
     LootPoolSpec, LootSpec, MachineFuelSpec, MachineJobSpec, MachineModifySpec, MachineRecipeSpec, MachineSlotSpec,
     MachineSpec, ModelBox, ModelPart, ParticleSpec, PropertySpec, RecipeModifySpec, SpawnModifySpec, SpawnSpec,
-    StateCuboid, StateModelSpec, StateVariantSpec, SteeringSpec, TagEntry, TagRef, TileEntitySpec, ToolClass, ToolSpec,
-    WeightedLootSpec,
+    StatFormat, StatSpec, StateCuboid, StateModelSpec, StateVariantSpec, SteeringSpec, TagEntry, TagRef,
+    TileEntitySpec, ToolClass, ToolSpec, WeightedLootSpec,
 };
 use mod_protocol::wire::WireError;
 pub use names::{BlockRef, blockIs, blockTagged, nameOf, nameWith, named, tagMembers, tagged};
 pub use refs::
 {
     AchievementRef, AttributeRef, ComponentRef, DamageRef, EffectRef, EnergyRef, EntityRef, FeatureRef, FluidRef,
-    GameRuleRef, IntoName, LootRuleRef, MachineRef, ParticleRef, Ref, ScreenRef, SlotRef, SoundRef, TileRef, kind,
+    GameRuleRef, IntoName, LootRuleRef, MachineRef, ParticleRef, Ref, ScreenRef, SlotRef, SoundRef, StatRef, TileRef,
+    kind,
 };
 pub use register::*;
 pub(crate) use reply::
