@@ -3918,7 +3918,7 @@ pub enum EntityField
     Height,
     /// EntityLiving.swingProgress, above zero while a player swings its arm, read only
     SwingProgress,
-    /// the block id a moving_block entity draws
+    /// the block id a moving_block or primed_block entity draws
     Block,
     /// Entity.isCollided, the last move ran into a block on any side, read only
     Collided,
@@ -3938,7 +3938,7 @@ pub enum EntityField
     Shooter,
     /// api 1.12: EntityLiving.deathTime, ticks since its health ran out, it is removed when this reaches 20
     DeathTime,
-    /// api 1.12: the metadata a moving_block entity draws its block with
+    /// api 1.12: the metadata a moving_block or primed_block entity draws its block with
     BlockMeta,
     /// api 1.20: ticks left on a player's item in use, 0 when it holds nothing in use, read only
     ItemInUse,
@@ -3956,6 +3956,9 @@ pub enum EntityField
     Seat,
     /// api 1.36: EntityLiving.renderYawOffset, the body's yaw the head turns from
     BodyYaw,
+    /// api 1.57: EntityTNTPrimed.fuse or a primed_block's, ticks left before it goes off; a primed_block counts it
+    /// down on both sides and its mod sets it off once it drops below zero, a server write reaches watching clients
+    Fuse,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
