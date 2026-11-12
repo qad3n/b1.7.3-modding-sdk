@@ -6,6 +6,7 @@ use serde::de::DeserializeOwned;
 mod blocks;
 mod builders;
 mod content;
+mod custom;
 mod entities;
 mod items;
 mod machines;
@@ -26,6 +27,7 @@ pub use content::
     Achievements, Attributes, DamageTypes, Effects, Energies, Fluids, GameRules, Loot, LootQuery, Particles,
     PoolBuilder, Tags, registryList, tagValues, tagsOf,
 };
+pub use custom::{DataMap, ModRegistries, ModRegistry};
 pub use entities::{Entities, TileEntities};
 pub use items::{ItemSpecBuilder, Items};
 pub use machines::{MachineRecipeBuilder, Machines};
@@ -70,6 +72,9 @@ impl RegisterCtx
     pub fn services(&mut self) -> Services { Services }
 
     pub fn tags(&mut self) -> Tags { Tags }
+
+    /// needs api 1.49, registries and data maps of this mod's own
+    pub fn registries(&mut self) -> ModRegistries { ModRegistries }
 
     /// needs api 1.19
     pub fn loot(&mut self) -> Loot { Loot }

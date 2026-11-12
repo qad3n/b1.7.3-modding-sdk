@@ -3462,6 +3462,84 @@ pub enum HostCall
         name: String,
         spec: crate::spec::DamageTypeSpec,
     },
+
+    /// api 1.49: a registry of this mod's own that other mods and data files add entries to, each entry a TOML
+    /// document only the owner's types read, sent to clients when synced, registration only
+    CreateRegistry
+    {
+        name: String,
+        synced: bool,
+    },
+
+    /// api 1.49: an entry of a mod registry, name in this mod's namespace, value a TOML document, while mods load
+    AddRegistryEntry
+    {
+        registry: Identifier,
+        name: String,
+        value: String,
+    },
+
+    /// api 1.49: every entry of a mod registry in name order, answered with Entries
+    RegistryEntries
+    {
+        registry: Identifier,
+    },
+
+    /// api 1.49: entries or nested tags added to a tag of a mod registry, while mods load
+    AddRegistryTag
+    {
+        registry: Identifier,
+        tag: Identifier,
+        entries: Vec<crate::spec::TagEntry>,
+        replace: bool,
+    },
+
+    /// api 1.49: the members of a tag of a mod registry, answered with Ids
+    RegistryTagValues
+    {
+        registry: Identifier,
+        tag: Identifier,
+    },
+
+    /// api 1.49: a data map, one value per entry of a registry set by id or tag from code and data files,
+    /// registration only
+    CreateDataMap
+    {
+        name: String,
+        target: MapTarget,
+        synced: bool,
+    },
+
+    /// api 1.49: values of a data map of any mod, each a TOML document under the key value, while mods load;
+    /// replace drops what earlier mods set, remove applies after this call's own values
+    SetDataMapValues
+    {
+        map: Identifier,
+        values: Vec<(crate::spec::TagRef, String)>,
+        remove: Vec<crate::spec::TagRef>,
+        replace: bool,
+    },
+
+    /// api 1.49: the value a data map gives one entry, answered with Entries holding it or nothing
+    DataMapValue
+    {
+        map: Identifier,
+        id: Identifier,
+    },
+
+    /// api 1.49: every entry a data map gives a value, answered with Entries
+    DataMapEntries
+    {
+        map: Identifier,
+    },
+}
+
+/// api 1.49: the registry a data map attaches values to
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
+pub enum MapTarget
+{
+    Kind(RegistryKind),
+    Registry(Identifier),
 }
 
 /// api 1.44: a container filled or drained, the stack one item turns into, none when used up, and the fluid moved
@@ -3810,6 +3888,8 @@ pub enum HostReply
     Swap(Option<ContainerSwap>),
     /// api 1.44
     FluidContainers(Vec<crate::spec::FluidContainerSpec>),
+    /// api 1.49: registry or data map entries with their TOML text
+    Entries(Vec<(Identifier, String)>),
 }
 
 /// api 1.35: a machine category as a recipe viewer shows it

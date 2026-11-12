@@ -9,6 +9,7 @@ b173_api_macros = { path = "../b173_api_macros" }
 mod_protocol = { path = "../mod_protocol", default-features = false }
 postcard = { version = "1.1", default-features = false, features = ["alloc"] }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
+toml = "0.9"
 
 [lints]
 workspace = true

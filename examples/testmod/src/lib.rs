@@ -30,6 +30,13 @@ thread_local!
     static CHUNKS_POPULATED: Cell<u32> = const { Cell::new(0) };
 }
 
+// one upgrade kind of the testmod:upgrades registry
+#[derive(Serialize, Deserialize)]
+struct Upgrade
+{
+    multiplier: f32,
+}
+
 #[derive(Serialize, Deserialize)]
 struct ChargeSync
 {
@@ -304,6 +311,13 @@ fn energyReport(world: World, pos: BlockPos) -> String
 fn registerContent(ctx: &mut RegisterCtx) -> Result<()>
 {
     ctx.gameRules().register(SPARK_RULE, GameRule::number(16).range(0, 64))?;
+
+    // a registry other mods and data files add upgrade kinds to, and a data map giving items a heat value
+    let upgrades: ModRegistry<Upgrade> = ctx.registries().create("upgrades", true)?;
+    upgrades.register("speed", &Upgrade { multiplier: 2.0 })?;
+    let heat: DataMap<i32> = ctx.registries().dataMap("heat", RegistryKind::Item, true)?;
+    heat.set("minecraft:coal", &5)?;
+    heat.set("#minecraft:logs", &1)?;
 
     ctx.blocks().register(
         "charged_ore",
