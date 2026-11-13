@@ -129,4 +129,7 @@ pub enum ScreenRequest
     {
         texture: Identifier,
     },
+
+    /// api 2.1: the client clipboard as Text, an error on a server or when it holds no text
+    Clipboard,
 }

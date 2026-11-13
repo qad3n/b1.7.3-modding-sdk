@@ -801,6 +801,16 @@ pub fn screenSize() -> Option<[i32; 2]>
     }
 }
 
+/// needs api 2.1, the client clipboard as text, none on a server or when it holds no text
+pub fn clipboard() -> Option<String>
+{
+    match call(ScreenRequest::Clipboard)
+    {
+        HostReply::Text(text) => Some(text),
+        _ => None,
+    }
+}
+
 pub fn localPlayer() -> Option<Player>
 {
     expectEntity(call(PlayerRequest::LocalPlayer)).map(|info| Player { id: info.id })

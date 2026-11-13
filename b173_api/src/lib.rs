@@ -13,6 +13,7 @@ mod features;
 mod jobs;
 mod machines;
 pub mod math;
+mod media;
 mod names;
 mod refs;
 mod register;
@@ -36,6 +37,7 @@ pub use entity_state::EntityState;
 pub use features::{FeatureBuilder, FeatureCtx, featureList};
 pub use jobs::{JobBuilder, findJob, machineFuel, matchJob};
 pub use machines::{machineRecipe, machineRecipes};
+pub use media::{importMedia, insertHeld, mediaStatus, playSong};
 pub use mod_protocol::Identifier;
 use mod_protocol::abi::RegistryRequest;
 pub use mod_protocol::abi::
@@ -43,9 +45,10 @@ pub use mod_protocol::abi::
     BiomeSpec, BipedPart, BlockInfo, BlockPos, ChunkInfo, ConfigScope, ContainerSwap, DimensionSpec, EnergyDemand,
     EnergyLevel, EntityField, EntityInfo, EventKind, FaceOverlay, FeatureInfo, FluidBlock, FluidStack, GameRuleValue,
     Holder, ItemInfo, ItemModelSpec, JobMatch, JobOutput, Located, LootContext, LootDrop, LootSource, LootTarget,
-    LootView, MachineRecipeView, MachineSlot, MachineView, ModelOp, ModifierOperation, MusicSpec, Permission,
-    PlayerLayer, Pose, PoseInput, Priority, RayHit, RecipeShape, RecipeView, RegistryKind, SpawnEntry, StackData,
-    StackRef, StateData, StructurePiece, StructureSpec, StructureStart, TankLevel, Target, UseAction, Worn, capability,
+    LootView, MachineRecipeView, MachineSlot, MachineView, MediaInfo, MediaLimit, MediaStatus, ModelOp,
+    ModifierOperation, MusicSpec, Permission, PlayerLayer, Pose, PoseInput, Priority, RayHit, RecipeShape, RecipeView,
+    RegistryKind, Song, SpawnEntry, StackData, StackRef, StateData, StructurePiece, StructureSpec, StructureStart,
+    TankLevel, Target, UseAction, Worn, capability,
 };
 pub use mod_protocol::handshake::ChannelDirection as Direction;
 use mod_protocol::identifier::IdentifierError;
@@ -302,9 +305,9 @@ pub mod prelude
     pub use crate::services::{Lookup, Service};
     pub use crate::world::
     {
-        allPlayers, broadcast, containerItem, contentGeneration, craftResult, displayName, foliageColor, fuelTicks,
-        gameRule, grassColor, isClient, isLoaded, itemCatalog, localPlayer, lootList, machineList, mobList, modName,
-        paintSprite, recipeList, rollLoot, screenSize, send, setDynamicTexture, setGameRule, setSharedData,
+        allPlayers, broadcast, clipboard, containerItem, contentGeneration, craftResult, displayName, foliageColor,
+        fuelTicks, gameRule, grassColor, isClient, isLoaded, itemCatalog, localPlayer, lootList, machineList, mobList,
+        modName, paintSprite, recipeList, rollLoot, screenSize, send, setDynamicTexture, setGameRule, setSharedData,
         setStackComponent, setWorldData, setWorldTime, sharedData, spritePixels, stackComponent, textWidth, translate,
         unified, worldData,
     };

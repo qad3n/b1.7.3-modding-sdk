@@ -1,7 +1,7 @@
 use crate::abi::
 {
-    ContentRequest, EntityRequest, HostCall, InventoryRequest, MetaRequest, NetRequest, PlayerRequest, RegistryRequest,
-    ScreenRequest, SharedRequest, StoredRequest, ViewerRequest, WorldRequest, WorldgenRequest,
+    ContentRequest, EntityRequest, HostCall, InventoryRequest, MediaRequest, MetaRequest, NetRequest, PlayerRequest,
+    RegistryRequest, ScreenRequest, SharedRequest, StoredRequest, ViewerRequest, WorldRequest, WorldgenRequest,
 };
 
 /// who may make a host call
@@ -33,6 +33,7 @@ impl HostCall
             HostCall::Screen(call) => call.side(),
             HostCall::Viewer(call) => call.side(),
             HostCall::Meta(call) => call.side(),
+            HostCall::Media(call) => call.side(),
         }
     }
 }
@@ -405,6 +406,7 @@ impl ScreenRequest
             | ScreenRequest::OpenScreen { .. }
             | ScreenRequest::CloseScreen { .. }
             | ScreenRequest::ScreenSize
+            | ScreenRequest::Clipboard
             | ScreenRequest::RegisterTooltip { .. }
             | ScreenRequest::SetDynamicTexture { .. }
             | ScreenRequest::RegisterWorldRender { .. }
@@ -452,6 +454,21 @@ impl MetaRequest
             | MetaRequest::DefineConfigOptions { .. }
             | MetaRequest::SetConfigValue { .. }
             | MetaRequest::ModName { .. } => CallSide::Any,
+        }
+    }
+}
+
+impl MediaRequest
+{
+    pub fn side(&self) -> CallSide
+    {
+        match self
+        {
+            MediaRequest::Import { .. } | MediaRequest::Status { .. } | MediaRequest::InsertHeld { .. } =>
+            {
+                CallSide::Authority
+            }
+            MediaRequest::Play { .. } => CallSide::Any,
         }
     }
 }

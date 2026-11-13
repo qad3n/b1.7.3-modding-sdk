@@ -12,8 +12,9 @@ mod world;
 
 pub use calls::
 {
-    ContentRequest, EntityRequest, HostCall, InventoryRequest, MetaRequest, NetRequest, PlayerRequest, RegistryRequest,
-    ScreenRequest, SharedRequest, StoredRequest, ViewerRequest, WorldRequest, WorldgenRequest,
+    ContentRequest, EntityRequest, HostCall, InventoryRequest, MediaInfo, MediaLimit, MediaRequest, MediaStatus,
+    MetaRequest, NetRequest, PlayerRequest, RegistryRequest, ScreenRequest, SharedRequest, Song, StoredRequest,
+    ViewerRequest, WorldRequest, WorldgenRequest,
 };
 pub use config::{ConfigKind, ConfigOption, ConfigScope};
 pub use events::{EVENT_NAMES, EventData, EventEnvelope, EventKind, Priority};

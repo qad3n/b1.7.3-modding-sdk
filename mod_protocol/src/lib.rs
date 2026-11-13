@@ -11,4 +11,4 @@ pub use identifier::Identifier;
 
 /// mods declare api = "2.x" and load on any 2.y with y >= x
 pub const API_MAJOR: u32 = 2;
-pub const API_MINOR: u32 = 0;
+pub const API_MINOR: u32 = 1;

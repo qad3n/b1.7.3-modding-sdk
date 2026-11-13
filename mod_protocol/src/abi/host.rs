@@ -74,4 +74,6 @@ pub enum HostReply
     Energy(Option<EnergyLevel>),
     /// api 2.0
     Tank(Option<TankLevel>),
+    /// api 2.1
+    Media(super::MediaStatus),
 }

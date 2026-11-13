@@ -1,6 +1,7 @@
 mod content;
 mod entity;
 mod inventory;
+mod media;
 mod meta;
 mod net;
 mod player;
@@ -15,6 +16,7 @@ mod worldgen;
 pub use content::ContentRequest;
 pub use entity::EntityRequest;
 pub use inventory::InventoryRequest;
+pub use media::{MediaInfo, MediaLimit, MediaRequest, MediaStatus, Song};
 pub use meta::MetaRequest;
 pub use net::NetRequest;
 pub use player::PlayerRequest;
@@ -61,4 +63,5 @@ host_calls!
     Screen(ScreenRequest),
     Viewer(ViewerRequest),
     Meta(MetaRequest),
+    Media(MediaRequest),
 }
