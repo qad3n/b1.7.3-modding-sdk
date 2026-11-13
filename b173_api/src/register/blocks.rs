@@ -4,7 +4,7 @@ use crate::refs::IntoName;
 use crate::rt::call;
 use crate::{ItemRef, Result, dispatch, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
-use mod_protocol::abi::{HostCall, ItemModelSpec, RegistryKind};
+use mod_protocol::abi::{ContentRequest, ItemModelSpec, RegistryKind};
 use mod_protocol::spec::
 {
     Behavior, BlockMethod, BlockModifySpec, BlockSpec, BlockStatesSpec, ItemMethod, ItemSpec, LootSpec,
@@ -26,35 +26,40 @@ impl Blocks
         if let Some(tile) = &extras.m_tile
         {
             let tileSpec: mod_protocol::spec::TileEntitySpec = tile.spec();
-            expectUnit(call(HostCall::RegisterTileEntity { name: id.to_string(), spec: tileSpec }))?;
+            expectUnit(call(ContentRequest::RegisterTileEntity { name: id.to_string(), spec: tileSpec }))?;
             block.tile_entity = Some(id.clone());
 
             if let Some(model) = tile.m_model.clone()
             {
-                expectUnit(call(HostCall::TileModel { tile: id.clone(), model }))?;
+                expectUnit(call(ContentRequest::TileModel { tile: id.clone(), model }))?;
             }
         }
 
-        expectUnit(call(HostCall::RegisterBlock { name: id.to_string(), spec: block }))?;
+        expectUnit(call(ContentRequest::RegisterBlock { name: id.to_string(), spec: block }))?;
 
         if !extras.m_states.properties.is_empty()
         {
-            expectUnit(call(HostCall::RegisterBlockStates { block: id.clone(), spec: extras.m_states }))?;
+            expectUnit(call(ContentRequest::RegisterBlockStates { block: id.clone(), spec: extras.m_states }))?;
         }
 
         if let Some(model) = extras.m_stateModel
         {
-            expectUnit(call(HostCall::SetStateModel { block: id.clone(), model }))?;
+            expectUnit(call(ContentRequest::SetStateModel { block: id.clone(), model }))?;
         }
 
         if let Some(model) = extras.m_itemModel
         {
-            expectUnit(call(HostCall::BlockItemModel { block: id.clone(), model }))?;
+            expectUnit(call(ContentRequest::BlockItemModel { block: id.clone(), model }))?;
         }
 
         if let Some(loot) = extras.m_loot
         {
-            expectUnit(call(HostCall::SetLoot { registry: RegistryKind::Block, target: id.clone(), spec: loot }))?;
+            expectUnit(call(ContentRequest::SetLoot
+            {
+                registry: RegistryKind::Block,
+                target: id.clone(),
+                spec: loot,
+            }))?;
         }
 
         Ok(ItemRef::Named(id))
@@ -62,34 +67,34 @@ impl Blocks
 
     pub fn replace(&self, id: &str, spec: BlockSpecBuilder) -> Result<()>
     {
-        expectUnit(call(HostCall::ReplaceBlock { id: ownIdentifier(id)?, spec: spec.m_spec }))
+        expectUnit(call(ContentRequest::ReplaceBlock { id: ownIdentifier(id)?, spec: spec.m_spec }))
     }
 
     /// named states for one of this mod's blocks, saved by name so properties may change between versions
     pub fn states(&self, name: &str, spec: BlockStatesSpec) -> Result<()>
     {
-        expectUnit(call(HostCall::RegisterBlockStates { block: ownIdentifier(name)?, spec }))
+        expectUnit(call(ContentRequest::RegisterBlockStates { block: ownIdentifier(name)?, spec }))
     }
 
     /// changes chosen properties of any block, other mods changing the same field are reported as conflicts
-    pub fn modify(&self, spec: BlockModifySpec) -> Result<()> { expectUnit(call(HostCall::ModifyBlock { spec })) }
+    pub fn modify(&self, spec: BlockModifySpec) -> Result<()> { expectUnit(call(ContentRequest::ModifyBlock { spec })) }
 
     /// adds an entity to biome spawn lists, or with weight 0 removes it, for vanilla and other mods' mobs too
     /// needs api 1.33, draws the block's item in 3d from model cuboids and its tile's model instead of a flat sprite
     pub fn itemModel(&self, name: &str, model: ItemModelSpec) -> Result<()>
     {
-        expectUnit(call(HostCall::BlockItemModel { block: ownIdentifier(name)?, model }))
+        expectUnit(call(ContentRequest::BlockItemModel { block: ownIdentifier(name)?, model }))
     }
 
     /// needs api 1.45, cuboids picked by named state, each shown for the states matching its when entries
     pub fn stateModel(&self, name: &str, model: mod_protocol::spec::StateModelSpec) -> Result<()>
     {
-        expectUnit(call(HostCall::SetStateModel { block: ownIdentifier(name)?, model }))
+        expectUnit(call(ContentRequest::SetStateModel { block: ownIdentifier(name)?, model }))
     }
 
     pub fn modifySpawns(&self, spec: SpawnModifySpec) -> Result<()>
     {
-        expectUnit(call(HostCall::ModifySpawns { spec }))
+        expectUnit(call(ContentRequest::ModifySpawns { spec }))
     }
 
     #[deprecated(note = "keep the ItemRef register returns, or name the block where a call takes a BlockRef")]

@@ -2,7 +2,7 @@ use crate::rt::call;
 use crate::world::{Entity, Player};
 use crate::{IntoName, ItemStack, Result, expectBool, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
-use mod_protocol::abi::{HostCall, HostReply, StackData, Worn};
+use mod_protocol::abi::{ContentRequest, EntityRequest, HostReply, PlayerRequest, StackData, Worn};
 use mod_protocol::spec::AccessorySlotSpec;
 
 /// needs api 1.40, accessory slots players wear one item in, shown in mod panels beside the vanilla inventory
@@ -15,7 +15,7 @@ impl Accessories
     {
         let spec: AccessorySlotSpec =
             AccessorySlotSpec { tag: ownIdentifier(tag.trim_start_matches('#'))?, icon: icon.map(str::to_owned) };
-        crate::register::registered(name, |id| HostCall::RegisterAccessorySlot { name: id.clone(), spec })
+        crate::register::registered(name, |id| ContentRequest::RegisterAccessorySlot { name: id.clone(), spec })
     }
 }
 
@@ -33,7 +33,7 @@ impl Entity
     /// needs api 1.40, every accessory slot in registration order with what this entity wears there, on clients too
     pub fn accessories(self) -> Vec<WornStack>
     {
-        let worn: Vec<Worn> = match call(HostCall::Accessories { world: self.world.dimension, entity: self.id })
+        let worn: Vec<Worn> = match call(EntityRequest::Accessories { world: self.world.dimension, entity: self.id })
         {
             HostReply::Accessories(worn) => worn,
             _ => Vec::new(),
@@ -48,8 +48,8 @@ impl Entity
     pub fn setAccessory(self, slot: impl IntoName, stack: Option<ItemStack>) -> Result<()>
     {
         let stack: Option<StackData> = stack.map(|stack| stack.raw()).transpose()?;
-        let call: HostCall =
-            HostCall::SetAccessory { world: self.world.dimension, entity: self.id, slot: slot.intoName()?, stack };
+        let call: EntityRequest =
+            EntityRequest::SetAccessory { world: self.world.dimension, entity: self.id, slot: slot.intoName()?, stack };
         expectUnit(crate::rt::call(call))
     }
 }
@@ -66,6 +66,6 @@ impl Player
             return false;
         };
 
-        expectBool(call(HostCall::SwapAccessory { player: self.id, slot })).unwrap_or(false)
+        expectBool(call(PlayerRequest::SwapAccessory { player: self.id, slot })).unwrap_or(false)
     }
 }

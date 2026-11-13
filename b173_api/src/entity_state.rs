@@ -1,7 +1,7 @@
 use crate::rt::call;
 use crate::world::Entity;
 use crate::{Result, expectBytes, expectUnit};
-use mod_protocol::abi::HostCall;
+use mod_protocol::abi::StoredRequest;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use std::marker::PhantomData;
@@ -37,7 +37,7 @@ impl<T: Serialize + DeserializeOwned + Default> EntityState<T>
 
     pub fn find(&self, entity: Entity) -> Option<T>
     {
-        let call: HostCall = HostCall::EntityValue
+        let call: StoredRequest = StoredRequest::EntityValue
         {
             world: entity.world.dimension,
             id: entity.id,
@@ -51,10 +51,13 @@ impl<T: Serialize + DeserializeOwned + Default> EntityState<T>
             return None;
         }
 
-        crate::fromBytes(&bytes).map_err(warn).ok()
+        mod_protocol::wire::decodeStored(&bytes).map_err(|error| warn(error.into())).ok()
     }
 
-    pub fn set(&self, entity: Entity, value: &T) -> Result<()> { self.write(entity, crate::toBytes(value)) }
+    pub fn set(&self, entity: Entity, value: &T) -> Result<()>
+    {
+        self.write(entity, mod_protocol::wire::encodeStored(value))
+    }
 
     pub fn update(&self, entity: Entity, change: impl FnOnce(&mut T)) -> Result<()>
     {
@@ -67,7 +70,7 @@ impl<T: Serialize + DeserializeOwned + Default> EntityState<T>
 
     fn write(&self, entity: Entity, data: Vec<u8>) -> Result<()>
     {
-        expectUnit(call(HostCall::SetEntityValue
+        expectUnit(call(StoredRequest::SetEntityValue
         {
             world: entity.world.dimension,
             id: entity.id,

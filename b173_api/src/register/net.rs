@@ -3,7 +3,7 @@ use crate::events::{Event, EventType};
 use crate::rt::call;
 use crate::{Player, Result, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
-use mod_protocol::abi::{EventKind, HostCall, Permission, Priority};
+use mod_protocol::abi::{EventKind, MetaRequest, NetRequest, Permission, Priority, ScreenRequest};
 use mod_protocol::handshake::ChannelDirection;
 use serde::de::DeserializeOwned;
 use std::rc::Rc;
@@ -27,7 +27,7 @@ impl Events
     {
         let handle: u32 = dispatch::addEvent(Rc::new(handler));
 
-        expectUnit(call(HostCall::Subscribe
+        expectUnit(call(MetaRequest::Subscribe
         {
             kind,
             custom: None,
@@ -43,7 +43,7 @@ impl Events
         let handle: u32 = dispatch::addEvent(Rc::new(handler));
         let custom: Identifier = ownIdentifier(event)?;
 
-        expectUnit(call(HostCall::Subscribe
+        expectUnit(call(MetaRequest::Subscribe
         {
             kind: EventKind::Custom,
             custom: Some(custom),
@@ -55,7 +55,7 @@ impl Events
 
     pub fn define(&self, event: &str) -> Result<()>
     {
-        expectUnit(call(HostCall::DefineEvent { id: ownIdentifier(event)? }))
+        expectUnit(call(MetaRequest::DefineEvent { id: ownIdentifier(event)? }))
     }
 }
 
@@ -83,7 +83,7 @@ impl Commands
     {
         let handle: u32 = dispatch::addCommand(Rc::new(handler));
 
-        expectUnit(call(HostCall::RegisterCommand
+        expectUnit(call(MetaRequest::RegisterCommand
         {
             name: name.to_owned(),
             permission,
@@ -101,7 +101,7 @@ impl Keybinds
     pub fn register(&self, name: &str, key: i32, handler: impl Fn(bool) + 'static) -> Result<()>
     {
         let handle: u32 = dispatch::addKey(Rc::new(handler));
-        expectUnit(call(HostCall::RegisterKeybind { name: name.to_owned(), key, handler: handle }))
+        expectUnit(call(ScreenRequest::RegisterKeybind { name: name.to_owned(), key, handler: handle }))
     }
 }
 
@@ -124,7 +124,7 @@ impl Channels
                 Err(error) => crate::warn(&format!("bad payload: {error}")),
             }));
 
-        expectUnit(call(HostCall::RegisterChannel
+        expectUnit(call(NetRequest::RegisterChannel
         {
             name: name.to_owned(),
             version: "1".to_owned(),
@@ -143,7 +143,7 @@ impl Channels
     {
         let handle: u32 = dispatch::addChannel(Rc::new(handler));
 
-        expectUnit(call(HostCall::RegisterChannel
+        expectUnit(call(NetRequest::RegisterChannel
         {
             name: name.to_owned(),
             version: version.to_owned(),

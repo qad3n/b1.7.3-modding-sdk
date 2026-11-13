@@ -7,11 +7,11 @@ use crate::refs::
 use crate::rt::call;
 use crate::{Result, dispatch, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
-use mod_protocol::abi::{HostCall, HostReply, LootTarget, RegistryKind};
+use mod_protocol::abi::{ContentRequest, HostCall, HostReply, LootTarget, NetRequest, RegistryKind, RegistryRequest};
 use mod_protocol::spec::
 {
     AchievementSpec, AttributeSpec, Behavior, ConditionalLootSpec, ConditionalPoolSpec, DamageTypeSpec, EffectMethod,
-    EffectSpec, EnergySpec, FluidSpec, GameRuleSpec, LootSpec, ParticleSpec, StatSpec, TagEntry,
+    EffectSpec, EnergySpec, FluidSpec, GameRuleSpec, LootSpec, ParticleSpec, StatSpec, TagEntry, TagRef,
 };
 use std::rc::Rc;
 
@@ -54,7 +54,7 @@ impl ConfigTasks
     {
         let task: dispatch::ConfigTask = dispatch::ConfigTask { m_send: Rc::new(send), m_receive: Rc::new(receive) };
         let handler: u32 = dispatch::addConfigTask(task);
-        expectUnit(call(HostCall::RegisterConfigTask { name: ownIdentifier(name)?.to_string(), handler }))
+        expectUnit(call(NetRequest::RegisterConfigTask { name: ownIdentifier(name)?.to_string(), handler }))
     }
 }
 
@@ -66,17 +66,30 @@ impl Components
     /// stack the server sends, so tooltips and models can read them
     pub fn register(&self, name: &str, synced: bool) -> Result<crate::refs::ComponentRef>
     {
-        registered(name, |id| HostCall::RegisterComponent { name: id.to_string(), synced })
+        registered(name, |id| ContentRequest::RegisterComponent { name: id.to_string(), synced })
     }
 }
 
 impl Attachments
 {
-    /// needs api 1.51, this mod's attachments of the holder kind reach the clients that see the holder, on every
-    /// change and when they first see it; world data reaches every client
-    pub fn sync(&self, holder: mod_protocol::abi::AttachmentHolder) -> Result<()>
+    /// tells the loader about an attachment of this mod and how to treat it, once, before any use
+    pub fn declare<T: serde::Serialize + serde::de::DeserializeOwned>(
+        &self,
+        attachment: &crate::Attachment<T>,
+    ) -> Result<()>
     {
-        expectUnit(call(HostCall::SyncAttachments { holder }))
+        attachment.declare()
+    }
+
+    /// runs the handler when a synced attachment of this mod changes on a holder the player's game can see, with the
+    /// new value or none when it was cleared; on a multiplayer client and in single player, never on a server
+    pub fn watch<T: serde::Serialize + serde::de::DeserializeOwned + 'static>(
+        &self,
+        attachment: &crate::Attachment<T>,
+        handler: impl Fn(mod_protocol::abi::Holder, Option<T>) + 'static,
+    ) -> Result<()>
+    {
+        attachment.watch(handler)
     }
 }
 
@@ -87,7 +100,7 @@ impl DamageTypes
     pub fn register(&self, name: &str, spec: impl Build<DamageTypeSpec>) -> Result<DamageRef>
     {
         let spec: DamageTypeSpec = spec.build()?;
-        registered(name, |id| HostCall::RegisterDamageType { name: id.to_string(), spec })
+        registered(name, |id| ContentRequest::RegisterDamageType { name: id.to_string(), spec })
     }
 }
 
@@ -98,7 +111,7 @@ impl Energies
     pub fn register(&self, name: &str, spec: impl Build<EnergySpec>) -> Result<EnergyRef>
     {
         let spec: EnergySpec = spec.build()?;
-        registered(name, |id| HostCall::RegisterEnergy { name: id.to_string(), spec })
+        registered(name, |id| ContentRequest::RegisterEnergy { name: id.to_string(), spec })
     }
 }
 
@@ -108,7 +121,7 @@ impl GameRules
     pub fn register(&self, name: &str, spec: impl Build<GameRuleSpec>) -> Result<GameRuleRef>
     {
         let spec: GameRuleSpec = spec.build()?;
-        registered(name, |id| HostCall::RegisterGameRule { name: id.to_string(), spec })
+        registered(name, |id| ContentRequest::RegisterGameRule { name: id.to_string(), spec })
     }
 }
 
@@ -118,7 +131,7 @@ impl Attributes
     pub fn register(&self, name: &str, spec: impl Build<AttributeSpec>) -> Result<AttributeRef>
     {
         let spec: AttributeSpec = spec.build()?;
-        registered(name, |id| HostCall::RegisterAttribute { name: id.to_string(), spec })
+        registered(name, |id| ContentRequest::RegisterAttribute { name: id.to_string(), spec })
     }
 }
 
@@ -127,7 +140,7 @@ impl Achievements
     pub fn register(&self, name: &str, spec: impl Build<AchievementSpec>) -> Result<AchievementRef>
     {
         let spec: AchievementSpec = spec.build()?;
-        registered(name, |id| HostCall::RegisterAchievement { name: id.to_string(), spec })
+        registered(name, |id| ContentRequest::RegisterAchievement { name: id.to_string(), spec })
     }
 }
 
@@ -137,7 +150,7 @@ impl Stats
     pub fn register(&self, name: &str, spec: impl Build<StatSpec>) -> Result<StatRef>
     {
         let spec: StatSpec = spec.build()?;
-        registered(name, |id| HostCall::RegisterStat { name: id.to_string(), spec })
+        registered(name, |id| ContentRequest::RegisterStat { name: id.to_string(), spec })
     }
 }
 
@@ -146,7 +159,7 @@ impl Particles
     pub fn register(&self, name: &str, spec: impl Build<ParticleSpec>) -> Result<ParticleRef>
     {
         let spec: ParticleSpec = spec.build()?;
-        registered(name, |id| HostCall::RegisterParticle { name: id.to_string(), spec })
+        registered(name, |id| ContentRequest::RegisterParticle { name: id.to_string(), spec })
     }
 }
 
@@ -155,7 +168,7 @@ impl Effects
     pub fn register(&self, name: &str, spec: impl Build<EffectSpec>) -> Result<EffectRef>
     {
         let spec: EffectSpec = spec.build()?;
-        registered(name, |id| HostCall::RegisterEffect { name: id.to_string(), spec })
+        registered(name, |id| ContentRequest::RegisterEffect { name: id.to_string(), spec })
     }
 
     /// needs api 1.29, the effect also runs the behavior's onAdded, onTick and onRemoved
@@ -169,7 +182,7 @@ impl Effects
         let spec: EffectSpec = spec.build()?;
         let methods: Vec<EffectMethod> = behavior::methods(behavior.overridden(), &behavior::EFFECT_METHODS);
         let behavior: Behavior<EffectMethod> = Behavior { handle: dispatch::addEffect(behavior), methods };
-        registered(name, |id| HostCall::RegisterEffectBehavior { name: id.to_string(), spec, behavior })
+        registered(name, |id| ContentRequest::RegisterEffectBehavior { name: id.to_string(), spec, behavior })
     }
 }
 
@@ -178,7 +191,7 @@ impl Fluids
     pub fn register(&self, name: &str, spec: impl Build<FluidSpec>) -> Result<FluidRef>
     {
         let spec: FluidSpec = spec.build()?;
-        registered(name, |id| HostCall::RegisterFluid { name: id.to_string(), spec })
+        registered(name, |id| ContentRequest::RegisterFluid { name: id.to_string(), spec })
     }
 
     /// needs api 1.44, full holds amount millibuckets of fluid and drains to empty, none when it is used up; a fluid's
@@ -199,7 +212,7 @@ impl Loot
     /// needs api 1.33, a chest loot table structures roll with rollLoot and recipe viewers list
     pub fn chest(&self, table: &str, spec: LootSpec) -> Result<()>
     {
-        expectUnit(call(HostCall::SetChestLoot { table: ownIdentifier(table)?, spec }))
+        expectUnit(call(ContentRequest::SetChestLoot { table: ownIdentifier(table)?, spec }))
     }
 
     /// needs api 1.40, a weighted pool for a block, entity or chest table of any mod, each roll picking one entry;
@@ -207,27 +220,26 @@ impl Loot
     pub fn pool(&self, target: LootTarget, id: &str, pool: impl Into<ConditionalPoolSpec>) -> Result<()>
     {
         let id: Identifier = ownIdentifier(id)?;
-        let pool: ConditionalPoolSpec = pool.into();
-
-        match pool.plain()
-        {
-            Some(plain) => expectUnit(call(HostCall::AddLootPool { target, id, pool: plain })),
-            None => expectUnit(call(HostCall::AddConditionalPool { target, id, pool })),
-        }
+        expectUnit(call(ContentRequest::AddConditionalPool { target, id, pool: pool.into() }))
     }
 
     /// needs api 1.42, a loot condition any mod's pools name, label is how recipe viewers show it
     pub fn condition(&self, name: &str, label: &str, handler: impl Fn(&LootQuery) -> bool + 'static) -> Result<()>
     {
         let handler: u32 = dispatch::addLootCondition(Rc::new(handler));
-        expectUnit(call(HostCall::RegisterLootCondition { name: name.to_owned(), label: label.to_owned(), handler }))
+        expectUnit(call(ContentRequest::RegisterLootCondition
+        {
+            name: name.to_owned(),
+            label: label.to_owned(),
+            handler,
+        }))
     }
 
     /// needs api 1.42, a rule giving the count of a drop, for pools of any mod
     pub fn count(&self, name: &str, label: &str, handler: impl Fn(&LootQuery) -> i32 + 'static) -> Result<()>
     {
         let handler: u32 = dispatch::addLootCount(Rc::new(handler));
-        expectUnit(call(HostCall::RegisterLootCount { name: name.to_owned(), label: label.to_owned(), handler }))
+        expectUnit(call(ContentRequest::RegisterLootCount { name: name.to_owned(), label: label.to_owned(), handler }))
     }
 }
 
@@ -373,21 +385,30 @@ impl PoolBuilder
 
 fn setLoot(registry: RegistryKind, target: &str, spec: LootSpec) -> Result<()>
 {
-    expectUnit(call(HostCall::SetLoot { registry, target: ownIdentifier(target)?, spec }))
+    expectUnit(call(ContentRequest::SetLoot { registry, target: ownIdentifier(target)?, spec }))
 }
 
 impl Tags
 {
     pub fn add(&self, registry: RegistryKind, tag: &str, values: &[&str]) -> Result<()>
     {
-        let values: Vec<Identifier> = values.iter().map(|value| ownIdentifier(value)).collect::<Result<_>>()?;
-        expectUnit(call(HostCall::AddTag { registry, tag: Identifier::parse(tag)?, values }))
+        let entries: Vec<TagEntry> = values
+            .iter()
+            .map(|value| ownIdentifier(value).map(|id| TagEntry { target: TagRef::Id(id), required: true }))
+            .collect::<Result<_>>()?;
+        expectUnit(call(RegistryRequest::AddTagEntries
+        {
+            registry,
+            tag: Identifier::parse(tag)?,
+            entries,
+            replace: false,
+        }))
     }
 
     /// entries may name other tags as #ns:path or be optional, replace also drops the vanilla members (api 1.15)
     pub fn addEntries(&self, registry: RegistryKind, tag: &str, entries: Vec<TagEntry>, replace: bool) -> Result<()>
     {
-        expectUnit(call(HostCall::AddTagEntries { registry, tag: Identifier::parse(tag)?, entries, replace }))
+        expectUnit(call(RegistryRequest::AddTagEntries { registry, tag: Identifier::parse(tag)?, entries, replace }))
     }
 
     pub fn values(&self, registry: RegistryKind, tag: &str) -> Vec<Identifier> { tagValues(registry, tag) }
@@ -404,7 +425,7 @@ pub fn tagValues(registry: RegistryKind, tag: &str) -> Vec<Identifier>
         return Vec::new();
     };
 
-    match call(HostCall::TagValues { registry, tag })
+    match call(RegistryRequest::TagValues { registry, tag })
     {
         HostReply::Ids(ids) => ids,
         _ => Vec::new(),
@@ -414,7 +435,7 @@ pub fn tagValues(registry: RegistryKind, tag: &str) -> Vec<Identifier>
 /// needs api 1.30, the tags that hold the id, resolved through nested tags
 pub fn tagsOf(registry: RegistryKind, id: &Identifier) -> Vec<Identifier>
 {
-    match call(HostCall::TagsOf { registry, id: id.clone() })
+    match call(RegistryRequest::TagsOf { registry, id: id.clone() })
     {
         HostReply::Ids(ids) => ids,
         _ => Vec::new(),
@@ -424,7 +445,7 @@ pub fn tagsOf(registry: RegistryKind, id: &Identifier) -> Vec<Identifier>
 /// needs api 1.48, every entry of a registry, vanilla first then mods in name order
 pub fn registryList(registry: RegistryKind) -> Vec<Identifier>
 {
-    match call(HostCall::RegistryList { registry })
+    match call(RegistryRequest::RegistryList { registry })
     {
         HostReply::Ids(ids) => ids,
         _ => Vec::new(),
@@ -432,7 +453,10 @@ pub fn registryList(registry: RegistryKind) -> Vec<Identifier>
 }
 
 // sends one registration under this mod's namespace and hands back its handle
-pub(crate) fn registered<K>(name: &str, send: impl FnOnce(&Identifier) -> HostCall) -> Result<Ref<K>>
+pub(crate) fn registered<K, TCall: Into<HostCall>>(
+    name: &str,
+    send: impl FnOnce(&Identifier) -> TCall,
+) -> Result<Ref<K>>
 {
     let id: Identifier = ownIdentifier(name)?;
     expectUnit(call(send(&id)))?;

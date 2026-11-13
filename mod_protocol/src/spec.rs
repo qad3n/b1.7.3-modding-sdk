@@ -511,54 +511,12 @@ pub struct EntitySpec
     pub behavior: Option<Behavior<EntityMethod>>,
     pub model: Option<EntityModelSpec>,
     pub sounds: Option<EntitySounds>,
-    /// removed in api 1.28, the loader refuses an entity that sets it; steer with EntityBehavior::onTravel
-    pub steering: Option<SteeringSpec>,
     /// Entity.isImmuneToFire: fire and lava never hurt it
     pub fire_immune: bool,
     /// never despawns away from players, as a boss
     pub persistent: bool,
     /// nothing pushes it or adds to its motion, only its own AI moves it
     pub immovable: bool,
-}
-
-/// removed in api 1.28 and kept only so older specs still decode, see EntitySpec.steering
-#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Debug)]
-#[serde(default, deny_unknown_fields)]
-pub struct SteeringSpec
-{
-    /// the mount's walking speed with a rider, vanilla walking is 0.1
-    pub speed: f32,
-    /// upward speed a jump gives, vanilla is 0.42
-    pub jump: f32,
-    /// jumps allowed before landing again
-    pub air_jumps: i32,
-    /// falling speed is multiplied by this every tick while the rider is not sneaking, 1 keeps vanilla falling
-    pub glide: f32,
-    pub step_height: f32,
-    /// a sneaking rider gets off once the mount stands on ground
-    pub sneak_dismount: bool,
-    /// upward speed of a jump in the air, zero uses jump
-    pub air_jump: f32,
-    /// air jumps only start while the mount already falls
-    pub air_jump_falling: bool,
-}
-
-impl Default for SteeringSpec
-{
-    fn default() -> SteeringSpec
-    {
-        SteeringSpec
-        {
-            speed: 0.15,
-            jump: 0.42,
-            air_jumps: 0,
-            glide: 1.0,
-            step_height: 1.0,
-            sneak_dismount: true,
-            air_jump: 0.0,
-            air_jump_falling: false,
-        }
-    }
 }
 
 /// sound pool names, an absent one keeps the template's and an empty one is silent
@@ -579,6 +537,79 @@ pub struct TileEntitySpec
     pub ticks: bool,
     pub sync: bool,
     pub behavior: Option<Behavior<TileMethod>>,
+    /// api 2.0: an energy buffer the loader keeps, saves, syncs and serves to other mods for this tile
+    pub energy: Option<EnergyBufferSpec>,
+    /// api 2.0: a fluid tank the loader keeps, saves, syncs and serves to other mods for this tile
+    pub tank: Option<TankSpec>,
+}
+
+/// api 2.0: one fluid at a time up to a capacity in thousandths of a bucket; the loader answers other mods' fill,
+/// drain and level calls for it
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(default, deny_unknown_fields)]
+pub struct TankSpec
+{
+    pub capacity: i32,
+    /// fluid names the tank takes, any fluid when empty
+    pub accepts: Vec<String>,
+    /// one bit per block face in face order, set where fluid may come in
+    pub input_faces: u8,
+    /// one bit per block face in face order, set where fluid may go out
+    pub output_faces: u8,
+}
+
+impl Default for TankSpec
+{
+    fn default() -> TankSpec
+    {
+        TankSpec
+        {
+            capacity: 0,
+            accepts: Vec::new(),
+            input_faces: EnergyBufferSpec::ALL_FACES,
+            output_faces: EnergyBufferSpec::ALL_FACES,
+        }
+    }
+}
+
+/// api 2.0: energy a tile holds in one kind; the loader answers other mods' demand, send, level and take calls for
+/// it, so two mods' machines connect with no code on either side
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[serde(default, deny_unknown_fields)]
+pub struct EnergyBufferSpec
+{
+    /// an energy kind, a bare name is taken in the mod's own namespace
+    pub kind: String,
+    pub capacity: i64,
+    /// the most one transfer may put in, zero takes nothing from outside
+    pub input: i64,
+    /// the most one transfer may take out, zero gives nothing to outside
+    pub output: i64,
+    /// one bit per block face in face order, set where energy may come in
+    pub input_faces: u8,
+    /// one bit per block face in face order, set where energy may go out
+    pub output_faces: u8,
+}
+
+impl EnergyBufferSpec
+{
+    pub const ALL_FACES: u8 = 0b11_1111;
+}
+
+impl Default for EnergyBufferSpec
+{
+    fn default() -> EnergyBufferSpec
+    {
+        EnergyBufferSpec
+        {
+            kind: String::new(),
+            capacity: 0,
+            input: 0,
+            output: 0,
+            input_faces: EnergyBufferSpec::ALL_FACES,
+            output_faces: EnergyBufferSpec::ALL_FACES,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
@@ -836,6 +867,19 @@ pub struct FluidSpec
     pub nether_decay: Option<i32>,
     #[serde(default)]
     pub infinite: Option<bool>,
+}
+
+/// api 2.0: how the loader treats one named value a mod attaches to tiles, chunks, entities or the world
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct AttachmentSpec
+{
+    /// written with its holder and read back with it
+    pub saved: bool,
+    /// sent to every client that sees the holder, when the value changes and when the client first sees the holder
+    pub synced: bool,
+    /// on a player, stays through death
+    pub kept: bool,
 }
 
 /// api 1.33: an energy kind and what one unit is worth in the loader's shared base unit, so machines of different

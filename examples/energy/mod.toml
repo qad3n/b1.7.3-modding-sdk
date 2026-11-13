@@ -4,11 +4,8 @@ name = "Energy"
 description = "Batteries and an energy network other mods reach through the energy:network service and the energy:storage lookup"
 authors = ["b173 example"]
 license = "MIT"
-api = "1.0"
+api = "2.0"
 side = "both"
-
-[network]
-version = "1"
 
 [depends]
 loader = ">=0.1"

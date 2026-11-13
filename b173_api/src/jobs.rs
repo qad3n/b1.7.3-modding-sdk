@@ -1,7 +1,7 @@
 use crate::rt::call;
 use crate::{Error, IntoName, ItemStack, Result, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
-use mod_protocol::abi::{FluidStack, HostCall, HostReply, JobMatch, StackData};
+use mod_protocol::abi::{ContentRequest, FluidStack, HostReply, InventoryRequest, JobMatch, StackData};
 use mod_protocol::spec::
 {
     JobEnergySpec, JobFluidSpec, JobInputRule, JobInputSpec, JobOutputSpec, MachineFuelSpec, MachineJobSpec,
@@ -186,19 +186,14 @@ impl JobBuilder
         }
 
         let machine: Identifier = self.m_machine?;
-        if self.m_rules.is_empty()
-        {
-            return expectUnit(call(HostCall::AddMachineJob { machine, job: self.m_spec }));
-        }
-
-        expectUnit(call(HostCall::AddMachineJobRules { machine, job: self.m_spec, rules: self.m_rules }))
+        expectUnit(call(ContentRequest::AddMachineJobRules { machine, job: self.m_spec, rules: self.m_rules }))
     }
 }
 
 pub(crate) fn addFuel(machine: &str, item: Option<Identifier>, tag: Option<Identifier>, value: i32) -> Result<()>
 {
     let fuel: MachineFuelSpec = MachineFuelSpec { item, tag, meta: ANY_DAMAGE, value };
-    expectUnit(call(HostCall::AddMachineFuel { machine: ownIdentifier(machine)?, fuel }))
+    expectUnit(call(ContentRequest::AddMachineFuel { machine: ownIdentifier(machine)?, fuel }))
 }
 
 // the host's answers held per epoch, since they carry numeric ids, so machines asking every tick stay cheap
@@ -305,7 +300,7 @@ pub fn findJob(machine: &str, inputs: &[Option<ItemStack>], fluids: &[FluidStack
     let id: Identifier = ownIdentifier(machine).ok()?;
     let held: Vec<Option<StackData>> = raws(inputs);
     let job: Option<Rc<JobMatch>> =
-        match call(HostCall::MatchMachineJob { machine: id, inputs: held.clone(), fluids: fluids.to_vec() })
+        match call(InventoryRequest::MatchMachineJob { machine: id, inputs: held.clone(), fluids: fluids.to_vec() })
         {
             HostReply::Job(found) => found.map(Rc::new),
             _ => None,
@@ -373,7 +368,7 @@ pub fn machineFuel(machine: &str, stack: &ItemStack, furnace: bool) -> i32
         return 0;
     };
 
-    let value: i32 = match call(HostCall::MachineFuel { machine: id, stack: raw.clone(), furnace })
+    let value: i32 = match call(InventoryRequest::MachineFuel { machine: id, stack: raw.clone(), furnace })
     {
         HostReply::Int(ticks) => ticks,
         _ => 0,

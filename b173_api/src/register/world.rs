@@ -4,7 +4,7 @@ use crate::{Result, dispatch, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
 use mod_protocol::abi::
 {
-    BiomeSpec, BlockPos, ChunkInfo, DimensionSpec, HostCall, RegistryKind, SpawnEntry, StructureSpec,
+    BiomeSpec, BlockPos, ChunkInfo, DimensionSpec, RegistryKind, SpawnEntry, StructureSpec, WorldgenRequest,
 };
 use mod_protocol::spec::{CreatureKind, WorldgenKind, WorldgenSpec};
 use std::rc::Rc;
@@ -26,12 +26,12 @@ impl Worldgen
             replaces: None,
             biomes: Vec::new(),
         };
-        expectUnit(call(HostCall::RegisterWorldgen { name: name.to_owned(), spec }))
+        expectUnit(call(WorldgenRequest::RegisterWorldgen { name: name.to_owned(), spec }))
     }
 
     pub fn feature(&self, name: &str, spec: WorldgenSpec) -> Result<()>
     {
-        expectUnit(call(HostCall::RegisterWorldgen { name: name.to_owned(), spec }))
+        expectUnit(call(WorldgenRequest::RegisterWorldgen { name: name.to_owned(), spec }))
     }
 
     /// needs api 1.41, a named ore or tree feature the loader places, listed and turned off by name
@@ -60,13 +60,13 @@ impl Dimensions
     /// the handle it returns sets everything else about the dimension, so handlers never name the wrong one
     pub fn register(&self, name: &str, spec: DimensionSpec) -> Result<Dimension>
     {
-        expectUnit(call(HostCall::RegisterDimension { name: name.to_owned(), spec }))?;
+        expectUnit(call(WorldgenRequest::RegisterDimension { name: name.to_owned(), spec }))?;
         Ok(Dimension { m_id: ownIdentifier(name)? })
     }
 
     pub fn biome(&self, name: &str, spec: BiomeSpec) -> Result<()>
     {
-        expectUnit(call(HostCall::RegisterBiome { name: name.to_owned(), spec }))
+        expectUnit(call(WorldgenRequest::RegisterBiome { name: name.to_owned(), spec }))
     }
 
     /// the generator runs once per populated chunk of the dimension, vanilla dimensions take generators too
@@ -136,14 +136,19 @@ impl Dimension
     /// while players place blocks only below the build limit, terrain handlers still fill the bottom 128
     pub fn height(&self, height: i32, buildLimit: i32) -> Result<&Self>
     {
-        expectUnit(call(HostCall::DimensionHeight { dimension: self.m_id.clone(), height, build_limit: buildLimit }))?;
+        expectUnit(call(WorldgenRequest::DimensionHeight
+        {
+            dimension: self.m_id.clone(),
+            height,
+            build_limit: buildLimit,
+        }))?;
         Ok(self)
     }
 
     /// needs api 1.12, the seed the dimension generates from instead of the save's
     pub fn seed(&self, seed: i64) -> Result<&Self>
     {
-        expectUnit(call(HostCall::DimensionSeed { dimension: self.m_id.clone(), seed }))?;
+        expectUnit(call(WorldgenRequest::DimensionSeed { dimension: self.m_id.clone(), seed }))?;
         Ok(self)
     }
 
@@ -152,7 +157,7 @@ impl Dimension
     pub fn spawns(&self, handler: impl Fn(&SpawnQuery) -> Option<Vec<SpawnEntry>> + 'static) -> Result<&Self>
     {
         let handle: u32 = dispatch::addSpawnList(Rc::new(handler));
-        expectUnit(call(HostCall::RegisterSpawns { dimension: self.m_id.clone(), handler: handle }))?;
+        expectUnit(call(WorldgenRequest::RegisterSpawns { dimension: self.m_id.clone(), handler: handle }))?;
         Ok(self)
     }
 }
@@ -167,7 +172,7 @@ impl Structures
     /// under data/<modid>/structure_templates/
     pub fn template(&self, name: &str, spec: mod_protocol::spec::StructureTemplateSpec) -> Result<()>
     {
-        crate::expectUnit(crate::rt::call(mod_protocol::abi::HostCall::RegisterTemplate
+        crate::expectUnit(crate::rt::call(mod_protocol::abi::WorldgenRequest::RegisterTemplate
         {
             name: crate::ownIdentifier(name)?.to_string(),
             spec,
@@ -196,7 +201,7 @@ impl Structures
 fn addStructure(name: &str, label: &str, dimension: &str, finder: Option<u32>) -> Result<Structure>
 {
     let spec: StructureSpec = StructureSpec { name: label.to_owned(), dimension: ownIdentifier(dimension)? };
-    expectUnit(call(HostCall::RegisterStructure { name: name.to_owned(), spec, finder }))?;
+    expectUnit(call(WorldgenRequest::RegisterStructure { name: name.to_owned(), spec, finder }))?;
     Ok(Structure { m_id: ownIdentifier(name)? })
 }
 
@@ -230,13 +235,13 @@ pub fn spawnEntry(entity: &str, weight: i32) -> Result<SpawnEntry>
 fn addGenerator(dimension: Identifier, handler: impl Fn(ChunkInfo) + 'static) -> Result<()>
 {
     let handle: u32 = dispatch::addGenerator(Rc::new(handler));
-    expectUnit(call(HostCall::RegisterGenerator { dimension, handler: handle }))
+    expectUnit(call(WorldgenRequest::RegisterGenerator { dimension, handler: handle }))
 }
 
 fn addTerrain(dimension: Identifier, handler: impl Fn(&ChunkInfo, &mut ChunkBlocks) + 'static) -> Result<()>
 {
     let handle: u32 = dispatch::addTerrain(Rc::new(handler));
-    expectUnit(call(HostCall::RegisterTerrain { dimension, handler: handle }))
+    expectUnit(call(WorldgenRequest::RegisterTerrain { dimension, handler: handle }))
 }
 
 fn addBiomeSource(
@@ -247,5 +252,5 @@ fn addBiomeSource(
 {
     let biomes: Vec<Identifier> = biomes.iter().map(|name| ownIdentifier(name)).collect::<Result<_>>()?;
     let handle: u32 = dispatch::addBiomeSource(Rc::new(handler));
-    expectUnit(call(HostCall::RegisterBiomeSource { dimension, biomes, handler: handle }))
+    expectUnit(call(WorldgenRequest::RegisterBiomeSource { dimension, biomes, handler: handle }))
 }

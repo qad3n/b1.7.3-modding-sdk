@@ -67,9 +67,10 @@ pub(crate) fn run(root: &Path) -> Result<Vec<String>>
         problems.push(format!("version '{}' must be major.minor.patch", head.version));
     }
 
-    if !head.api.starts_with("1.")
+    let major: String = format!("{}.", mod_protocol::API_MAJOR);
+    if !head.api.starts_with(&major)
     {
-        problems.push(format!("api '{}' must be 1.x for this loader", head.api));
+        problems.push(format!("api '{}' must be {major}x for this loader", head.api));
     }
     for path in files(root, "data")
     {

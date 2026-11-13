@@ -3,7 +3,7 @@ use crate::terrain::Random;
 use crate::world::World;
 use crate::{BlockPos, Result, dispatch, epoch, expectBool, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
-use mod_protocol::abi::{FeatureInfo, HostCall, HostReply};
+use mod_protocol::abi::{FeatureInfo, HostReply, WorldgenRequest};
 use mod_protocol::spec::{FeatureKind, FeatureSpec, FeatureStep, HeightSpec, OreFeatureSpec, TreeFeatureSpec};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap};
@@ -182,7 +182,12 @@ pub(crate) fn register(name: &str, feature: FeatureBuilder, handler: Option<Feat
 {
     let id: Identifier = ownIdentifier(name)?;
     let handle: Option<u32> = handler.map(dispatch::addFeature);
-    expectUnit(call(HostCall::RegisterFeature { name: name.to_owned(), spec: feature.m_spec, handler: handle }))?;
+    expectUnit(call(WorldgenRequest::RegisterFeature
+    {
+        name: name.to_owned(),
+        spec: feature.m_spec,
+        handler: handle,
+    }))?;
 
     if let Some(handle) = handle
     {
@@ -202,7 +207,7 @@ pub fn featureList() -> Rc<Vec<FeatureInfo>>
         return list;
     }
 
-    let list: Rc<Vec<FeatureInfo>> = Rc::new(match call(HostCall::Features)
+    let list: Rc<Vec<FeatureInfo>> = Rc::new(match call(WorldgenRequest::Features)
     {
         HostReply::Features(features) => features,
         _ => Vec::new(),
@@ -233,6 +238,7 @@ impl World
         }
 
         let seed: i64 = random.nextLong();
-        expectBool(call(HostCall::PlaceFeature { feature: id, world: self.dimension, pos, seed })).unwrap_or(false)
+        expectBool(call(WorldgenRequest::PlaceFeature { feature: id, world: self.dimension, pos, seed }))
+            .unwrap_or(false)
     }
 }

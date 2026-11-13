@@ -53,6 +53,56 @@ pub fn decode<T: DeserializeOwned>(bytes: &[u8]) -> Result<T, WireError>
     postcard::from_bytes(bytes).map_err(|error| WireError::Codec(error.to_string()))
 }
 
+/// the named form keeps field names, so a type sent this way may gain defaulted fields and still read old bytes
+pub fn encodeNamed<T: Serialize>(value: &T) -> Vec<u8>
+{
+    rmp_serde::to_vec_named(value).expect("every protocol type has a messagepack form")
+}
+
+pub fn decodeNamed<T: DeserializeOwned>(bytes: &[u8]) -> Result<T, WireError>
+{
+    rmp_serde::from_slice(bytes).map_err(|error| WireError::Codec(error.to_string()))
+}
+
+/// first byte of data a mod stores in the host since abi 4, the named form follows it
+pub const STORED_MARK: u8 = 0xB4;
+
+/// what a mod keeps on a tile, an entity, a player, a stack or a world, written so its struct can change shape later
+pub fn encodeStored<T: Serialize>(value: &T) -> Vec<u8>
+{
+    let mut bytes: Vec<u8> = vec![STORED_MARK];
+    bytes.extend_from_slice(&encodeNamed(value));
+    bytes
+}
+
+/// data without the mark was stored before abi 4 in the positional form and is read that way
+pub fn decodeStored<T: DeserializeOwned>(bytes: &[u8]) -> Result<T, WireError>
+{
+    match bytes.split_first()
+    {
+        Some((mark, named)) if *mark == STORED_MARK => decodeNamed(named).or_else(|_| decode(bytes)),
+        _ => decode(bytes),
+    }
+}
+
+/// for `#[serde(with = "crate::wire::named")]`: a field carried as named bytes inside a positional message
+pub mod named
+{
+    use serde::de::{DeserializeOwned, Error as _};
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    pub fn serialize<T: Serialize, S: Serializer>(value: &T, serializer: S) -> Result<S::Ok, S::Error>
+    {
+        serializer.serialize_bytes(&super::encodeNamed(value))
+    }
+
+    pub fn deserialize<'de, T: DeserializeOwned, D: Deserializer<'de>>(deserializer: D) -> Result<T, D::Error>
+    {
+        let bytes: Vec<u8> = Vec::deserialize(deserializer)?;
+        super::decodeNamed(&bytes).map_err(D::Error::custom)
+    }
+}
+
 mod varint
 {
     pub const PAYLOAD: u32 = 0x7F;

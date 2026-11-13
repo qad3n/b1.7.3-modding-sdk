@@ -1,6 +1,6 @@
 use crate::rt::call;
 use crate::{Error, Result, dispatch, expectText, expectUnit};
-use mod_protocol::abi::{ConfigEntry, ConfigKind, ConfigOption, ConfigScope, HostCall};
+use mod_protocol::abi::{ConfigKind, ConfigOption, ConfigScope, MetaRequest};
 use std::fmt::Display;
 use std::ops::RangeInclusive;
 use std::rc::Rc;
@@ -89,27 +89,11 @@ pub struct Config;
 
 impl Config
 {
-    #[deprecated(note = "use Config::options with Setting, it gives typed values and mod menu controls")]
-    pub fn define(&self, entries: &[(&str, &str, &str, ConfigScope)]) -> Result<()>
-    {
-        let entries: Vec<ConfigEntry> = entries
-            .iter()
-            .map(|(key, default, comment, scope)| ConfigEntry
-            {
-                key: (*key).to_owned(),
-                default: (*default).to_owned(),
-                comment: (*comment).to_owned(),
-                scope: *scope,
-            })
-            .collect();
-        expectUnit(call(HostCall::DefineConfig { entries }))
-    }
-
     /// values live in config/<modid>.toml and the player edits them in the mod menu
     pub fn options(&self, settings: impl IntoIterator<Item = Setting>) -> Result<()>
     {
         let options: Vec<ConfigOption> = settings.into_iter().map(|setting| setting.m_option).collect();
-        expectUnit(call(HostCall::DefineConfigOptions { options }))
+        expectUnit(call(MetaRequest::DefineConfigOptions { options }))
     }
 
     pub fn get(&self, key: &str) -> String { configValue(key) }
@@ -122,7 +106,7 @@ impl Config
 
     pub fn set(&self, key: &str, value: impl Display) -> Result<()>
     {
-        expectUnit(call(HostCall::SetConfigValue { key: key.to_owned(), value: value.to_string() }))
+        expectUnit(call(MetaRequest::SetConfigValue { key: key.to_owned(), value: value.to_string() }))
             .map_err(|error| Error(format!("config {key}: {}", error.0)))
     }
 
@@ -132,5 +116,5 @@ impl Config
 
 pub fn configValue(key: &str) -> String
 {
-    expectText(call(HostCall::ConfigValue { key: key.to_owned() })).unwrap_or_default()
+    expectText(call(MetaRequest::ConfigValue { key: key.to_owned() })).unwrap_or_default()
 }

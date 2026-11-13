@@ -19,7 +19,8 @@ mod world;
 pub use blocks::{BlockSpecBuilder, Blocks};
 pub use builders::
 {
-    Achievement, Attribute, Build, DamageType, Effect, Energy, Fluid, GameRule, Particle, Property, Stat, Tile, Variant,
+    Achievement, Attribute, Build, DamageType, Effect, Energy, EnergyBuffer, Fluid, GameRule, Particle, Property, Stat,
+    Tank, Tile, Variant,
 };
 pub(crate) use content::registered;
 pub use content::

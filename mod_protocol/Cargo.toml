@@ -13,6 +13,7 @@ data = ["dep:toml"]
 [dependencies]
 flate2 = { version = "1.1", optional = true }
 postcard = { version = "1.1", default-features = false, features = ["alloc"] }
+rmp-serde = "1"
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
 toml = { version = "0.9", optional = true }
 

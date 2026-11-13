@@ -19,7 +19,7 @@ fn sdkDependency() -> String
     match std::env::var("B173_SDK")
     {
         Ok(path) => format!("b173_api = {{ path = \"{path}\" }}"),
-        Err(_) => "b173_api = \"1\"".to_owned(),
+        Err(_) => "b173_api = \"2\"".to_owned(),
     }
 }
 
@@ -46,7 +46,7 @@ pub(crate) fn create(parent: &Path, id: &str) -> Result<()>
     write(
         &root.join("mod.toml"),
         &format!(
-            "id = \"{id}\"\nversion = \"0.1.0\"\nname = \"{id}\"\napi = \"1.1\"\nside = \"both\"\n\n[network]\nversion = \"1\"\n\n[depends]\nloader = \">=0.1\"\n"
+            "id = \"{id}\"\nversion = \"0.1.0\"\nname = \"{id}\"\napi = \"2.0\"\nside = \"both\"\n\n[depends]\nloader = \">=0.1\"\n"
         ),
     )?;
     write(

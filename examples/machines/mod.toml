@@ -4,11 +4,8 @@ name = "Machines"
 description = "A generator that charges energy batteries it touches, through the energy mod's service and lookup"
 authors = ["b173 example"]
 license = "MIT"
-api = "1.0"
+api = "2.0"
 side = "both"
-
-[network]
-version = "1"
 
 [depends]
 loader = ">=0.1"

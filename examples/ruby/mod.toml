@@ -4,11 +4,10 @@ name = "Ruby"
 description = "Ruby ore, gems, tools and food, all from data files"
 authors = ["b173 example"]
 license = "MIT"
-api = "1.1"
+api = "2.0"
 side = "both"
 
 [network]
-version = "1"
 required = true
 
 [depends]

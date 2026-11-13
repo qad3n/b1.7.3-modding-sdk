@@ -168,7 +168,7 @@ pub(crate) fn fetchData<T: DeserializeOwned + Default>(reply: HostReply) -> T
         return T::default();
     }
 
-    match crate::world::decode(&bytes)
+    match mod_protocol::wire::decodeStored(&bytes)
     {
         Ok(value) => value,
 

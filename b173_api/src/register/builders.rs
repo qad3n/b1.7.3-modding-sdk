@@ -5,9 +5,9 @@ use mod_protocol::Identifier;
 use mod_protocol::abi::{GameRuleValue, ModifierOperation};
 use mod_protocol::spec::
 {
-    AchievementSpec, AttributeSpec, Behavior, DamageTypeSpec, EffectModifierSpec, EffectSpec, EnergySpec,
-    EntityModelSpec, FaceTextures, FluidSpec, FluidStyle, GameRuleCategory, GameRuleSpec, ParticleSpec, PropertySpec,
-    StatFormat, StatSpec, StateVariantSpec, TileEntitySpec, TileMethod,
+    AchievementSpec, AttributeSpec, Behavior, DamageTypeSpec, EffectModifierSpec, EffectSpec, EnergyBufferSpec,
+    EnergySpec, EntityModelSpec, FaceTextures, FluidSpec, FluidStyle, GameRuleCategory, GameRuleSpec, ParticleSpec,
+    PropertySpec, StatFormat, StatSpec, StateVariantSpec, TankSpec, TileEntitySpec, TileMethod,
 };
 use std::collections::BTreeMap;
 use std::rc::Rc;
@@ -395,6 +395,81 @@ impl Variant
     }
 }
 
+/// one fluid at a time, up to a capacity in thousandths of a bucket
+pub struct Tank
+{
+    pub(crate) m_spec: TankSpec,
+}
+
+impl Tank
+{
+    pub fn new(capacity: i32) -> Self { Tank { m_spec: TankSpec { capacity, ..TankSpec::default() } } }
+
+    /// the fluids the tank takes by name, any fluid when not called
+    pub fn accepts(mut self, fluids: &[&str]) -> Self
+    {
+        self.m_spec.accepts = fluids.iter().map(|fluid| (*fluid).to_owned()).collect();
+        self
+    }
+
+    /// one bit per block face in face order, set where fluid may come in; every face when not called
+    pub fn inputFaces(mut self, faces: u8) -> Self
+    {
+        self.m_spec.input_faces = faces;
+        self
+    }
+
+    /// one bit per block face in face order, set where fluid may go out; every face when not called
+    pub fn outputFaces(mut self, faces: u8) -> Self
+    {
+        self.m_spec.output_faces = faces;
+        self
+    }
+}
+
+/// how much of one energy kind a tile holds and how fast it moves in and out
+pub struct EnergyBuffer
+{
+    pub(crate) m_spec: EnergyBufferSpec,
+}
+
+impl EnergyBuffer
+{
+    /// the kind is one this or another mod registered, a bare name is taken in this mod's namespace
+    pub fn new(kind: &str, capacity: i64) -> Self
+    {
+        EnergyBuffer { m_spec: EnergyBufferSpec { kind: kind.to_owned(), capacity, ..EnergyBufferSpec::default() } }
+    }
+
+    /// the most one transfer may put in from outside
+    pub fn input(mut self, rate: i64) -> Self
+    {
+        self.m_spec.input = rate;
+        self
+    }
+
+    /// the most one transfer may take out from outside
+    pub fn output(mut self, rate: i64) -> Self
+    {
+        self.m_spec.output = rate;
+        self
+    }
+
+    /// one bit per block face in face order, set where energy may come in; every face when not called
+    pub fn inputFaces(mut self, faces: u8) -> Self
+    {
+        self.m_spec.input_faces = faces;
+        self
+    }
+
+    /// one bit per block face in face order, set where energy may go out; every face when not called
+    pub fn outputFaces(mut self, faces: u8) -> Self
+    {
+        self.m_spec.output_faces = faces;
+        self
+    }
+}
+
 /// a tile entity declared with its block: inventory, ticking, client sync, behavior and model
 pub struct Tile
 {
@@ -434,6 +509,22 @@ impl Tile
     pub fn model(mut self, model: EntityModelSpec) -> Self
     {
         self.m_model = Some(model);
+        self
+    }
+
+    /// a fluid tank the loader keeps for the tile: it is saved, sent to clients and open to other mods' pipes with no
+    /// code here; read and change it with World::tankLevel, fillFluid, drainFluid and setTank
+    pub fn tank(mut self, tank: Tank) -> Self
+    {
+        self.m_spec.tank = Some(tank.m_spec);
+        self
+    }
+
+    /// an energy buffer the loader keeps for the tile: it is saved, sent to clients and open to other mods' machines
+    /// with no code here; read and change it with World::energyLevel, takeEnergy, sendEnergy and setEnergy
+    pub fn energy(mut self, buffer: EnergyBuffer) -> Self
+    {
+        self.m_spec.energy = Some(buffer.m_spec);
         self
     }
 

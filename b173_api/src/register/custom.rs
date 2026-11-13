@@ -2,7 +2,7 @@ use crate::refs::{IntoName, Ref, kind};
 use crate::rt::call;
 use crate::{Error, Result, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
-use mod_protocol::abi::{HostCall, HostReply, MapTarget, RegistryKind};
+use mod_protocol::abi::{HostReply, MapTarget, RegistryKind, RegistryRequest};
 use mod_protocol::spec::{TagEntry, TagRef};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -59,7 +59,7 @@ impl ModRegistries
     pub fn create<T>(&self, name: &str, synced: bool) -> Result<ModRegistry<T>>
     {
         let id: Identifier = ownIdentifier(name)?;
-        expectUnit(call(HostCall::CreateRegistry { name: id.to_string(), synced }))?;
+        expectUnit(call(RegistryRequest::CreateRegistry { name: id.to_string(), synced }))?;
         Ok(ModRegistry::named(id))
     }
 
@@ -78,7 +78,7 @@ impl ModRegistries
     fn createMap<T>(&self, name: &str, target: MapTarget, synced: bool) -> Result<DataMap<T>>
     {
         let id: Identifier = ownIdentifier(name)?;
-        expectUnit(call(HostCall::CreateDataMap { name: id.to_string(), target, synced }))?;
+        expectUnit(call(RegistryRequest::CreateDataMap { name: id.to_string(), target, synced }))?;
         Ok(DataMap::named(id))
     }
 }
@@ -106,13 +106,18 @@ impl<T: Serialize + DeserializeOwned> ModRegistry<T>
     {
         let id: Identifier = ownIdentifier(name)?;
         let value: String = encode(value)?;
-        expectUnit(call(HostCall::AddRegistryEntry { registry: self.m_id.clone(), name: id.to_string(), value }))?;
+        expectUnit(call(RegistryRequest::AddRegistryEntry
+        {
+            registry: self.m_id.clone(),
+            name: id.to_string(),
+            value,
+        }))?;
         Ok(Ref::new(id))
     }
 
     pub fn entries(&self) -> Vec<(Identifier, T)>
     {
-        entries(call(HostCall::RegistryEntries { registry: self.m_id.clone() }))
+        entries(call(RegistryRequest::RegistryEntries { registry: self.m_id.clone() }))
             .into_iter()
             .filter_map(|(id, text)| Some((id, decode(&text)?)))
             .collect()
@@ -132,7 +137,7 @@ impl<T: Serialize + DeserializeOwned> ModRegistry<T>
             .map(|member| Ok(TagEntry { target: TagRef::parse(member)?, required: true }))
             .collect::<Result<_>>()?;
         let tag: Identifier = Identifier::parse(tag.trim_start_matches('#'))?;
-        expectUnit(call(HostCall::AddRegistryTag { registry: self.m_id.clone(), tag, entries, replace: false }))
+        expectUnit(call(RegistryRequest::AddRegistryTag { registry: self.m_id.clone(), tag, entries, replace: false }))
     }
 
     pub fn tagged(&self, tag: &str) -> Vec<Identifier>
@@ -143,7 +148,7 @@ impl<T: Serialize + DeserializeOwned> ModRegistry<T>
             return Vec::new();
         };
 
-        match call(HostCall::RegistryTagValues { registry: self.m_id.clone(), tag })
+        match call(RegistryRequest::RegistryTagValues { registry: self.m_id.clone(), tag })
         {
             HostReply::Ids(ids) => ids,
             _ => Vec::new(),
@@ -174,7 +179,7 @@ impl<T: Serialize + DeserializeOwned> DataMap<T>
     {
         let value: String = encode(&Wrapped { value })?;
         let values: Vec<(TagRef, String)> = vec![(TagRef::parse(key)?, value)];
-        expectUnit(call(HostCall::SetDataMapValues
+        expectUnit(call(RegistryRequest::SetDataMapValues
         {
             map: self.m_id.clone(),
             values,
@@ -187,7 +192,7 @@ impl<T: Serialize + DeserializeOwned> DataMap<T>
     pub fn remove(&self, key: &str) -> Result<()>
     {
         let remove: Vec<TagRef> = vec![TagRef::parse(key)?];
-        expectUnit(call(HostCall::SetDataMapValues
+        expectUnit(call(RegistryRequest::SetDataMapValues
         {
             map: self.m_id.clone(),
             values: Vec::new(),
@@ -199,13 +204,14 @@ impl<T: Serialize + DeserializeOwned> DataMap<T>
     pub fn value(&self, id: impl IntoName) -> Option<T>
     {
         let id: Identifier = id.intoName().ok()?;
-        let (_, text) = entries(call(HostCall::DataMapValue { map: self.m_id.clone(), id })).into_iter().next()?;
+        let (_, text) =
+            entries(call(RegistryRequest::DataMapValue { map: self.m_id.clone(), id })).into_iter().next()?;
         decode::<Wrapped<T>>(&text).map(|wrapped| wrapped.value)
     }
 
     pub fn entries(&self) -> Vec<(Identifier, T)>
     {
-        entries(call(HostCall::DataMapEntries { map: self.m_id.clone() }))
+        entries(call(RegistryRequest::DataMapEntries { map: self.m_id.clone() }))
             .into_iter()
             .filter_map(|(id, text)| Some((id, decode::<Wrapped<T>>(&text)?.value)))
             .collect()

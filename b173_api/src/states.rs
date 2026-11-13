@@ -1,5 +1,5 @@
 use crate::{BlockCtx, BlockPos, Entity, EntityField, Identifier, Result, StateData, World, epoch, modId, rt};
-use mod_protocol::abi::{HostCall, HostReply};
+use mod_protocol::abi::{HostReply, RegistryRequest};
 use std::cell::{Cell, Ref, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -29,7 +29,7 @@ pub fn stateOf(block: i32, meta: i32) -> Option<Rc<StateData>>
     }
 
     let state: Option<Rc<StateData>> =
-        crate::reply::expectState(rt::call(HostCall::DescribeState { block, meta })).ok().flatten().map(Rc::new);
+        crate::reply::expectState(rt::call(RegistryRequest::DescribeState { block, meta })).ok().flatten().map(Rc::new);
     STATES.with(|cache| cache.borrow_mut().insert((block, meta), (epoch, state.clone())));
     state
 }
@@ -64,7 +64,7 @@ impl StateHandle
             return (block, meta);
         }
 
-        let (block, meta): (i32, i32) = match rt::call(HostCall::ResolveState { state: self.m_state.clone() })
+        let (block, meta): (i32, i32) = match rt::call(RegistryRequest::ResolveState { state: self.m_state.clone() })
         {
             HostReply::Size(block, meta) => (block, meta),
             other =>

@@ -2,7 +2,7 @@ use crate::rt::{call, fire};
 use crate::world::{decode, encode};
 use crate::{Error, Result, expectBool, expectBytes};
 use mod_protocol::Identifier;
-use mod_protocol::abi::{BlockPos, HostCall, HostReply};
+use mod_protocol::abi::{BlockPos, HostReply, MetaRequest, SharedRequest};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
@@ -20,12 +20,13 @@ pub trait Lookup
 
 pub fn has(name: &str, version: u32) -> bool
 {
-    Identifier::parse(name).is_ok_and(|name| expectBool(call(HostCall::HasService { name, version })).unwrap_or(false))
+    Identifier::parse(name)
+        .is_ok_and(|name| expectBool(call(SharedRequest::HasService { name, version })).unwrap_or(false))
 }
 
 pub fn callService<A: Serialize, R: DeserializeOwned>(name: &str, version: u32, method: &str, args: &A) -> Result<R>
 {
-    let bytes: Vec<u8> = expectBytes(call(HostCall::CallService
+    let bytes: Vec<u8> = expectBytes(call(SharedRequest::CallService
     {
         name: Identifier::parse(name)?,
         version,
@@ -45,7 +46,7 @@ pub fn lookup<A: Serialize, R: DeserializeOwned>(
     args: &A,
 ) -> Result<Option<R>>
 {
-    match call(HostCall::CallLookup
+    match call(SharedRequest::CallLookup
     {
         api: Identifier::parse(api)?,
         world,
@@ -64,10 +65,10 @@ pub fn lookup<A: Serialize, R: DeserializeOwned>(
 
 pub fn sendInterMod<T: Serialize>(to: &str, kind: &str, data: &T)
 {
-    fire(HostCall::SendInterMod { to: to.to_owned(), kind: kind.to_owned(), data: encode(data) });
+    fire(SharedRequest::SendInterMod { to: to.to_owned(), kind: kind.to_owned(), data: encode(data) });
 }
 
 pub fn postEvent<T: Serialize>(event: &str, data: &T) -> Result<bool>
 {
-    expectBool(call(HostCall::PostEvent { id: Identifier::parse(event)?, data: encode(data) }))
+    expectBool(call(MetaRequest::PostEvent { id: Identifier::parse(event)?, data: encode(data) }))
 }

@@ -2,6 +2,7 @@
 mod macros;
 
 mod accessories;
+mod attachment;
 mod behavior;
 mod config;
 mod containers;
@@ -25,24 +26,26 @@ pub mod vanilla;
 pub mod world;
 
 pub use accessories::{Accessories, WornStack};
+pub use attachment::{Attachable, Attachment, ChunkAt, Save};
 pub use b173_api_macros::{block_behavior, effect_behavior, entity_behavior, item_behavior, mod_main, tile_behavior};
 pub use behavior::{BlockBehavior, EffectBehavior, EntityBehavior, ItemBehavior, TileBehavior, Use};
 pub use config::{Config, Setting, configValue};
 pub use containers::{containedFluid, drainItem, fill, fluidContainers};
+pub use dispatch::Command;
 pub use entity_state::EntityState;
 pub use features::{FeatureBuilder, FeatureCtx, featureList};
 pub use jobs::{JobBuilder, findJob, machineFuel, matchJob};
 pub use machines::{machineRecipe, machineRecipes};
 pub use mod_protocol::Identifier;
-use mod_protocol::abi::HostCall;
+use mod_protocol::abi::RegistryRequest;
 pub use mod_protocol::abi::
 {
-    AttachmentHolder, BiomeSpec, BipedPart, BlockInfo, BlockPos, ChunkInfo, ConfigScope, ContainerSwap, DimensionSpec,
-    EnergyDemand, EntityField, EntityInfo, EventKind, FaceOverlay, FeatureInfo, FluidBlock, FluidStack, GameRuleValue,
-    ItemInfo, ItemModelSpec, JobMatch, JobOutput, Located, LootContext, LootDrop, LootSource, LootTarget, LootView,
-    MachineRecipeView, MachineSlot, MachineView, ModelOp, ModifierOperation, MusicSpec, Permission, PlayerLayer, Pose,
-    PoseInput, Priority, RayHit, RecipeShape, RecipeView, RegistryKind, SpawnEntry, StackData, StackRef, StateData,
-    StructurePiece, StructureSpec, StructureStart, Target, UseAction, Worn, capability,
+    BiomeSpec, BipedPart, BlockInfo, BlockPos, ChunkInfo, ConfigScope, ContainerSwap, DimensionSpec, EnergyDemand,
+    EnergyLevel, EntityField, EntityInfo, EventKind, FaceOverlay, FeatureInfo, FluidBlock, FluidStack, GameRuleValue,
+    Holder, ItemInfo, ItemModelSpec, JobMatch, JobOutput, Located, LootContext, LootDrop, LootSource, LootTarget,
+    LootView, MachineRecipeView, MachineSlot, MachineView, ModelOp, ModifierOperation, MusicSpec, Permission,
+    PlayerLayer, Pose, PoseInput, Priority, RayHit, RecipeShape, RecipeView, RegistryKind, SpawnEntry, StackData,
+    StackRef, StateData, StructurePiece, StructureSpec, StructureStart, TankLevel, Target, UseAction, Worn, capability,
 };
 pub use mod_protocol::handshake::ChannelDirection as Direction;
 use mod_protocol::identifier::IdentifierError;
@@ -56,8 +59,8 @@ pub use mod_protocol::spec::
     JobEnergySpec, JobFluidSpec, JobInputRule, JobInputSpec, JobOutputSpec, LoadConditions, LootEntrySpec,
     LootPoolSpec, LootSpec, MachineFuelSpec, MachineJobSpec, MachineModifySpec, MachineRecipeSpec, MachineSlotSpec,
     MachineSpec, ModelBox, ModelPart, ParticleSpec, PropertySpec, RecipeModifySpec, SpawnModifySpec, SpawnSpec,
-    StatFormat, StatSpec, StateCuboid, StateModelSpec, StateVariantSpec, SteeringSpec, TagEntry, TagRef,
-    TileEntitySpec, ToolClass, ToolSpec, WeightedLootSpec,
+    StatFormat, StatSpec, StateCuboid, StateModelSpec, StateVariantSpec, TagEntry, TagRef, TileEntitySpec, ToolClass,
+    ToolSpec, WeightedLootSpec,
 };
 use mod_protocol::wire::WireError;
 pub use names::{BlockRef, blockIs, blockTagged, nameOf, nameWith, named, tagMembers, tagged};
@@ -144,7 +147,7 @@ pub fn resolve(registry: RegistryKind, id: &Identifier) -> Result<i32>
         return Ok(numeric);
     }
 
-    let numeric: i32 = expectInt(rt::call(HostCall::Resolve { registry, id: id.clone() }))?;
+    let numeric: i32 = expectInt(rt::call(RegistryRequest::Resolve { registry, id: id.clone() }))?;
     RESOLVED.with(|cache| cache.borrow_mut().entry(registry).or_default().insert(id.clone(), (epoch, numeric)));
     Ok(numeric)
 }
@@ -158,7 +161,7 @@ pub fn maxDamage(item: &ItemRef) -> i32
         return 0;
     };
 
-    expectInt(rt::call(HostCall::MaxDamage { item: numeric })).unwrap_or(0)
+    expectInt(rt::call(RegistryRequest::MaxDamage { item: numeric })).unwrap_or(0)
 }
 
 /// an item named by identifier, resolved to its numeric id when it crosses into the game
@@ -282,7 +285,7 @@ impl ItemStack
             return info;
         }
 
-        let info: Option<ItemInfo> = expectItemInfo(rt::call(HostCall::ItemInfo { stack }));
+        let info: Option<ItemInfo> = expectItemInfo(rt::call(RegistryRequest::ItemInfo { stack }));
         INFOS.with(|infos| infos.borrow_mut().insert(key, (epoch, info)));
         info
     }

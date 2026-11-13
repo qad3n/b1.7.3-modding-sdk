@@ -17,31 +17,34 @@ unsafe extern "Rust"
 #[unsafe(no_mangle)]
 pub extern "C" fn b173_abi() -> u32 { abi::ABI_VERSION }
 
+// every buffer that crosses to the host is a boxed slice, whose allocation is exactly its length, so the pointer and
+// length alone rebuild it on the way back
 #[unsafe(no_mangle)]
 pub extern "C" fn b173_alloc(length: u32) -> u32
 {
-    let mut buffer: Vec<u8> = Vec::with_capacity(length as usize);
-    let pointer: *mut u8 = buffer.as_mut_ptr();
+    Box::into_raw(vec![0u8; length as usize].into_boxed_slice()) as *mut u8 as u32
+}
 
-    std::mem::forget(buffer);
-    pointer as u32
+// SAFETY: the caller passes a pointer and length that one boxed slice handed out and that nothing has taken back yet
+unsafe fn take(pointer: u32, length: u32) -> Box<[u8]>
+{
+    // SAFETY: the pair names a live boxed slice of this length per the contract above
+    unsafe { Box::from_raw(std::ptr::slice_from_raw_parts_mut(pointer as *mut u8, length as usize)) }
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn b173_free(pointer: u32, length: u32)
 {
     // SAFETY: the host only frees buffers it got from b173_alloc or b173_dispatch with the same length
-    unsafe { drop(Vec::from_raw_parts(pointer as *mut u8, 0, length as usize)) };
+    drop(unsafe { take(pointer, length) });
 }
 
-// a boxed slice has capacity equal to length, which b173_free relies on when it rebuilds the buffer
 fn leak(bytes: Vec<u8>) -> u64
 {
     let bytes: Box<[u8]> = bytes.into_boxed_slice();
-    let packed: u64 = abi::packBuffer(bytes.as_ptr() as u32, bytes.len() as u32);
+    let length: u32 = bytes.len() as u32;
 
-    std::mem::forget(bytes);
-    packed
+    abi::packBuffer(Box::into_raw(bytes) as *mut u8 as u32, length)
 }
 
 #[unsafe(no_mangle)]
@@ -61,26 +64,40 @@ pub extern "C" fn b173_dispatch(pointer: u32, length: u32) -> u64
     }
 }
 
-pub fn call(request: HostCall) -> HostReply
+// a call site names only its group, such as WorldRequest, and this turns it into the one envelope the host reads
+pub fn call(request: impl Into<HostCall>) -> HostReply
 {
+    let request: HostCall = request.into();
     let bytes: Vec<u8> = wire::encode(&request);
     // SAFETY: the host reads the request and answers with a buffer allocated through b173_alloc
     let packed: u64 = unsafe { host_call(bytes.as_ptr() as u32, bytes.len() as u32) };
     let (pointer, length): (u32, u32) = abi::unpackBuffer(packed);
-    // SAFETY: the reply buffer is owned by us now and freed right after decoding
-    let reply: Vec<u8> = unsafe { Vec::from_raw_parts(pointer as *mut u8, length as usize, length as usize) };
+    // SAFETY: the host wrote the reply into a buffer it got from b173_alloc with this length and hands it over here
+    let reply: Box<[u8]> = unsafe { take(pointer, length) };
     wire::decode(&reply).unwrap_or_else(|error| HostReply::Error(format!("bad host reply: {error}")))
 }
 
-// a call whose only answer is success, a failure is logged since the caller has no result to check
-pub(crate) fn fire(request: HostCall)
+thread_local!
 {
-    match call(request)
+    // failures of result-less calls already logged, a call that fails every tick is reported once
+    static REPORTED: std::cell::RefCell<std::collections::HashSet<String>> =
+        std::cell::RefCell::new(std::collections::HashSet::new());
+}
+
+// a call whose only answer is success, a failure is logged since the caller has no result to check
+pub(crate) fn fire(request: impl Into<HostCall>)
+{
+    let reason: String = match call(request)
     {
-        HostReply::Unit =>
-        {}
-        HostReply::Error(reason) => log(LogLevel::Warn, &reason),
-        other => log(LogLevel::Warn, &format!("unexpected host reply {other:?}")),
+        HostReply::Unit => return,
+        HostReply::Error(reason) => reason,
+        other => format!("unexpected host reply {other:?}"),
+    };
+
+    let fresh: bool = REPORTED.with(|reported| reported.borrow_mut().insert(reason.clone()));
+    if fresh
+    {
+        log(LogLevel::Warn, &reason);
     }
 }
 

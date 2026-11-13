@@ -9,6 +9,8 @@ const PING: &str = "ping";
 const MACHINE_SCREEN: &str = "machine";
 const PULSE: &str = "testmod:pulse";
 // how many sparks /testmod give hands out, change it with /gamerule testmod:give_sparks
+// how many sparks were used in a chunk, saved with it
+static SPARKS: Attachment<u32> = Attachment::new("sparks").saved();
 const SPARK_RULE: &str = "give_sparks";
 const HUD_OPTION: &str = "hud.visible";
 const HUD_COLOR_OPTION: &str = "hud.color";
@@ -181,8 +183,8 @@ impl ItemBehavior for Spark
             let _ = setStackComponent(held, "testmod:uses", &uses);
             // per chunk data: an attachment only this mod reads and writes
             let (chunkX, chunkZ): (i32, i32) = ((info.pos[0] as i32) >> 4, (info.pos[2] as i32) >> 4);
-            let sparks: u32 = world.chunkAttachment::<u32>(chunkX, chunkZ) + 1;
-            let _ = world.setChunkAttachment(chunkX, chunkZ, &sparks);
+            let sparks: u32 = SPARKS.getOr(ChunkAt(world, chunkX, chunkZ)) + 1;
+            let _ = SPARKS.set(ChunkAt(world, chunkX, chunkZ), &sparks);
         }
 
         let remaining: i32 = stack.count - 1;
@@ -582,6 +584,12 @@ fn registerEvents(ctx: &mut RegisterCtx) -> Result<()>
 
     ctx.events().on::<TickPost>(Priority::Normal, |_|
     {
+        // the tick event also fires on a client that mirrors a server, where world data is not this side's to write
+        if !World::OVERWORLD.isAuthority()
+        {
+            return;
+        }
+
         let mut ticks: u64 = worldData("ticks");
         ticks += 1;
         setWorldData("ticks", &ticks);
@@ -610,6 +618,7 @@ fn registerEvents(ctx: &mut RegisterCtx) -> Result<()>
 
 fn registerInterface(ctx: &mut RegisterCtx) -> Result<()>
 {
+    ctx.attachments().declare(&SPARKS)?;
     ctx.channels().register::<ChargeSync>(CHARGE, Direction::ToClient, |message, _|
     {
         World::OVERWORLD.markBlockForRender(message.pos);

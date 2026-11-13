@@ -2,7 +2,7 @@ use crate::behavior::{self, ItemBehavior};
 use crate::rt::call;
 use crate::{ItemRef, Result, dispatch, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
-use mod_protocol::abi::HostCall;
+use mod_protocol::abi::ContentRequest;
 use mod_protocol::spec::{Behavior, ItemMethod, ItemSpec, RecordSpec, ToolClass};
 use std::rc::Rc;
 
@@ -13,14 +13,14 @@ impl Items
     pub fn register(&self, name: &str, spec: ItemSpecBuilder) -> Result<ItemRef>
     {
         let id: Identifier = ownIdentifier(name)?;
-        expectUnit(call(HostCall::RegisterItem { name: id.to_string(), spec: spec.m_spec }))?;
+        expectUnit(call(ContentRequest::RegisterItem { name: id.to_string(), spec: spec.m_spec }))?;
         Ok(ItemRef::Named(id))
     }
 
     /// needs api 1.50, changes chosen fields of any item, other mods changing the same field are reported
     pub fn modify(&self, spec: mod_protocol::spec::ItemModifySpec) -> Result<()>
     {
-        expectUnit(call(HostCall::ModifyItem { spec }))
+        expectUnit(call(ContentRequest::ModifyItem { spec }))
     }
 
     /// content from data/ files and other mods registers before code runs, so lookups by name work here

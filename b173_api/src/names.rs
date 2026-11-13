@@ -1,6 +1,6 @@
 use crate::{ItemRef, RegistryKind, epoch, modId, rt};
 use mod_protocol::Identifier;
-use mod_protocol::abi::HostCall;
+use mod_protocol::abi::RegistryRequest;
 use std::cell::{Ref, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
@@ -23,7 +23,7 @@ fn withName<R>(registry: RegistryKind, numeric: i32, read: impl FnOnce(Option<&I
     let fresh: bool = NAMES.with(|cache| cache.borrow().get(&(registry, numeric)).is_some_and(|(at, _)| *at == epoch));
     if !fresh
     {
-        let name: Option<Identifier> = crate::reply::expectId(rt::call(HostCall::NameOf { registry, numeric }));
+        let name: Option<Identifier> = crate::reply::expectId(rt::call(RegistryRequest::NameOf { registry, numeric }));
         NAMES.with(|cache| cache.borrow_mut().insert((registry, numeric), (epoch, name)));
     }
 

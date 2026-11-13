@@ -2,7 +2,7 @@ use crate::refs::MachineRef;
 use crate::rt::call;
 use crate::{Error, ItemStack, Result, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
-use mod_protocol::abi::HostCall;
+use mod_protocol::abi::ContentRequest;
 use mod_protocol::spec::{MachineRecipeSpec, MachineSlotSpec, MachineSpec};
 
 pub struct Machines;
@@ -78,7 +78,7 @@ impl MachineRecipeBuilder
             return Err(error);
         }
 
-        expectUnit(call(HostCall::AddMachineRecipe { machine: self.m_machine?, recipe: self.m_spec }))
+        expectUnit(call(ContentRequest::AddMachineRecipe { machine: self.m_machine?, recipe: self.m_spec }))
     }
 }
 
@@ -91,7 +91,7 @@ impl Machines
         let workstations: Vec<Identifier> =
             workstations.iter().map(|item| ownIdentifier(item)).collect::<Result<_>>()?;
         let spec: MachineSpec = MachineSpec { title: title.map(str::to_owned), workstations };
-        super::content::registered(name, |id| HostCall::RegisterMachine { name: id.clone(), spec })
+        super::content::registered(name, |id| ContentRequest::RegisterMachine { name: id.clone(), spec })
     }
 
     /// needs api 1.50, drops every job of any mod's machine that makes one of the outputs
@@ -100,7 +100,7 @@ impl Machines
         let outputs: Vec<Identifier> = outputs.iter().map(|item| ownIdentifier(item)).collect::<Result<_>>()?;
         let spec: mod_protocol::spec::MachineModifySpec =
             mod_protocol::spec::MachineModifySpec { machine: machine.intoName()?, remove_outputs: outputs };
-        expectUnit(call(HostCall::ModifyMachine { spec }))
+        expectUnit(call(ContentRequest::ModifyMachine { spec }))
     }
 
     /// needs api 1.35, a recipe for a machine of this mod by name or of any mod by its full name
@@ -128,6 +128,10 @@ impl Machines
     /// needs api 1.35, an item that runs a machine, minecraft:crafting and minecraft:smelting included
     pub fn workstation(&self, machine: &str, item: &str) -> Result<()>
     {
-        expectUnit(call(HostCall::AddWorkstation { machine: ownIdentifier(machine)?, item: ownIdentifier(item)? }))
+        expectUnit(call(ContentRequest::AddWorkstation
+        {
+            machine: ownIdentifier(machine)?,
+            item: ownIdentifier(item)?,
+        }))
     }
 }
