@@ -2,8 +2,7 @@ use crate::rt::call;
 use crate::{Error, ItemRef, ItemStack, Result, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
 use mod_protocol::abi::ContentRequest;
-use mod_protocol::spec::
-{
+use mod_protocol::spec::{
     FuelSpec, IngredientSpec, RecipeSpec, ShapedSpec, ShapedTaggedSpec, ShapelessSpec, ShapelessTaggedSpec,
     SmeltingSpec, StackSpec,
 };
@@ -86,8 +85,7 @@ impl ShapedBuilder
         }
         else
         {
-            RecipeSpec::ShapedTagged(ShapedTaggedSpec
-            {
+            RecipeSpec::ShapedTagged(ShapedTaggedSpec {
                 pattern: self.m_pattern,
                 key: tagged(self.m_key, self.m_tags),
                 result,
@@ -110,8 +108,7 @@ impl Recipes
 {
     pub fn shaped(&self, name: &str, result: ItemStack) -> ShapedBuilder
     {
-        ShapedBuilder
-        {
+        ShapedBuilder {
             m_name: name.to_owned(),
             m_result: result,
             m_pattern: Vec::new(),
@@ -147,8 +144,7 @@ impl Recipes
     {
         let item: Identifier = item.into().name().ok_or("fuel item is not registered")?;
 
-        expectUnit(call(ContentRequest::RegisterRecipe
-        {
+        expectUnit(call(ContentRequest::RegisterRecipe {
             name: name.to_owned(),
             spec: RecipeSpec::Fuel(FuelSpec { item, ticks }),
         }))

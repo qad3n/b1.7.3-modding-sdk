@@ -128,8 +128,7 @@ impl Machines
     /// needs api 1.35, an item that runs a machine, minecraft:crafting and minecraft:smelting included
     pub fn workstation(&self, machine: &str, item: &str) -> Result<()>
     {
-        expectUnit(call(ContentRequest::AddWorkstation
-        {
+        expectUnit(call(ContentRequest::AddWorkstation {
             machine: ownIdentifier(machine)?,
             item: ownIdentifier(item)?,
         }))

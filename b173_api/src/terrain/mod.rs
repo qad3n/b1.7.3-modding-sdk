@@ -162,8 +162,7 @@ pub mod math
     {
         static TABLE: OnceLock<Vec<f32>> = OnceLock::new();
 
-        TABLE.get_or_init(||
-        {
+        TABLE.get_or_init(|| {
             (0..TABLE_SIZE).map(|i| (i as f64 * std::f64::consts::PI * 2.0 / TABLE_SIZE as f64).sin() as f32).collect()
         })
     }

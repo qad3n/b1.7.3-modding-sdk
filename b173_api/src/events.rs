@@ -183,8 +183,7 @@ macro_rules! event_types
     };
 }
 
-event_types!
-{
+event_types! {
     Setup, ClientSetup, ServerSetup, LoadComplete, Shutdown, ServerStarting, ServerStarted, ServerStopping, TickPre, TickPost,
     WorldLoad, WorldSave, WorldUnload, ChunkLoad, ChunkUnload, ChunkGenerate, ChunkPopulate, BlockPlace, BlockBreak,
     BlockHarvestDrops, BlockActivate, NeighborChange, ExplosionAffect, ItemUse, ItemUseFirst, ItemUseOnBlock, ItemDestroyed,

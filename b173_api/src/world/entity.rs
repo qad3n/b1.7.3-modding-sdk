@@ -2,8 +2,7 @@ use super::{World, encodeStored};
 use crate::rt::{call, fire};
 use crate::{IntoName, ItemStack, Result, expectBool, expectDouble, expectInt, expectStack, expectUnit, fetchData};
 use mod_protocol::Identifier;
-use mod_protocol::abi::
-{
+use mod_protocol::abi::{
     BlockPos, EntityField, EntityInfo, EntityRequest, HostReply, InventoryRequest, ModifierOperation, StoredRequest,
 };
 use serde::Serialize;
@@ -25,8 +24,7 @@ impl Entity
 
     pub fn setPosition(self, pos: [f64; 3]) -> Result<()>
     {
-        expectUnit(call(EntityRequest::MoveEntity
-        {
+        expectUnit(call(EntityRequest::MoveEntity {
             world: self.world.dimension,
             id: self.id,
             pos: Some(pos),
@@ -37,8 +35,7 @@ impl Entity
 
     pub fn setMotion(self, motion: [f64; 3]) -> Result<()>
     {
-        expectUnit(call(EntityRequest::MoveEntity
-        {
+        expectUnit(call(EntityRequest::MoveEntity {
             world: self.world.dimension,
             id: self.id,
             pos: None,
@@ -50,8 +47,7 @@ impl Entity
     /// needs api 1.28, Entity.moveFlying: adds motion from strafe and forward input along the yaw, scaled by factor
     pub fn accelerate(self, strafe: f32, forward: f32, factor: f32) -> Result<()>
     {
-        expectUnit(call(EntityRequest::Accelerate
-        {
+        expectUnit(call(EntityRequest::Accelerate {
             world: self.world.dimension,
             id: self.id,
             strafe,
@@ -87,8 +83,7 @@ impl Entity
         operation: ModifierOperation,
     ) -> Result<()>
     {
-        expectUnit(call(EntityRequest::SetModifier
-        {
+        expectUnit(call(EntityRequest::SetModifier {
             world: self.world.dimension,
             id: self.id,
             attribute: attribute.vanillaName()?,
@@ -101,8 +96,7 @@ impl Entity
     /// needs api 1.18
     pub fn removeModifier(self, attribute: impl IntoName, modifier: &str) -> Result<()>
     {
-        expectUnit(call(EntityRequest::RemoveModifier
-        {
+        expectUnit(call(EntityRequest::RemoveModifier {
             world: self.world.dimension,
             id: self.id,
             attribute: attribute.vanillaName()?,
@@ -144,8 +138,7 @@ impl Entity
     pub fn damageAs(self, amount: i32, source: Option<i32>, kind: impl IntoName) -> Result<bool>
     {
         let kind: Identifier = kind.vanillaName()?;
-        expectBool(call(EntityRequest::DamageEntityAs
-        {
+        expectBool(call(EntityRequest::DamageEntityAs {
             world: self.world.dimension,
             id: self.id,
             source,
@@ -202,8 +195,7 @@ impl Entity
 
     pub fn setSynced<T: Serialize>(self, value: &T) -> Result<()>
     {
-        expectUnit(call(StoredRequest::SetSyncedData
-        {
+        expectUnit(call(StoredRequest::SetSyncedData {
             world: self.world.dimension,
             id: self.id,
             data: encodeStored(value),
@@ -249,8 +241,7 @@ impl Entity
 
     pub fn setData<T: Serialize>(self, value: &T) -> Result<()>
     {
-        expectUnit(call(StoredRequest::SetEntityData
-        {
+        expectUnit(call(StoredRequest::SetEntityData {
             world: self.world.dimension,
             id: self.id,
             data: encodeStored(value),

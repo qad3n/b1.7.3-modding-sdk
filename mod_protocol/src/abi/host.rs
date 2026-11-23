@@ -1,6 +1,5 @@
 use crate::Identifier;
-use crate::abi::
-{
+use crate::abi::{
     BlockInfo, ContainerSwap, EnergyDemand, EnergyLevel, EntityInfo, FeatureInfo, FluidBlock, FluidStack, ItemInfo,
     JobMatch, Located, LootView, MachineView, RayHit, RecipeView, SpawnEntry, StackData, StateData, StructureStart,
     TankLevel, Worn,

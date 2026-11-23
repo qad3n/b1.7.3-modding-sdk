@@ -1,13 +1,11 @@
 use crate::rt::{call, fire};
 use crate::terrain::structure::StructureBox;
-use crate::
-{
+use crate::{
     Error, ItemStack, Result, expectBool, expectDemand, expectEntities, expectEntity, expectFluid, expectFluidBlock,
     expectId, expectInt, expectLocated, expectLong, expectStack, expectStarts, expectText, expectUnit, fetchData,
 };
 use mod_protocol::Identifier;
-use mod_protocol::abi::
-{
+use mod_protocol::abi::{
     BlockInfo, BlockPos, EnergyDemand, EnergyLevel, EntityInfo, EntityRequest, FluidBlock, FluidStack, HostReply,
     InventoryRequest, Located, LootView, MachineView, MetaRequest, PlayerRequest, RayHit, RecipeView, RegistryRequest,
     ScreenRequest, SharedRequest, StackData, StackRef, StateData, StoredRequest, StructureStart, TankLevel,
@@ -322,8 +320,7 @@ impl World
     ) -> Result<bool>
     {
         let template: mod_protocol::Identifier = template.intoName()?;
-        crate::expectBool(call(WorldgenRequest::PlaceTemplate
-        {
+        crate::expectBool(call(WorldgenRequest::PlaceTemplate {
             world: self.dimension,
             template,
             origin,
@@ -481,8 +478,7 @@ impl World
     {
         let StructureBox { m_min: min, m_max: max } = bounds;
 
-        expectStarts(call(WorldgenRequest::FindStructures
-        {
+        expectStarts(call(WorldgenRequest::FindStructures {
             world: self.dimension,
             min,
             max,
@@ -500,8 +496,7 @@ impl World
     /// needs api 1.10, the nearest structure of a kind within radius chunks of a spot
     pub fn locate(self, kind: &Identifier, from: BlockPos, radius: i32) -> Result<Option<Located>>
     {
-        expectLocated(call(WorldgenRequest::LocateStructure
-        {
+        expectLocated(call(WorldgenRequest::LocateStructure {
             world: self.dimension,
             structure: kind.clone(),
             from,

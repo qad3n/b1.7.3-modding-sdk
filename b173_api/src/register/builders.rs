@@ -3,8 +3,7 @@ use crate::refs::IntoName;
 use crate::{Error, Result, dispatch};
 use mod_protocol::Identifier;
 use mod_protocol::abi::{GameRuleValue, ModifierOperation};
-use mod_protocol::spec::
-{
+use mod_protocol::spec::{
     AchievementSpec, AttributeSpec, Behavior, DamageTypeSpec, EffectModifierSpec, EffectSpec, EnergyBufferSpec,
     EnergySpec, EntityModelSpec, FaceTextures, FluidSpec, FluidStyle, GameRuleCategory, GameRuleSpec, ParticleSpec,
     PropertySpec, StatFormat, StatSpec, StateVariantSpec, TankSpec, TileEntitySpec, TileMethod,
@@ -46,10 +45,8 @@ fn finish<S>(problem: Option<Error>, spec: S) -> Result<S>
     }
 }
 
-macro_rules! build
-{
-    ($builder:ident => $spec:ident) =>
-    {
+macro_rules! build {
+    ($builder:ident => $spec:ident) => {
         impl Build<$spec> for $builder
         {
             fn build(self) -> Result<$spec> { finish(self.m_problem, self.m_spec) }
@@ -119,8 +116,7 @@ impl Fluid
         let air: Identifier = Identifier::minecraft("air");
         let flowing: Identifier = note(&mut problem, flowing.intoName()).unwrap_or_else(|| air.clone());
         let still: Identifier = note(&mut problem, still.intoName()).unwrap_or(air);
-        let spec: FluidSpec = FluidSpec
-        {
+        let spec: FluidSpec = FluidSpec {
             style,
             flowing,
             still,
@@ -139,8 +135,7 @@ impl Fluid
         self
     }
 
-    setters!
-    {
+    setters! {
         tickRate(i32) => tick_rate;
         decay(i32) => decay;
         netherDecay(i32) => nether_decay;
@@ -166,8 +161,7 @@ impl Particle
         Particle { m_spec: spec, m_problem: None }
     }
 
-    setters!
-    {
+    setters! {
         color(u32) => color;
         scale(f32) => scale;
         lifetime(i32) => lifetime;
@@ -350,10 +344,8 @@ impl Property
 
     pub fn values(name: &str, values: &[&str]) -> Self
     {
-        Property
-        {
-            m_spec: PropertySpec
-            {
+        Property {
+            m_spec: PropertySpec {
                 name: name.to_owned(),
                 values: values.iter().map(|value| (*value).to_owned()).collect(),
             },
@@ -532,8 +524,7 @@ impl Tile
     // the spec the loader takes, the behavior handed to the dispatcher once
     pub(crate) fn spec(&self) -> TileEntitySpec
     {
-        let behavior: Option<Behavior<TileMethod>> = self.m_behavior.as_ref().map(|behavior|
-        {
+        let behavior: Option<Behavior<TileMethod>> = self.m_behavior.as_ref().map(|behavior| {
             let methods: Vec<TileMethod> = behavior::methods(behavior.overridden(), &behavior::TILE_METHODS);
             Behavior { handle: dispatch::addTile(Rc::clone(behavior)), methods }
         });

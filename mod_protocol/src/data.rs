@@ -1,7 +1,6 @@
 use crate::Identifier;
 use crate::abi::{BiomeSpec, LootTarget, MapTarget, RegistryKind, StructureSpec};
-use crate::spec::
-{
+use crate::spec::{
     AccessorySlotSpec, AchievementSpec, AttributeSpec, BlockModifySpec, BlockSpec, BlockStatesSpec,
     ConditionalPoolSpec, DamageTypeSpec, EffectSpec, EnergySpec, EntitySpec, FeatureModifySpec, FeatureSpec,
     FluidContainerSpec, FluidSpec, GameRuleSpec, ItemModifySpec, ItemSpec, LoadConditions, LootSpec, MachineFuelSpec,

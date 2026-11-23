@@ -22,6 +22,10 @@ non_snake_case = "allow"
 
 [workspace.lints.clippy]
 too_many_arguments = "allow"
+identity_op = "allow"
+manual_isolate_lowest_one = "allow"
+needless_range_loop = "allow"
+type_complexity = "allow"
 
 [profile.release]
 opt-level = "s"

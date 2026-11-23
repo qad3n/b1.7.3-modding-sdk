@@ -10,8 +10,7 @@ type NameCache = HashMap<(RegistryKind, i32), (u32, Option<Identifier>)>;
 // keyed by the tag as callers spell it so a hit needs no parsing
 type TagCache = HashMap<RegistryKind, HashMap<String, (u32, Rc<HashSet<Identifier>>)>>;
 
-thread_local!
-{
+thread_local! {
     static NAMES: RefCell<NameCache> = RefCell::new(HashMap::new());
     static TAGS: RefCell<TagCache> = RefCell::new(HashMap::new());
 }
@@ -49,8 +48,7 @@ pub fn tagMembers(registry: RegistryKind, tag: &str) -> Rc<HashSet<Identifier>>
 {
     let text: &str = tag.trim_start_matches('#');
     let epoch: u32 = epoch();
-    let cached: Option<Rc<HashSet<Identifier>>> = TAGS.with(|cache|
-    {
+    let cached: Option<Rc<HashSet<Identifier>>> = TAGS.with(|cache| {
         let cache: Ref<TagCache> = cache.borrow();
         let (at, members): &(u32, Rc<HashSet<Identifier>>) = cache.get(&registry)?.get(text)?;
         (*at == epoch).then(|| Rc::clone(members))
@@ -65,8 +63,7 @@ pub fn tagMembers(registry: RegistryKind, tag: &str) -> Rc<HashSet<Identifier>>
         Ok(tag) => Rc::new(crate::tagValues(registry, &tag.to_string()).into_iter().collect()),
         Err(_) => Rc::default(),
     };
-    TAGS.with(|cache|
-    {
+    TAGS.with(|cache| {
         cache.borrow_mut().entry(registry).or_default().insert(text.to_owned(), (epoch, Rc::clone(&members)))
     });
     members

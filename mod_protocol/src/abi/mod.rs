@@ -10,39 +10,33 @@ mod types;
 mod views;
 mod world;
 
-pub use calls::
-{
+pub use calls::{
     ContentRequest, EntityRequest, HostCall, InventoryRequest, MediaInfo, MediaLimit, MediaRequest, MediaStatus,
     MetaRequest, NetRequest, PlayerRequest, RegistryRequest, ScreenRequest, SharedRequest, Song, StoredRequest,
     ViewerRequest, WorldRequest, WorldgenRequest,
 };
 pub use config::{ConfigKind, ConfigOption, ConfigScope};
 pub use events::{EVENT_NAMES, EventData, EventEnvelope, EventKind, Priority};
-pub use guest::
-{
+pub use guest::{
     BlockCall, EffectCall, EntityCall, FeatureCall, GuestCall, GuestReply, ItemCall, Lifecycle, LootContext, TileCall,
     UseAction,
 };
 pub use host::HostReply;
 pub use registry::{KindRow, MapTarget, RegistryKind};
-pub use screen::
-{
+pub use screen::{
     BipedPart, DrawList, DrawOp, FaceOverlay, ItemModelSpec, ModelOp, OverlayOp, PlayerLayer, Pose, PoseInput,
     ScreenOp, ScreenSpec, SlotSpec,
 };
-pub use shared::
-{
+pub use shared::{
     ContainerSwap, EnergyDemand, EnergyLevel, EntityField, GameRuleValue, JobMatch, JobOutput, LootTarget,
     ModifierOperation, TankLevel, Worn, capability,
 };
-pub use types::
-{
+pub use types::{
     AttachmentChange, BlockCtx, BlockInfo, BlockPos, ChunkInfo, EntityInfo, FluidBlock, FluidStack, Holder, ItemInfo,
     LogLevel, Permission, RayHit, Sender, StackData, StackRef, StateData, Target, attachmentEvent,
 };
 pub use views::{LootDrop, LootSource, LootView, MachineRecipeView, MachineSlot, MachineView, RecipeShape, RecipeView};
-pub use world::
-{
+pub use world::{
     BiomeSpec, DimensionSpec, FeatureInfo, Located, MusicSpec, SpawnEntry, StructurePiece, StructureSpec,
     StructureStart,
 };

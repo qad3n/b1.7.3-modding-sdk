@@ -15,10 +15,8 @@ impl Setting
 {
     fn new(key: &str, kind: ConfigKind) -> Setting
     {
-        Setting
-        {
-            m_option: ConfigOption
-            {
+        Setting {
+            m_option: ConfigOption {
                 key: key.to_owned(),
                 label: String::new(),
                 comment: String::new(),

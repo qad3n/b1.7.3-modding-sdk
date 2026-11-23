@@ -4,8 +4,7 @@ use crate::screen::{Draw, Screen};
 use crate::services::{Lookup, Service};
 use crate::terrain::ChunkBlocks;
 use crate::{BlockCtx, Entity, ItemStack, Player, RegisterCtx, World};
-use mod_protocol::abi::
-{
+use mod_protocol::abi::{
     BlockCall, ChunkInfo, EffectCall, EntityCall, GuestCall, GuestReply, ItemCall, Lifecycle, Sender, TileCall,
 };
 use std::cell::{RefCell, RefMut};
@@ -98,19 +97,15 @@ pub(crate) struct ConfigTask
     pub(crate) m_receive: TaskReceive,
 }
 
-thread_local!
-{
+thread_local! {
     static TABLES: RefCell<Tables> = RefCell::new(Tables::default());
 }
 
-macro_rules! adder
-{
-    ($name:ident, $field:ident, $kind:ty) =>
-    {
+macro_rules! adder {
+    ($name:ident, $field:ident, $kind:ty) => {
         pub(crate) fn $name(value: $kind) -> u32
         {
-            TABLES.with(|tables|
-            {
+            TABLES.with(|tables| {
                 let mut tables: RefMut<Tables> = tables.borrow_mut();
                 tables.$field.push(value);
                 (tables.$field.len() - 1) as u32
@@ -152,8 +147,7 @@ pub(crate) fn feature(handle: u32) -> Option<crate::features::FeatureHandler>
 
 pub(crate) fn addOverlay(overlay: impl crate::screen::Overlay + 'static) -> u32
 {
-    TABLES.with(|tables|
-    {
+    TABLES.with(|tables| {
         let mut tables: RefMut<Tables> = tables.borrow_mut();
         tables.m_overlays.push(Rc::new(RefCell::new(overlay)));
         (tables.m_overlays.len() - 1) as u32
@@ -162,8 +156,7 @@ pub(crate) fn addOverlay(overlay: impl crate::screen::Overlay + 'static) -> u32
 
 pub(crate) fn addScreen(screen: impl Screen + 'static) -> u32
 {
-    TABLES.with(|tables|
-    {
+    TABLES.with(|tables| {
         let mut tables: RefMut<Tables> = tables.borrow_mut();
         tables.m_screens.push(Rc::new(RefCell::new(screen)));
         (tables.m_screens.len() - 1) as u32
@@ -209,13 +202,11 @@ fn block(handle: u32, call: BlockCall) -> GuestReply
         BlockCall::NeighborChanged { ctx, neighbor } => unit(|| behavior.onNeighborChanged(&mut wrap(ctx), neighbor)),
         BlockCall::UpdateTick { ctx } => unit(|| behavior.onUpdateTick(&mut wrap(ctx))),
         BlockCall::RandomDisplayTick { ctx } => unit(|| behavior.onRandomDisplayTick(&mut wrap(ctx))),
-        BlockCall::EntityCollided { ctx, entity } => unit(||
-        {
+        BlockCall::EntityCollided { ctx, entity } => unit(|| {
             behavior.onEntityCollided(&mut wrap(ctx), Entity { world: World { dimension: ctx.world }, id: entity })
         }),
 
-        BlockCall::EntityWalking { ctx, entity } => unit(||
-        {
+        BlockCall::EntityWalking { ctx, entity } => unit(|| {
             behavior.onEntityWalking(&mut wrap(ctx), Entity { world: World { dimension: ctx.world }, id: entity })
         }),
         BlockCall::DestroyedByPlayer { ctx } => unit(|| behavior.onDestroyedByPlayer(&mut wrap(ctx))),
@@ -340,8 +331,7 @@ fn item(handle: u32, call: ItemCall) -> GuestReply
 
         ItemCall::UseDuration { stack } => GuestReply::Int(behavior.useDuration(ItemStack::fromRaw(stack))),
         ItemCall::UseAction { stack } => GuestReply::Int(behavior.useAction(ItemStack::fromRaw(stack)) as i32),
-        ItemCall::UsingTick { world, player, stack, left } => unit(||
-        {
+        ItemCall::UsingTick { world, player, stack, left } => unit(|| {
             behavior.onUsingTick(World { dimension: world }, Player { id: player }, ItemStack::fromRaw(stack), left)
         }),
         ItemCall::StoppedUsing { world, player, stack, left } => useReply(behavior.onStoppedUsing(
@@ -714,8 +704,7 @@ pub(crate) fn handle(call: GuestCall) -> GuestReply
             Some(feature) =>
             {
                 let random: crate::terrain::Random = crate::terrain::Random::withSeed(call.seed);
-                let ctx: crate::features::FeatureCtx = crate::features::FeatureCtx
-                {
+                let ctx: crate::features::FeatureCtx = crate::features::FeatureCtx {
                     world: crate::world::World { dimension: call.world },
                     origin: call.origin,
                     random: &random,

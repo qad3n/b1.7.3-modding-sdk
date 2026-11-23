@@ -7,8 +7,7 @@ use std::rc::Rc;
 // each entry keeps the epoch it was read in
 type StateCache = HashMap<(i32, i32), (u32, Option<Rc<StateData>>)>;
 
-thread_local!
-{
+thread_local! {
     static STATES: RefCell<StateCache> = RefCell::new(HashMap::new());
 }
 
@@ -17,8 +16,7 @@ thread_local!
 pub fn stateOf(block: i32, meta: i32) -> Option<Rc<StateData>>
 {
     let epoch: u32 = epoch();
-    let cached: Option<Option<Rc<StateData>>> = STATES.with(|cache|
-    {
+    let cached: Option<Option<Rc<StateData>>> = STATES.with(|cache| {
         let cache: Ref<StateCache> = cache.borrow();
         let (at, state): &(u32, Option<Rc<StateData>>) = cache.get(&(block, meta))?;
         (*at == epoch).then(|| state.clone())

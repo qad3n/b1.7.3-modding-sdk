@@ -49,8 +49,7 @@ pub fn fluidContainers() -> Vec<FluidContainerSpec>
 
 pub(crate) fn register(full: &str, empty: Option<&str>, fluid: &str, amount: i32) -> Result<()>
 {
-    let spec: FluidContainerSpec = FluidContainerSpec
-    {
+    let spec: FluidContainerSpec = FluidContainerSpec {
         full: ownIdentifier(full)?,
         full_meta: 0,
         empty: empty.map(ownIdentifier).transpose()?,

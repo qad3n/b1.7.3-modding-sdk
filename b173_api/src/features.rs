@@ -11,8 +11,7 @@ use std::rc::Rc;
 
 pub(crate) type FeatureHandler = Rc<dyn Fn(&FeatureCtx) -> bool>;
 
-thread_local!
-{
+thread_local! {
     // this mod's custom features by full name, placed in process so a decorator's random runs on unbroken
     static OWN: RefCell<HashMap<Identifier, u32>> = RefCell::new(HashMap::new());
     static LIST: RefCell<Option<(u32, Rc<Vec<FeatureInfo>>)>> = const { RefCell::new(None) };
@@ -39,8 +38,7 @@ impl FeatureBuilder
     /// per_chunk veins of block, vein_size blocks each, at heights the height spec draws
     pub fn ore(block: &str, veinSize: i32, perChunk: i32, height: HeightSpec) -> Result<Self>
     {
-        let ore: OreFeatureSpec = OreFeatureSpec
-        {
+        let ore: OreFeatureSpec = OreFeatureSpec {
             block: ownIdentifier(block)?,
             properties: BTreeMap::new(),
             vein_size: veinSize,
@@ -54,8 +52,7 @@ impl FeatureBuilder
     /// a small beta oak shaped tree of log and leaves on any block of minecraft:dirt
     pub fn tree(log: &str, leaves: &str) -> Result<Self>
     {
-        let tree: TreeFeatureSpec = TreeFeatureSpec
-        {
+        let tree: TreeFeatureSpec = TreeFeatureSpec {
             log: ownIdentifier(log)?,
             log_properties: BTreeMap::new(),
             leaves: ownIdentifier(leaves)?,
@@ -74,10 +71,8 @@ impl FeatureBuilder
 
     fn build(kind: FeatureKind, step: FeatureStep) -> Self
     {
-        Self
-        {
-            m_spec: FeatureSpec
-            {
+        Self {
+            m_spec: FeatureSpec {
                 kind,
                 step,
                 dimension: Identifier::minecraft("overworld"),
@@ -182,8 +177,7 @@ pub(crate) fn register(name: &str, feature: FeatureBuilder, handler: Option<Feat
 {
     let id: Identifier = ownIdentifier(name)?;
     let handle: Option<u32> = handler.map(dispatch::addFeature);
-    expectUnit(call(WorldgenRequest::RegisterFeature
-    {
+    expectUnit(call(WorldgenRequest::RegisterFeature {
         name: name.to_owned(),
         spec: feature.m_spec,
         handler: handle,

@@ -10,8 +10,7 @@ type Recipes = Rc<Vec<Rc<MachineRecipeView>>>;
 // keyed by the machine as callers spell it, each entry keeps the epoch and content generation it was read in
 type RecipeCache = HashMap<String, (u32, i32, Recipes)>;
 
-thread_local!
-{
+thread_local! {
     static RECIPES: RefCell<RecipeCache> = RefCell::new(HashMap::new());
 }
 
@@ -21,8 +20,7 @@ pub fn machineRecipes(machine: &str) -> Recipes
 {
     let epoch: u32 = epoch();
     let generation: i32 = contentGeneration();
-    let cached: Option<Recipes> = RECIPES.with(|cache|
-    {
+    let cached: Option<Recipes> = RECIPES.with(|cache| {
         let cache: Ref<RecipeCache> = cache.borrow();
         let (at, built, recipes): &(u32, i32, Recipes) = cache.get(machine)?;
         (*at == epoch && *built == generation).then(|| Rc::clone(recipes))
@@ -50,8 +48,7 @@ pub fn machineRecipes(machine: &str) -> Recipes
 // a slot takes a stack of one of its items, any damage when it lists -1, and at least its count
 fn fills(slot: &MachineSlot, stack: &StackData) -> bool
 {
-    slot.stacks.iter().any(|want|
-    {
+    slot.stacks.iter().any(|want| {
         let damage: bool = want.damage == -1 || want.damage == stack.damage;
         want.id == stack.id && damage && stack.count >= want.count
     })
@@ -64,8 +61,7 @@ fn matches(recipe: &MachineRecipeView, stacks: &[ItemStack]) -> bool
     let count: usize = stacks.len().min(u64::BITS as usize);
 
     !recipe.inputs.is_empty()
-        && recipe.inputs.iter().all(|slot|
-        {
+        && recipe.inputs.iter().all(|slot| {
             let found: Option<usize> = (0..count)
                 .find(|index| used & 1 << index == 0 && stacks[*index].raw().is_ok_and(|raw| fills(slot, &raw)));
             found.inspect(|index| used |= 1 << index).is_some()

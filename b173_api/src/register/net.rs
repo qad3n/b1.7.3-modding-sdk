@@ -27,8 +27,7 @@ impl Events
     {
         let handle: u32 = dispatch::addEvent(Rc::new(handler));
 
-        expectUnit(call(MetaRequest::Subscribe
-        {
+        expectUnit(call(MetaRequest::Subscribe {
             kind,
             custom: None,
             priority,
@@ -43,8 +42,7 @@ impl Events
         let handle: u32 = dispatch::addEvent(Rc::new(handler));
         let custom: Identifier = ownIdentifier(event)?;
 
-        expectUnit(call(MetaRequest::Subscribe
-        {
+        expectUnit(call(MetaRequest::Subscribe {
             kind: EventKind::Custom,
             custom: Some(custom),
             priority,
@@ -83,8 +81,7 @@ impl Commands
     {
         let handle: u32 = dispatch::addCommand(Rc::new(handler));
 
-        expectUnit(call(MetaRequest::RegisterCommand
-        {
+        expectUnit(call(MetaRequest::RegisterCommand {
             name: name.to_owned(),
             permission,
             usage: usage.to_owned(),
@@ -124,8 +121,7 @@ impl Channels
                 Err(error) => crate::warn(&format!("bad payload: {error}")),
             }));
 
-        expectUnit(call(NetRequest::RegisterChannel
-        {
+        expectUnit(call(NetRequest::RegisterChannel {
             name: name.to_owned(),
             version: "1".to_owned(),
             direction,
@@ -143,8 +139,7 @@ impl Channels
     {
         let handle: u32 = dispatch::addChannel(Rc::new(handler));
 
-        expectUnit(call(NetRequest::RegisterChannel
-        {
+        expectUnit(call(NetRequest::RegisterChannel {
             name: name.to_owned(),
             version: version.to_owned(),
             direction,

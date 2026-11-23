@@ -1,15 +1,13 @@
 use super::builders::Build;
 use crate::behavior::{self, EffectBehavior};
-use crate::refs::
-{
+use crate::refs::{
     AchievementRef, AttributeRef, DamageRef, EffectRef, EnergyRef, FluidRef, GameRuleRef, ParticleRef, Ref, StatRef,
 };
 use crate::rt::call;
 use crate::{Result, dispatch, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
 use mod_protocol::abi::{ContentRequest, HostCall, HostReply, LootTarget, NetRequest, RegistryKind, RegistryRequest};
-use mod_protocol::spec::
-{
+use mod_protocol::spec::{
     AchievementSpec, AttributeSpec, Behavior, ConditionalLootSpec, ConditionalPoolSpec, DamageTypeSpec, EffectMethod,
     EffectSpec, EnergySpec, FluidSpec, GameRuleSpec, LootSpec, ParticleSpec, StatSpec, TagEntry, TagRef,
 };
@@ -227,8 +225,7 @@ impl Loot
     pub fn condition(&self, name: &str, label: &str, handler: impl Fn(&LootQuery) -> bool + 'static) -> Result<()>
     {
         let handler: u32 = dispatch::addLootCondition(Rc::new(handler));
-        expectUnit(call(ContentRequest::RegisterLootCondition
-        {
+        expectUnit(call(ContentRequest::RegisterLootCondition {
             name: name.to_owned(),
             label: label.to_owned(),
             handler,
@@ -260,8 +257,7 @@ impl LootQuery
     pub(crate) fn new(context: mod_protocol::abi::LootContext) -> Self
     {
         let world: crate::World = crate::World { dimension: context.world };
-        Self
-        {
+        Self {
             world,
             pos: context.pos,
             state: context.state,
@@ -297,8 +293,7 @@ impl PoolBuilder
 
     fn pick(item: Option<Identifier>, weight: i32, count: i32, most: Option<i32>) -> ConditionalLootSpec
     {
-        ConditionalLootSpec
-        {
+        ConditionalLootSpec {
             item,
             meta: 0,
             count,
@@ -396,8 +391,7 @@ impl Tags
             .iter()
             .map(|value| ownIdentifier(value).map(|id| TagEntry { target: TagRef::Id(id), required: true }))
             .collect::<Result<_>>()?;
-        expectUnit(call(RegistryRequest::AddTagEntries
-        {
+        expectUnit(call(RegistryRequest::AddTagEntries {
             registry,
             tag: Identifier::parse(tag)?,
             entries,

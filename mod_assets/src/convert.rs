@@ -275,8 +275,7 @@ fn translate(lang: &Lang, archive: &mut Archive) -> Result<Vec<String>, String>
 
     Ok(pairs
         .iter()
-        .filter_map(|(key, value)|
-        {
+        .filter_map(|(key, value)| {
             lang.rules.iter().find_map(|rule| rename(rule, key)).map(|key| format!("{key}={value}"))
         })
         .collect())

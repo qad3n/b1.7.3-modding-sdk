@@ -88,8 +88,7 @@ impl<T> ModRegistry<T>
     /// another mod's registry by its full name, usually from that mod's api crate
     pub fn named(id: impl IntoName) -> Self
     {
-        let id: Identifier = id.intoName().unwrap_or_else(|error|
-        {
+        let id: Identifier = id.intoName().unwrap_or_else(|error| {
             crate::warn(&format!("bad registry name: {error}"));
             Identifier::minecraft("invalid")
         });
@@ -106,8 +105,7 @@ impl<T: Serialize + DeserializeOwned> ModRegistry<T>
     {
         let id: Identifier = ownIdentifier(name)?;
         let value: String = encode(value)?;
-        expectUnit(call(RegistryRequest::AddRegistryEntry
-        {
+        expectUnit(call(RegistryRequest::AddRegistryEntry {
             registry: self.m_id.clone(),
             name: id.to_string(),
             value,
@@ -161,8 +159,7 @@ impl<T> DataMap<T>
     /// another mod's data map by its full name
     pub fn named(id: impl IntoName) -> Self
     {
-        let id: Identifier = id.intoName().unwrap_or_else(|error|
-        {
+        let id: Identifier = id.intoName().unwrap_or_else(|error| {
             crate::warn(&format!("bad registry name: {error}"));
             Identifier::minecraft("invalid")
         });
@@ -179,8 +176,7 @@ impl<T: Serialize + DeserializeOwned> DataMap<T>
     {
         let value: String = encode(&Wrapped { value })?;
         let values: Vec<(TagRef, String)> = vec![(TagRef::parse(key)?, value)];
-        expectUnit(call(RegistryRequest::SetDataMapValues
-        {
+        expectUnit(call(RegistryRequest::SetDataMapValues {
             map: self.m_id.clone(),
             values,
             remove: Vec::new(),
@@ -192,8 +188,7 @@ impl<T: Serialize + DeserializeOwned> DataMap<T>
     pub fn remove(&self, key: &str) -> Result<()>
     {
         let remove: Vec<TagRef> = vec![TagRef::parse(key)?];
-        expectUnit(call(RegistryRequest::SetDataMapValues
-        {
+        expectUnit(call(RegistryRequest::SetDataMapValues {
             map: self.m_id.clone(),
             values: Vec::new(),
             remove,

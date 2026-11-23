@@ -5,8 +5,7 @@ use crate::rt::call;
 use crate::{ItemRef, Result, dispatch, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
 use mod_protocol::abi::{ContentRequest, ItemModelSpec, RegistryKind};
-use mod_protocol::spec::
-{
+use mod_protocol::spec::{
     Behavior, BlockMethod, BlockModifySpec, BlockSpec, BlockStatesSpec, ItemMethod, ItemSpec, LootSpec,
     SpawnModifySpec, StateModelSpec, ToolClass, ToolSpec,
 };
@@ -54,8 +53,7 @@ impl Blocks
 
         if let Some(loot) = extras.m_loot
         {
-            expectUnit(call(ContentRequest::SetLoot
-            {
+            expectUnit(call(ContentRequest::SetLoot {
                 registry: RegistryKind::Block,
                 target: id.clone(),
                 spec: loot,
@@ -122,10 +120,8 @@ impl BlockSpecBuilder
 {
     pub fn template(template: &str) -> BlockSpecBuilder
     {
-        BlockSpecBuilder
-        {
-            m_spec: BlockSpec
-            {
+        BlockSpecBuilder {
+            m_spec: BlockSpec {
                 template: super::named(Identifier::parse(template), "template"),
                 ..BlockSpec::default()
             },
@@ -133,8 +129,7 @@ impl BlockSpecBuilder
         }
     }
 
-    setters!
-    {
+    setters! {
         hardness(f32) => hardness;
         resistance(f32) => resistance;
         light(f32) => light;

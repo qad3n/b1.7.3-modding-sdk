@@ -2,8 +2,7 @@ use crate::rt::call;
 use crate::terrain::ChunkBlocks;
 use crate::{Result, dispatch, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
-use mod_protocol::abi::
-{
+use mod_protocol::abi::{
     BiomeSpec, BlockPos, ChunkInfo, DimensionSpec, RegistryKind, SpawnEntry, StructureSpec, WorldgenRequest,
 };
 use mod_protocol::spec::{CreatureKind, WorldgenKind, WorldgenSpec};
@@ -15,8 +14,7 @@ impl Worldgen
 {
     pub fn ore(&self, name: &str, block: &str, veinSize: i32, perChunk: i32, y: [i32; 2]) -> Result<()>
     {
-        let spec: WorldgenSpec = WorldgenSpec
-        {
+        let spec: WorldgenSpec = WorldgenSpec {
             kind: WorldgenKind::Ore,
             block: ownIdentifier(block)?,
             dimension: Identifier::minecraft("overworld"),
@@ -136,8 +134,7 @@ impl Dimension
     /// while players place blocks only below the build limit, terrain handlers still fill the bottom 128
     pub fn height(&self, height: i32, buildLimit: i32) -> Result<&Self>
     {
-        expectUnit(call(WorldgenRequest::DimensionHeight
-        {
+        expectUnit(call(WorldgenRequest::DimensionHeight {
             dimension: self.m_id.clone(),
             height,
             build_limit: buildLimit,
@@ -172,8 +169,7 @@ impl Structures
     /// under data/<modid>/structure_templates/
     pub fn template(&self, name: &str, spec: mod_protocol::spec::StructureTemplateSpec) -> Result<()>
     {
-        crate::expectUnit(crate::rt::call(mod_protocol::abi::WorldgenRequest::RegisterTemplate
-        {
+        crate::expectUnit(crate::rt::call(mod_protocol::abi::WorldgenRequest::RegisterTemplate {
             name: crate::ownIdentifier(name)?.to_string(),
             spec,
         }))

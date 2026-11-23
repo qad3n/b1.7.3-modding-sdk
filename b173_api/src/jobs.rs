@@ -2,8 +2,7 @@ use crate::rt::call;
 use crate::{Error, IntoName, ItemStack, Result, expectUnit, ownIdentifier};
 use mod_protocol::Identifier;
 use mod_protocol::abi::{ContentRequest, FluidStack, HostReply, InventoryRequest, JobMatch, StackData};
-use mod_protocol::spec::
-{
+use mod_protocol::spec::{
     JobEnergySpec, JobFluidSpec, JobInputRule, JobInputSpec, JobOutputSpec, MachineFuelSpec, MachineJobSpec,
 };
 use std::cell::{RefCell, RefMut};
@@ -32,8 +31,7 @@ impl JobBuilder
 {
     pub(crate) fn new(machine: &str, duration: i32) -> Self
     {
-        Self
-        {
+        Self {
             m_machine: ownIdentifier(machine),
             m_spec: MachineJobSpec { duration, ..MachineJobSpec::default() },
             m_rules: Vec::new(),
@@ -110,8 +108,7 @@ impl JobBuilder
     /// hands back the stack that filled an input, its damage set when given, so a repair returns the same item
     pub fn returns(mut self, input: u32, damage: Option<i32>) -> Self
     {
-        self.m_spec.outputs.push(JobOutputSpec
-        {
+        self.m_spec.outputs.push(JobOutputSpec {
             item: None,
             meta: 0,
             count: 1,
@@ -224,15 +221,13 @@ struct Caches
 // a full cache starts over, counts in the keys make many entries as stacks shrink
 const CACHE_LIMIT: usize = 4096;
 
-thread_local!
-{
+thread_local! {
     static CACHES: RefCell<Caches> = RefCell::new(Caches::default());
 }
 
 fn withCaches<R>(read: impl FnOnce(&mut Caches) -> R) -> R
 {
-    CACHES.with(|caches|
-    {
+    CACHES.with(|caches| {
         let mut caches: RefMut<Caches> = caches.borrow_mut();
         let epoch: u32 = crate::epoch();
         if caches.m_epoch != Some(epoch)
@@ -288,8 +283,7 @@ impl JobEntry
 pub fn findJob(machine: &str, inputs: &[Option<ItemStack>], fluids: &[FluidStack]) -> Option<Rc<JobMatch>>
 {
     let key: u64 = jobKey(machine, inputs, fluids);
-    let cached: Option<Option<Rc<JobMatch>>> = withCaches(|caches|
-    {
+    let cached: Option<Option<Rc<JobMatch>>> = withCaches(|caches| {
         caches.m_jobs.get(&key).filter(|entry| entry.answers(machine, inputs, fluids)).map(|entry| entry.m_job.clone())
     });
     if let Some(job) = cached
@@ -307,8 +301,7 @@ pub fn findJob(machine: &str, inputs: &[Option<ItemStack>], fluids: &[FluidStack
         };
     let entry: JobEntry =
         JobEntry { m_machine: machine.to_owned(), m_inputs: held, m_fluids: fluids.to_vec(), m_job: job.clone() };
-    withCaches(|caches|
-    {
+    withCaches(|caches| {
         if caches.m_jobs.len() >= CACHE_LIMIT
         {
             caches.m_jobs.clear();
@@ -343,13 +336,11 @@ pub fn machineFuel(machine: &str, stack: &ItemStack, furnace: bool) -> i32
     };
 
     let key: u64 = fuelKey(machine, &raw, furnace);
-    let cached: Option<i32> = withCaches(|caches|
-    {
+    let cached: Option<i32> = withCaches(|caches| {
         caches
             .m_fuels
             .get(&key)
-            .filter(|entry|
-            {
+            .filter(|entry| {
                 entry.m_machine == machine
                     && entry.m_stack.id == raw.id
                     && entry.m_stack.damage == raw.damage
@@ -375,8 +366,7 @@ pub fn machineFuel(machine: &str, stack: &ItemStack, furnace: bool) -> i32
     };
     let entry: FuelEntry =
         FuelEntry { m_machine: machine.to_owned(), m_stack: raw, m_furnace: furnace, m_value: value };
-    withCaches(|caches|
-    {
+    withCaches(|caches| {
         if caches.m_fuels.len() >= CACHE_LIMIT
         {
             caches.m_fuels.clear();

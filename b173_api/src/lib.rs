@@ -40,8 +40,7 @@ pub use machines::{machineRecipe, machineRecipes};
 pub use media::{importMedia, insertHeld, mediaStatus, playSong};
 pub use mod_protocol::Identifier;
 use mod_protocol::abi::RegistryRequest;
-pub use mod_protocol::abi::
-{
+pub use mod_protocol::abi::{
     BiomeSpec, BipedPart, BlockInfo, BlockPos, ChunkInfo, ConfigScope, ContainerSwap, DimensionSpec, EnergyDemand,
     EnergyLevel, EntityField, EntityInfo, EventKind, FaceOverlay, FeatureInfo, FluidBlock, FluidStack, GameRuleValue,
     Holder, ItemInfo, ItemModelSpec, JobMatch, JobOutput, Located, LootContext, LootDrop, LootSource, LootTarget,
@@ -52,8 +51,7 @@ pub use mod_protocol::abi::
 };
 pub use mod_protocol::handshake::ChannelDirection as Direction;
 use mod_protocol::identifier::IdentifierError;
-pub use mod_protocol::spec::
-{
+pub use mod_protocol::spec::{
     AccessorySlotSpec, AchievementSpec, ArmorSlot, ArmorSpec, AttributeSpec, BedFaces, BlockModelSpec, BlockModifySpec,
     BlockSpec, BlockStatesSpec, ConditionalLootSpec, ConditionalPoolSpec, CreatureKind, Cuboid, DamageTypeSpec,
     DropSpec, EffectModifierSpec, EffectSpec, EnergySpec, EntityModelSpec, EntitySounds, EntitySpec, FaceTextures,
@@ -67,15 +65,13 @@ pub use mod_protocol::spec::
 };
 use mod_protocol::wire::WireError;
 pub use names::{BlockRef, blockIs, blockTagged, nameOf, nameWith, named, tagMembers, tagged};
-pub use refs::
-{
+pub use refs::{
     AchievementRef, AttributeRef, ComponentRef, DamageRef, EffectRef, EnergyRef, EntityRef, FeatureRef, FluidRef,
     GameRuleRef, IntoName, LootRuleRef, MachineRef, ParticleRef, Ref, ScreenRef, SlotRef, SoundRef, StatRef, TileRef,
     kind,
 };
 pub use register::*;
-pub(crate) use reply::
-{
+pub(crate) use reply::{
     expectBool, expectBytes, expectDemand, expectDouble, expectEntities, expectEntity, expectFloat, expectFluid,
     expectFluidBlock, expectId, expectInt, expectItemInfo, expectLocated, expectLong, expectRule, expectStack,
     expectStarts, expectState, expectText, expectUnit, fetchData,
@@ -122,8 +118,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 // item info by item and damage, each with the epoch it was read in
 type InfoCache = HashMap<(i32, i32), (u32, Option<ItemInfo>)>;
 
-thread_local!
-{
+thread_local! {
     static MOD_ID: RefCell<String> = const { RefCell::new(String::new()) };
     // numeric ids change when a world or server remaps, the epoch invalidates cached lookups
     static EPOCH: Cell<u32> = const { Cell::new(0) };
@@ -303,8 +298,7 @@ pub mod prelude
     pub use crate::events::*;
     pub use crate::screen::{Draw, Overlay, Screen};
     pub use crate::services::{Lookup, Service};
-    pub use crate::world::
-    {
+    pub use crate::world::{
         allPlayers, broadcast, clipboard, containerItem, contentGeneration, craftResult, displayName, foliageColor,
         fuelTicks, gameRule, grassColor, isClient, isLoaded, itemCatalog, localPlayer, lootList, machineList, mobList,
         modName, paintSprite, recipeList, rollLoot, screenSize, send, setDynamicTexture, setGameRule, setSharedData,

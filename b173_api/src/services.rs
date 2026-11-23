@@ -26,8 +26,7 @@ pub fn has(name: &str, version: u32) -> bool
 
 pub fn callService<A: Serialize, R: DeserializeOwned>(name: &str, version: u32, method: &str, args: &A) -> Result<R>
 {
-    let bytes: Vec<u8> = expectBytes(call(SharedRequest::CallService
-    {
+    let bytes: Vec<u8> = expectBytes(call(SharedRequest::CallService {
         name: Identifier::parse(name)?,
         version,
         method: method.to_owned(),
@@ -46,8 +45,7 @@ pub fn lookup<A: Serialize, R: DeserializeOwned>(
     args: &A,
 ) -> Result<Option<R>>
 {
-    match call(SharedRequest::CallLookup
-    {
+    match call(SharedRequest::CallLookup {
         api: Identifier::parse(api)?,
         world,
         pos,

@@ -36,6 +36,7 @@ macro_rules! host_calls
     ($($group:ident($call:ident),)*) =>
     {
         #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+        #[allow(clippy::large_enum_variant)]
         pub enum HostCall
         {
             $($group($call),)*
@@ -48,8 +49,7 @@ macro_rules! host_calls
     };
 }
 
-host_calls!
-{
+host_calls! {
     Content(ContentRequest),
     Registry(RegistryRequest),
     Worldgen(WorldgenRequest),

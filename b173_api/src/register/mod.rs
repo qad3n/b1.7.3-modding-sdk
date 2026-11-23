@@ -17,14 +17,12 @@ mod ui;
 mod world;
 
 pub use blocks::{BlockSpecBuilder, Blocks};
-pub use builders::
-{
+pub use builders::{
     Achievement, Attribute, Build, DamageType, Effect, Energy, EnergyBuffer, Fluid, GameRule, Particle, Property, Stat,
     Tank, Tile, Variant,
 };
 pub(crate) use content::registered;
-pub use content::
-{
+pub use content::{
     Achievements, Attachments, Attributes, Components, ConfigTasks, DamageTypes, Effects, Energies, Fluids, GameRules,
     Loot, LootQuery, Particles, PoolBuilder, Stats, Tags, registryList, tagValues, tagsOf,
 };

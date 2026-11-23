@@ -562,8 +562,7 @@ impl Default for TankSpec
 {
     fn default() -> TankSpec
     {
-        TankSpec
-        {
+        TankSpec {
             capacity: 0,
             accepts: Vec::new(),
             input_faces: EnergyBufferSpec::ALL_FACES,
@@ -600,8 +599,7 @@ impl Default for EnergyBufferSpec
 {
     fn default() -> EnergyBufferSpec
     {
-        EnergyBufferSpec
-        {
+        EnergyBufferSpec {
             kind: String::new(),
             capacity: 0,
             input: 0,
@@ -793,8 +791,7 @@ mod tests
     #[test]
     fn blockSpecSurvivesPostcard()
     {
-        let spec: BlockSpec = BlockSpec
-        {
+        let spec: BlockSpec = BlockSpec {
             template: Some(Identifier::minecraft("stone")),
             hardness: Some(3.0),
             tool: Some(ToolSpec { class: ToolClass::Pickaxe, level: 2 }),
@@ -1022,8 +1019,7 @@ impl Default for GameRuleSpec
 {
     fn default() -> GameRuleSpec
     {
-        GameRuleSpec
-        {
+        GameRuleSpec {
             default: crate::abi::GameRuleValue::Bool(false),
             category: GameRuleCategory::Misc,
             min: i32::MIN,
@@ -1386,8 +1382,7 @@ impl From<LootPoolSpec> for ConditionalPoolSpec
         let entries: Vec<ConditionalLootSpec> = pool
             .entries
             .into_iter()
-            .map(|entry| ConditionalLootSpec
-            {
+            .map(|entry| ConditionalLootSpec {
                 item: entry.item,
                 meta: entry.meta,
                 count: entry.count,
@@ -1412,11 +1407,9 @@ impl ConditionalPoolSpec
         let entries: Option<Vec<WeightedLootSpec>> = self
             .entries
             .iter()
-            .map(|entry|
-            {
+            .map(|entry| {
                 let ruled: bool = !entry.when.is_empty() || !entry.unless.is_empty() || entry.count_by.is_some();
-                (!ruled).then(|| WeightedLootSpec
-                {
+                (!ruled).then(|| WeightedLootSpec {
                     item: entry.item.clone(),
                     meta: entry.meta,
                     count: entry.count,

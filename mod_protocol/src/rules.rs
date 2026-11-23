@@ -1,5 +1,4 @@
-use crate::abi::
-{
+use crate::abi::{
     ContentRequest, EntityRequest, HostCall, InventoryRequest, MediaRequest, MetaRequest, NetRequest, PlayerRequest,
     RegistryRequest, ScreenRequest, SharedRequest, StoredRequest, ViewerRequest, WorldRequest, WorldgenRequest,
 };

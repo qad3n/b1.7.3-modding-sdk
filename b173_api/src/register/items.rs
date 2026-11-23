@@ -42,14 +42,12 @@ impl ItemSpecBuilder
 
     pub fn template(template: &str) -> ItemSpecBuilder
     {
-        ItemSpecBuilder
-        {
+        ItemSpecBuilder {
             m_spec: ItemSpec { template: super::named(Identifier::parse(template), "template"), ..ItemSpec::default() },
         }
     }
 
-    setters!
-    {
+    setters! {
         texture(&str) => texture;
         name(&str) => name;
         maxStack(i32) => max_stack;

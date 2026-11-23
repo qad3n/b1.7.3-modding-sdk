@@ -93,8 +93,7 @@ fn register(ctx: &mut RegisterCtx) -> Result<()>
             .behavior(GeneratorBlock),
     )?;
 
-    ctx.events().onCustom(energy_api::CHANGED_EVENT, Priority::Monitor, |event|
-    {
+    ctx.events().onCustom(energy_api::CHANGED_EVENT, Priority::Monitor, |event| {
         if let Some((_, data)) = event.custom()
             && let Ok(changed) = fromBytes::<Changed>(data)
             && changed.stored.0 >= 10000

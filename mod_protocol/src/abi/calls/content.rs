@@ -1,7 +1,6 @@
 use crate::Identifier;
 use crate::abi::{Handle, ItemModelSpec, LootTarget, RegistryKind};
-use crate::spec::
-{
+use crate::spec::{
     BlockModifySpec, BlockSpec, BlockStatesSpec, EntitySpec, ItemSpec, LootSpec, MachineRecipeSpec, MachineSpec,
     RecipeSpec, SpawnModifySpec, TileEntitySpec,
 };

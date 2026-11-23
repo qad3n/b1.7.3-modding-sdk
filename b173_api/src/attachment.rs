@@ -1,8 +1,7 @@
 use crate::events::Event;
 use crate::rt::call;
 use crate::{BlockCtx, Entity, Player, Result, World, dispatch, expectUnit, ownIdentifier};
-use mod_protocol::abi::
-{
+use mod_protocol::abi::{
     AttachmentChange, BlockPos, EventKind, Holder, HostReply, MetaRequest, Priority, StoredRequest, attachmentEvent,
 };
 use mod_protocol::spec::AttachmentSpec;
@@ -65,8 +64,7 @@ impl<T: Serialize + DeserializeOwned> Attachment<T>
     {
         let name: &'static str = self.m_name;
         let custom: mod_protocol::Identifier = attachmentEvent(&ownIdentifier(name)?);
-        let handle: u32 = dispatch::addEvent(Rc::new(move |event: &mut Event|
-        {
+        let handle: u32 = dispatch::addEvent(Rc::new(move |event: &mut Event| {
             let Some((_, bytes)) = event.custom()
             else
             {
@@ -80,8 +78,7 @@ impl<T: Serialize + DeserializeOwned> Attachment<T>
             }
         }));
 
-        expectUnit(call(MetaRequest::Subscribe
-        {
+        expectUnit(call(MetaRequest::Subscribe {
             kind: EventKind::Custom,
             custom: Some(custom),
             priority: Priority::Normal,

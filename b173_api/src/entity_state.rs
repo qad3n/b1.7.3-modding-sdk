@@ -37,8 +37,7 @@ impl<T: Serialize + DeserializeOwned + Default> EntityState<T>
 
     pub fn find(&self, entity: Entity) -> Option<T>
     {
-        let call: StoredRequest = StoredRequest::EntityValue
-        {
+        let call: StoredRequest = StoredRequest::EntityValue {
             world: entity.world.dimension,
             id: entity.id,
             key: self.m_key.to_owned(),
@@ -70,8 +69,7 @@ impl<T: Serialize + DeserializeOwned + Default> EntityState<T>
 
     fn write(&self, entity: Entity, data: Vec<u8>) -> Result<()>
     {
-        expectUnit(call(StoredRequest::SetEntityValue
-        {
+        expectUnit(call(StoredRequest::SetEntityValue {
             world: entity.world.dimension,
             id: entity.id,
             key: self.m_key.to_owned(),

@@ -93,8 +93,7 @@ fn register(ctx: &mut RegisterCtx) -> Result<()>
     ctx.services().provide(energy_api::SERVICE, energy_api::VERSION, Network)?;
     ctx.services().lookup(energy_api::LOOKUP, "battery", BatteryLookup)?;
 
-    ctx.services().onInterMod(|from, kind, data|
-    {
+    ctx.services().onInterMod(|from, kind, data| {
         let text: String = fromBytes(data).unwrap_or_default();
         log(&format!("{from} sent {kind}: {text}"));
     });

@@ -9,8 +9,7 @@ pub fn mod_main(_args: TokenStream, input: TokenStream) -> TokenStream
     let function: ItemFn = parse_macro_input!(input as ItemFn);
     let name: &Ident = &function.sig.ident;
 
-    quote!
-    {
+    quote! {
         #function
 
         #[unsafe(no_mangle)]
@@ -32,8 +31,7 @@ fn behavior(input: TokenStream) -> TokenStream
         })
         .collect();
 
-    item.items.push(syn::parse_quote!
-    {
+    item.items.push(syn::parse_quote! {
         fn overridden(&self) -> &'static [&'static str] { &[#(#names),*] }
     });
 

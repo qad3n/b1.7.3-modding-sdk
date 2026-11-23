@@ -1,13 +1,11 @@
 use super::{Entity, World, encode, encodeStored};
 use crate::rt::{call, fire};
-use crate::
-{
+use crate::{
     IntoName, ItemStack, Result, expectBool, expectEntities, expectFloat, expectInt, expectStack, expectText,
     expectUnit, fetchData,
 };
 use mod_protocol::Identifier;
-use mod_protocol::abi::
-{
+use mod_protocol::abi::{
     BlockPos, EntityField, EntityInfo, InventoryRequest, NetRequest, PlayerRequest, RegistryRequest, ScreenRequest,
     StackData, StoredRequest, Target, WorldRequest,
 };
@@ -62,8 +60,7 @@ impl Player
     /// needs api 1.20, ticks left on the item in use, 0 when nothing is in use
     pub fn itemInUse(self) -> i32
     {
-        self.info().map_or(0, |info|
-        {
+        self.info().map_or(0, |info| {
             Entity { world: World { dimension: info.world }, id: self.id }.field(EntityField::ItemInUse) as i32
         })
     }
@@ -173,8 +170,7 @@ impl Player
 
     pub fn setData<T: Serialize>(self, key: &str, value: &T) -> Result<()>
     {
-        expectUnit(call(StoredRequest::SetPlayerData
-        {
+        expectUnit(call(StoredRequest::SetPlayerData {
             player: self.id,
             key: key.to_owned(),
             data: encodeStored(value),
