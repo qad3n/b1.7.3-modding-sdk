@@ -84,3 +84,8 @@ cargo clippy --target wasm32-unknown-unknown --workspace --exclude mod_tool
 ```
 
 Example textures are not in the repo. Add PNGs under `examples/<mod>/assets/<mod>/textures/` before you run the examples in game.
+
+## License
+
+Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or [MIT license](LICENSE-MIT) at your
+option.
