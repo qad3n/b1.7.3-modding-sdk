@@ -74,7 +74,8 @@ impl Effect
         self
     }
 
-    /// the texture the hud draws for it, a colour square without one
+    /// the texture the hud draws for it, a colour square without one; `name#index` picks status icon index from a
+    /// 256 square sheet laid out like later inventory.png, 18 pixel icons eight per row from y 198
     pub fn icon(mut self, texture: &str) -> Self
     {
         self.m_spec.icon = Some(texture.to_owned());
